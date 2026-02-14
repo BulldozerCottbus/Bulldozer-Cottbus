@@ -1,254 +1,102 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Rocker Empire</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<meta name="apple-mobile-web-app-capable" content="yes" />
-<meta name="apple-mobile-web-app-status-bar-style" content="black" />
+<title>Chapter App</title>
 
-<style>
-:root{
-  --bg:#0e0e0e; --card:#1a1a1a; --accent:#b30000; --muted:#9aa0a6;
-  --radius:14px;
-}
-*{box-sizing:border-box;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,Arial}
-html,body{margin:0;background:var(--bg);color:#fff}
-.screen{display:none;padding:16px}
-.screen.active{display:block}
-h1,h2,h3{margin:10px 0;text-align:center}
-button{
-  width:100%; padding:14px; margin:8px 0;
-  background:var(--accent); color:#fff; border:0; border-radius:var(--radius);
-  font-size:16px; cursor:pointer
-}
-button.secondary{background:#333}
-.card{
-  background:var(--card); padding:14px; border-radius:var(--radius); margin-bottom:12px
-}
-.row{display:flex; gap:10px}
-.row > *{flex:1}
-input,select{
-  width:100%; padding:12px; border-radius:12px; border:1px solid #333;
-  background:#0b0b0b; color:#fff
-}
-nav{
-  display:flex; gap:6px; justify-content:space-around;
-  background:#111; position:sticky; top:0; padding:6px
-}
-nav button{background:#222; font-size:14px}
-.small{color:var(--muted); font-size:13px}
-.toggle{display:flex; align-items:center; justify-content:space-between}
-.range{width:100%}
-.hidden{display:none}
-
-/* Grafik-Optionen */
-.low *{filter:none}
-.medium *{filter:saturate(1.05)}
-.high *{filter:saturate(1.15) contrast(1.05)}
-
-/* Touch-Ziele */
-.touch button{padding:16px}
-.pc button{padding:12px}
-
-/* Sanfte Übergänge */
-.fade{animation:fade .2s ease}
-@keyframes fade{from{opacity:.6} to{opacity:1}}
-</style>
+<link rel="stylesheet" href="style.css">
 </head>
 
-<body class="touch medium">
+<body>
 
-<!-- START -->
-<section id="start" class="screen active fade">
-  <h1>🏍️ Rocker Empire</h1>
-  <div class="card">
-    <p class="small" style="text-align:center">
-      Core-Build • Stabil • Safari & PC
-    </p>
-    <button onclick="go('chars')">Spielen</button>
-    <button class="secondary" onclick="go('settings')">Einstellungen</button>
-  </div>
-</section>
+<header id="topBar" class="hidden">
+    <span id="rankLabel"></span> |
+    <span id="userName"></span> |
+    Punkte: <span id="points"></span>
+</header>
 
-<!-- CHAR LIST -->
-<section id="chars" class="screen fade">
-  <h2>Charaktere</h2>
-  <div id="charList"></div>
-  <button onclick="go('create')">+ Neuer Charakter</button>
-  <button class="secondary" onclick="go('start')">Zurück</button>
-</section>
-
-<!-- CREATE -->
-<section id="create" class="screen fade">
-  <h2>Neuer Charakter</h2>
-  <div class="card">
-    <input id="nameInput" placeholder="Name" />
-    <div class="row">
-      <select id="ligaInput">
-        <option value="4">Liga 4 – Einzelgänger</option>
-        <option value="3">Liga 3 – Supporter</option>
-      </select>
-      <select id="ageInput">
-        <option>21</option><option>25</option><option>30</option><option>35</option><option>40</option>
-      </select>
+<div class="container" id="loginScreen">
+    <div class="card">
+        <h3>Login</h3>
+        <input id="email" type="email" placeholder="Email">
+        <input id="password" type="password" placeholder="Passwort">
+        <button id="loginBtn">Login</button>
+        <p id="status"></p>
     </div>
-    <button onclick="createChar()">Erstellen</button>
-  </div>
-  <button class="secondary" onclick="go('chars')">Abbrechen</button>
-</section>
+</div>
 
-<!-- GAME (nur HUD in Schritt 1) -->
-<section id="game" class="screen fade">
-  <div class="card" id="hud"></div>
-  <nav>
-    <button onclick="go('chars')">👤 Charakter</button>
-    <button onclick="go('settings')">⚙️ Settings</button>
-  </nav>
-</section>
-
-<!-- SETTINGS -->
-<section id="settings" class="screen fade">
-  <h2>Einstellungen</h2>
-
-  <div class="card">
-    <h3>🎵 Musik</h3>
-    <div class="toggle">
-      <span>Menü-Musik</span>
-      <select id="musicToggle" onchange="setMusic()">
-        <option value="on">An</option>
-        <option value="off">Aus</option>
-      </select>
+<div class="container hidden" id="homeScreen">
+    <div class="card">
+        <button onclick="showScreen('infos')">📢 Infos</button>
+        <button onclick="showScreen('rides')">🏍 Ausfahrten</button>
+        <button onclick="showScreen('notes')">📝 Notizen</button>
+        <button onclick="showScreen('calc')">🧮 Rechner</button>
+        <button onclick="showScreen('files')">📁 Dateien</button>
+        <button onclick="logout()">🚪 Logout</button>
     </div>
-    <input class="range" id="musicVol" type="range" min="0" max="100" value="40" oninput="setMusic()" />
-    <div class="small">Lautstärke</div>
-  </div>
+</div>
 
-  <div class="card">
-    <h3>🎨 Grafik</h3>
-    <select id="gfx" onchange="setGfx()">
-      <option value="low">Low</option>
-      <option value="medium" selected>Medium</option>
-      <option value="high">High</option>
-    </select>
-  </div>
+<div class="container hidden" id="infos">
+    <div class="card">
+        <h3>Infos</h3>
+        <div id="infosList"></div>
 
-  <div class="card">
-    <h3>🕹️ Steuerung</h3>
-    <select id="inputMode" onchange="setInput()">
-      <option value="touch" selected>Handy (Touch)</option>
-      <option value="pc">PC (Maus/Tastatur)</option>
-    </select>
-    <div class="small">Passt Button-Größe & Spacing an</div>
-  </div>
+        <textarea id="newInfoText" placeholder="Neue Info"></textarea>
+        <button id="postInfoBtn" class="hidden">Posten</button>
 
-  <button class="secondary" onclick="go('start')">Zurück</button>
-</section>
+        <button onclick="backHome()">⬅ Zurück</button>
+    </div>
+</div>
 
-<!-- AUDIO (ruhige Menü-Musik, frei verwendbar) -->
-<audio id="music" loop>
-  <source src="https://cdn.pixabay.com/download/audio/2022/03/15/audio_0a8e7a9e2a.mp3?filename=ambient-piano-logo-112194.mp3" type="audio/mpeg">
-</audio>
+<div class="container hidden" id="rides">
+    <div class="card">
+        <h3>Ausfahrten</h3>
+        <div id="ridesList"></div>
 
-<script>
-/* ================= CORE NAV ================= */
-function go(id){
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
+        <textarea id="rideText" placeholder="Neue Ausfahrt"></textarea>
 
-/* ================= STATE ================= */
-const SAVE_KEY="re_core_v1";
-let chars=[];
-let current=null;
+        <select id="ridePriority">
+            <option value="1">Locker</option>
+            <option value="2">Wichtig</option>
+            <option value="3">Pflicht</option>
+        </select>
 
-/* ================= SAVE / LOAD ================= */
-function save(){
-  localStorage.setItem(SAVE_KEY, JSON.stringify({chars, settings: getSettings()}));
-}
-function load(){
-  const raw=localStorage.getItem(SAVE_KEY);
-  if(!raw) return;
-  try{
-    const data=JSON.parse(raw);
-    chars=data.chars||[];
-    applySettings(data.settings||{});
-  }catch(e){}
-}
+        <button id="createRideBtn" class="hidden">Speichern</button>
 
-/* ================= CHAR ================= */
-function createChar(){
-  const c={
-    name: nameInput.value || "Rider",
-    liga: +ligaInput.value,
-    age: +ageInput.value
-  };
-  chars.push(c);
-  save();
-  renderChars();
-  go('chars');
-}
-function renderChars(){
-  charList.innerHTML="";
-  chars.forEach((c,i)=>{
-    const b=document.createElement('button');
-    b.textContent=`${c.name} (Liga ${c.liga})`;
-    b.onclick=()=>startGame(i);
-    charList.appendChild(b);
-  });
-}
-function startGame(i){
-  current=i;
-  hud.innerHTML = `
-    <h3>${chars[i].name}</h3>
-    <div class="small">Liga ${chars[i].liga} • Alter ${chars[i].age}</div>
-    <p class="small">Schritt 1 aktiv – Core stabil</p>
-  `;
-  go('game');
-}
+        <button onclick="backHome()">⬅ Zurück</button>
+    </div>
+</div>
 
-/* ================= SETTINGS ================= */
-const musicEl=document.getElementById('music');
-function setMusic(){
-  const on = document.getElementById('musicToggle').value === 'on';
-  const vol = document.getElementById('musicVol').value/100;
-  musicEl.volume = vol;
-  if(on){ musicEl.play().catch(()=>{}); }
-  else{ musicEl.pause(); }
-  save();
-}
-function setGfx(){
-  document.body.classList.remove('low','medium','high');
-  document.body.classList.add(document.getElementById('gfx').value);
-  save();
-}
-function setInput(){
-  document.body.classList.remove('touch','pc');
-  document.body.classList.add(document.getElementById('inputMode').value);
-  save();
-}
-function getSettings(){
-  return {
-    musicToggle: document.getElementById('musicToggle').value,
-    musicVol: document.getElementById('musicVol').value,
-    gfx: document.getElementById('gfx').value,
-    inputMode: document.getElementById('inputMode').value
-  };
-}
-function applySettings(s){
-  if(!s) return;
-  if(s.musicToggle) document.getElementById('musicToggle').value=s.musicToggle;
-  if(s.musicVol) document.getElementById('musicVol').value=s.musicVol;
-  if(s.gfx){ document.getElementById('gfx').value=s.gfx; setGfx(); }
-  if(s.inputMode){ document.getElementById('inputMode').value=s.inputMode; setInput(); }
-  setMusic();
-}
+<div class="container hidden" id="notes">
+    <div class="card">
+        <textarea id="noteText" placeholder="Notiz"></textarea>
+        <button id="saveNoteBtn">Speichern</button>
+        <button onclick="backHome()">⬅ Zurück</button>
+    </div>
+</div>
 
-/* ================= INIT ================= */
-load();
-renderChars();
-applySettings(getSettings());
-</script>
+<div class="container hidden" id="calc">
+    <div class="card">
+        <input id="calcDisplay" placeholder="Rechnung">
+        <button id="calcBtn">Berechnen</button>
+        <button id="saveCalcBtn">Speichern</button>
+        <button onclick="backHome()">⬅ Zurück</button>
+    </div>
+</div>
+
+<div class="container hidden" id="files">
+    <div class="card">
+        <h3>Dateien</h3>
+        <div id="filesNotes"></div>
+        <div id="filesCalcs"></div>
+        <button onclick="backHome()">⬅ Zurück</button>
+    </div>
+</div>
+
+<script type="module" src="firebase.js"></script>
+<script type="module" src="app.js"></script>
+
 </body>
 </html>
