@@ -1,0 +1,38 @@
+body {
+    margin: 0;
+    font-family: Arial;
+    background: #0f0f0f;
+    color: white;
+}
+header {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    background: black;
+    padding: 12px;
+    text-align: center;
+}
+.container {
+    padding: 80px 15px;
+    max-width: 500px;
+    margin: auto;
+}
+.card {
+    background: #181818;
+    padding: 15px;
+    border-radius: 10px;
+}
+button {
+    width: 100%;
+    padding: 14px;
+    background: orange;
+    border: none;
+    margin-top: 6px;
+}
+input, textarea, select {
+    width: 100%;
+    padding: 10px;
+    background: #222;
+    color: white;
+}
+.hidden { display: none; }
