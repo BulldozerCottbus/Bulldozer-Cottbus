@@ -72,7 +72,16 @@
 <div class="container hidden" id="notes">
     <div class="card">
         <textarea id="noteText" placeholder="Notiz"></textarea>
+
+        <select id="noteTarget">
+            <option value="">Nur für mich speichern</option>
+        </select>
+
         <button id="saveNoteBtn">Speichern</button>
+
+        <h3>Meine Notizen</h3>
+        <div id="myNotes"></div>
+
         <button onclick="backHome()">⬅ Zurück</button>
     </div>
 </div>
