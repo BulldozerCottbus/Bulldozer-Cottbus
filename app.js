@@ -13,7 +13,9 @@ import {
     collection,
     getDocs,
     query,
-    where
+    where,
+    deleteDoc,
+    updateDoc
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* ===================================================== */
@@ -547,4 +549,43 @@ window.addPoints = async (targetUid, amount) => {
     });
 
     alert("Punkte vergeben");
+};
+
+/* ===================================================== */
+/* TASK REWARD SYSTEM */
+/* ===================================================== */
+
+window.markTaskDone = async id => {
+
+    const ref = doc(db,"tasks",id);
+    const snap = await getDoc(ref);
+
+    const task = snap.data();
+
+    await updateDoc(ref,{
+        status: "done"
+    });
+
+    if (task.to) {
+
+        const reward = 5;
+
+        const userRef = doc(db,"users",task.to);
+        const userSnap = await getDoc(userRef);
+
+        const current = userSnap.data().rPoints || 0;
+
+        await updateDoc(userRef,{
+            rPoints: current + reward
+        });
+
+        await addDoc(collection(db,"points_log"),{
+            targetUid: task.to,
+            amount: reward,
+            by: "system_task_reward",
+            time: Date.now()
+        });
+    }
+
+    loadTasks();
 };
