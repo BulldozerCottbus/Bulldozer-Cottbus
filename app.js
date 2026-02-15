@@ -71,10 +71,12 @@ onAuthStateChanged(auth, async user => {
 
     applyRankRights(data.rank);
 
-    loadInfos();
-    loadRides();
-    loadFiles();
-    loadHelp();
+   loadInfos();
+loadRides();
+loadFiles();
+loadHelp();
+loadUsersForNotes();
+loadMyNotes();
 });
 
 /* ===================================================== */
@@ -296,3 +298,92 @@ window.showScreen = id => {
 };
 
 window.backHome = () => showScreen("homeScreen");
+
+/* ===================================================== */
+/* USERS FÜR NOTIZEN LADEN */
+/* ===================================================== */
+
+async function loadUsersForNotes(){
+
+    if (!document.getElementById("noteTarget")) return;
+
+    noteTarget.innerHTML = `<option value="">Nur für mich speichern</option>`;
+
+    const snaps = await getDocs(collection(db,"users"));
+
+    snaps.forEach(docSnap => {
+
+        const data = docSnap.data();
+
+        noteTarget.innerHTML += `
+            <option value="${docSnap.id}">
+                ${data.name}
+            </option>
+        `;
+    });
+}
+
+/* ===================================================== */
+/* NOTIZEN SPEICHERN ERWEITERT */
+/* ===================================================== */
+
+window.saveNote = async () => {
+
+    if (!noteText.value) return;
+
+    const target = noteTarget?.value || CURRENT_UID;
+
+    await addDoc(collection(db,"notes"),{
+        from: CURRENT_UID,
+        to: target || CURRENT_UID,
+        text: noteText.value,
+        time: Date.now()
+    });
+
+    noteText.value = "";
+
+    loadFiles();
+    loadMyNotes();
+};
+
+/* ===================================================== */
+/* EIGENE NOTIZEN LADEN */
+/* ===================================================== */
+
+async function loadMyNotes(){
+
+    if (!document.getElementById("myNotes")) return;
+
+    myNotes.innerHTML = "";
+
+    const snaps = await getDocs(query(
+        collection(db,"notes"),
+        where("to","==",CURRENT_UID)
+    ));
+
+    snaps.forEach(docSnap => {
+
+        const n = docSnap.data();
+
+        myNotes.innerHTML += `
+            <div class="card">
+                ${n.text}
+                <button onclick="deleteNote('${docSnap.id}')">
+                    Löschen
+                </button>
+            </div>
+        `;
+    });
+}
+
+/* ===================================================== */
+/* NOTIZ LÖSCHEN */
+/* ===================================================== */
+
+window.deleteNote = async (id) => {
+
+    await deleteDoc(doc(db,"notes",id));
+
+    loadMyNotes();
+    loadFiles();
+};
