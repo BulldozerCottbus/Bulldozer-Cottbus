@@ -356,21 +356,27 @@ async function loadMyNotes(){
 
     myNotes.innerHTML = "";
 
-    const snaps = await getDocs(query(
-        collection(db,"notes"),
-        where("to","==",CURRENT_UID)
-    ));
+    const snaps = await getDocs(collection(db,"notes"));
 
     snaps.forEach(docSnap => {
 
         const n = docSnap.data();
 
+        /* Sichtbarkeitslogik */
+
+        if (!canViewAllNotes()) {
+
+            if (n.to !== CURRENT_UID && n.from !== CURRENT_UID) return;
+        }
+
+        const deleteButton = canDeleteNote(n)
+            ? `<button onclick="deleteNote('${docSnap.id}')">Löschen</button>`
+            : "";
+
         myNotes.innerHTML += `
             <div class="card">
                 ${n.text}
-                <button onclick="deleteNote('${docSnap.id}')">
-                    Löschen
-                </button>
+                ${deleteButton}
             </div>
         `;
     });
@@ -387,3 +393,28 @@ window.deleteNote = async (id) => {
     loadMyNotes();
     loadFiles();
 };
+
+/* ===================================================== */
+/* RANGRECHTE / SICHTBARKEIT */
+/* ===================================================== */
+
+function canViewAllNotes(){
+
+    return [
+        "president",
+        "vice_president",
+        "sergeant_at_arms",
+        "secretary"
+    ].includes(CURRENT_RANK);
+}
+
+function canDeleteNote(note){
+
+    /* Führung darf alles löschen */
+
+    if (canViewAllNotes()) return true;
+
+    /* Sonst nur eigene */
+
+    return note.from === CURRENT_UID;
+}
