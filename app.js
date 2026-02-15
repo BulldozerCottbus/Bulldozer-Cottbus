@@ -77,6 +77,8 @@ loadFiles();
 loadHelp();
 loadUsersForNotes();
 loadMyNotes();
+loadUsersForTasks();
+loadTasks();
 });
 
 /* ===================================================== */
@@ -420,6 +422,87 @@ function canDeleteNote(note){
     /* Führung darf alles löschen */
 
     if (canViewAllNotes()) return true;
+    
+/* ===================================================== */
+/* TASK SYSTEM */
+/* ===================================================== */
+
+async function loadUsersForTasks(){
+
+    if (!document.getElementById("taskTarget")) return;
+
+    taskTarget.innerHTML = `<option value="">An mich selbst</option>`;
+
+    const snaps = await getDocs(collection(db,"users"));
+
+    snaps.forEach(docSnap => {
+
+        const data = docSnap.data();
+
+        taskTarget.innerHTML += `
+            <option value="${docSnap.id}">
+                ${data.name}
+            </option>
+        `;
+    });
+}
+
+createTaskBtn.onclick = async () => {
+
+    if (!taskText.value) return;
+
+    await addDoc(collection(db,"tasks"),{
+        from: CURRENT_UID,
+        to: taskTarget.value || CURRENT_UID,
+        text: taskText.value,
+        status: "open",
+        time: Date.now()
+    });
+
+    taskText.value = "";
+
+    loadTasks();
+};
+
+async function loadTasks(){
+
+    if (!document.getElementById("taskList")) return;
+
+    taskList.innerHTML = "";
+
+    const snaps = await getDocs(collection(db,"tasks"));
+
+    snaps.forEach(docSnap => {
+
+        const t = docSnap.data();
+
+        if (!canViewAllNotes()) {
+            if (t.to !== CURRENT_UID) return;
+        }
+
+        const doneButton = `
+            <button onclick="markTaskDone('${docSnap.id}')">
+                Erledigt
+            </button>
+        `;
+
+        taskList.innerHTML += `
+            <div class="card task-${t.status}">
+                ${t.text}
+                ${doneButton}
+            </div>
+        `;
+    });
+}
+
+window.markTaskDone = async id => {
+
+    await updateDoc(doc(db,"tasks",id),{
+        status: "done"
+    });
+
+    loadTasks();
+};
 
     /* Sonst nur eigene */
 
