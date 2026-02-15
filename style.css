@@ -55,3 +55,11 @@ input, textarea, select {
     border-left: 4px solid orange;
     background: #2a1a00;
 }
+.task-open {
+    border-left: 4px solid orange;
+}
+
+.task-done {
+    border-left: 4px solid green;
+    opacity: 0.6;
+}
