@@ -508,3 +508,43 @@ window.markTaskDone = async id => {
 
     return note.from === CURRENT_UID;
 }
+
+/* ===================================================== */
+/* R.PUNKTE SYSTEM */
+/* ===================================================== */
+
+function hasOfficerRights(){
+    return [
+        "president",
+        "vice_president",
+        "sergeant_at_arms"
+    ].includes(CURRENT_RANK);
+}
+
+/* Punkte vergeben */
+
+window.addPoints = async (targetUid, amount) => {
+
+    if (!hasOfficerRights()) {
+        alert("Keine Berechtigung");
+        return;
+    }
+
+    const ref = doc(db,"users",targetUid);
+    const snap = await getDoc(ref);
+
+    const current = snap.data().rPoints || 0;
+
+    await updateDoc(ref,{
+        rPoints: current + Number(amount)
+    });
+
+    await addDoc(collection(db,"points_log"),{
+        targetUid,
+        amount: Number(amount),
+        by: CURRENT_UID,
+        time: Date.now()
+    });
+
+    alert("Punkte vergeben");
+};
