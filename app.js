@@ -176,15 +176,21 @@ window.saveNote = async () => {
 
     if (!noteText.value) return;
 
-    await addDoc(collection(db, "notes"), {
-        uid: CURRENT_UID,
+    const target = noteTarget?.value || CURRENT_UID;
+    const type = noteType?.value || "privat";
+
+    await addDoc(collection(db,"notes"),{
+        from: CURRENT_UID,
+        to: target || CURRENT_UID,
         text: noteText.value,
+        type: type,
         time: Date.now()
     });
 
     noteText.value = "";
 
     loadFiles();
+    loadMyNotes();
 };
 
 /* ===================================================== */
