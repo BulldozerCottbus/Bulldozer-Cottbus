@@ -379,12 +379,13 @@ async function loadMyNotes(){
             ? `<button onclick="deleteNote('${docSnap.id}')">Löschen</button>`
             : "";
 
-        myNotes.innerHTML += `
-            <div class="card">
-                ${n.text}
-                ${deleteButton}
-            </div>
-        `;
+myNotes.innerHTML += `
+    <div class="card note-${n.type || "privat"}">
+        <b>${(n.type || "privat").toUpperCase()}</b><br>
+        ${n.text}
+        ${deleteButton}
+    </div>
+`;
     });
 }
 
