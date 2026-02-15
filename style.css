@@ -36,3 +36,21 @@ input, textarea, select {
     color: white;
 }
 .hidden { display: none; }
+
+.note-privat {
+    border-left: 4px solid gray;
+}
+
+.note-club {
+    border-left: 4px solid dodgerblue;
+}
+
+.note-wichtig {
+    border-left: 4px solid red;
+    background: #2a0000;
+}
+
+.note-auftrag {
+    border-left: 4px solid orange;
+    background: #2a1a00;
+}
