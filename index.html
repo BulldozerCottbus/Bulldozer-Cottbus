@@ -39,10 +39,19 @@
     </div>
 </div>
 
+<!-- ✅ EINZIGER NOTIZEN SCREEN -->
+
 <div class="container hidden" id="notes">
     <div class="card">
 
         <textarea id="noteText" placeholder="Notiz"></textarea>
+
+        <select id="noteType">
+            <option value="privat">Privat</option>
+            <option value="club">Club Info</option>
+            <option value="wichtig">Wichtig</option>
+            <option value="auftrag">Auftrag</option>
+        </select>
 
         <select id="noteTarget">
             <option value="">Nur für mich speichern</option>
@@ -57,6 +66,8 @@
 
     </div>
 </div>
+
+<!-- ✅ RIDES -->
 
 <div class="container hidden" id="rides">
     <div class="card">
@@ -77,22 +88,30 @@
     </div>
 </div>
 
-<div class="container hidden" id="notes">
-    <div class="card">
-        <textarea id="noteText" placeholder="Notiz"></textarea>
+<!-- ✅ TASKS -->
 
-        <select id="noteTarget">
-            <option value="">Nur für mich speichern</option>
+<div class="container hidden" id="tasks">
+    <div class="card">
+
+        <h3>Aufgaben</h3>
+
+        <textarea id="taskText" placeholder="Neue Aufgabe"></textarea>
+
+        <select id="taskTarget">
+            <option value="">An mich selbst</option>
         </select>
 
-        <button id="saveNoteBtn">Speichern</button>
+        <button id="createTaskBtn">Speichern</button>
 
-        <h3>Meine Notizen</h3>
-        <div id="myNotes"></div>
+        <h3>Offene Aufgaben</h3>
+        <div id="taskList"></div>
 
         <button onclick="backHome()">⬅ Zurück</button>
+
     </div>
 </div>
+
+<!-- ✅ RECHNER -->
 
 <div class="container hidden" id="calc">
     <div class="card">
@@ -102,6 +121,8 @@
         <button onclick="backHome()">⬅ Zurück</button>
     </div>
 </div>
+
+<!-- ✅ DATEIEN -->
 
 <div class="container hidden" id="files">
     <div class="card">
