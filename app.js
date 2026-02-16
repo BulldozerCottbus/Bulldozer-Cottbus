@@ -484,11 +484,6 @@ window.markTaskDone = async id => {
     loadTasks();
 };
 
-    /* Sonst nur eigene */
-
-    return note.from === CURRENT_UID;
-}
-
 /* ===================================================== */
 /* OFFICER & ADMIN RIGHTS ENGINE */
 /* ===================================================== */
@@ -534,19 +529,6 @@ window.addPoints = async (targetUid, amount) => {
     });
 
     alert("Punkte vergeben");
-};
-
-/* ===================================================== */
-/* AUFGABEN STATUS SYSTEM (OHNE PUNKTE) */
-/* ===================================================== */
-
-window.markTaskDone = async id => {
-
-    await updateDoc(doc(db,"tasks",id),{
-        status: "done"
-    });
-
-    loadTasks();
 };
 
 /* ===================================================== */
