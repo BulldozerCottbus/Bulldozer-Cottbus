@@ -523,7 +523,26 @@ function hasOfficerRights(){
     ].includes(CURRENT_RANK);
 }
 
-/* Punkte vergeben */
+/* ===================================================== */
+/* OFFICER & ADMIN RIGHTS ENGINE */
+/* ===================================================== */
+
+function isAdmin(){
+    return CURRENT_RANK === "admin";
+}
+
+function hasOfficerRights(){
+
+    return [
+        "president",
+        "vice_president",
+        "sergeant_at_arms"
+    ].includes(CURRENT_RANK) || isAdmin();
+}
+
+/* ===================================================== */
+/* MANUELLE PUNKTEVERGABE */
+/* ===================================================== */
 
 window.addPoints = async (targetUid, amount) => {
 
@@ -552,40 +571,14 @@ window.addPoints = async (targetUid, amount) => {
 };
 
 /* ===================================================== */
-/* TASK REWARD SYSTEM */
+/* AUFGABEN STATUS SYSTEM (OHNE PUNKTE) */
 /* ===================================================== */
 
 window.markTaskDone = async id => {
 
-    const ref = doc(db,"tasks",id);
-    const snap = await getDoc(ref);
-
-    const task = snap.data();
-
-    await updateDoc(ref,{
+    await updateDoc(doc(db,"tasks",id),{
         status: "done"
     });
-
-    if (task.to) {
-
-        const reward = 5;
-
-        const userRef = doc(db,"users",task.to);
-        const userSnap = await getDoc(userRef);
-
-        const current = userSnap.data().rPoints || 0;
-
-        await updateDoc(userRef,{
-            rPoints: current + reward
-        });
-
-        await addDoc(collection(db,"points_log"),{
-            targetUid: task.to,
-            amount: reward,
-            by: "system_task_reward",
-            time: Date.now()
-        });
-    }
 
     loadTasks();
 };
