@@ -63,3 +63,9 @@ input, textarea, select {
     border-left: 4px solid green;
     opacity: 0.6;
 }
+
+#secretaryScreen input,
+#secretaryScreen textarea,
+#secretaryScreen select {
+    margin-top: 6px;
+}
