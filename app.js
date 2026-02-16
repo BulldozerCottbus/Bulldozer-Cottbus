@@ -334,29 +334,6 @@ async function loadUsersForNotes(){
 }
 
 /* ===================================================== */
-/* NOTIZEN SPEICHERN ERWEITERT */
-/* ===================================================== */
-
-window.saveNote = async () => {
-
-    if (!noteText.value) return;
-
-    const target = noteTarget?.value || CURRENT_UID;
-
-    await addDoc(collection(db,"notes"),{
-        from: CURRENT_UID,
-        to: target || CURRENT_UID,
-        text: noteText.value,
-        time: Date.now()
-    });
-
-    noteText.value = "";
-
-    loadFiles();
-    loadMyNotes();
-};
-
-/* ===================================================== */
 /* EIGENE NOTIZEN LADEN */
 /* ===================================================== */
 
@@ -421,10 +398,11 @@ function canViewAllNotes(){
 
 function canDeleteNote(note){
 
-    /* Führung darf alles löschen */
-
     if (canViewAllNotes()) return true;
-    
+
+    return note.from === CURRENT_UID;
+}
+
 /* ===================================================== */
 /* TASK SYSTEM */
 /* ===================================================== */
@@ -509,18 +487,6 @@ window.markTaskDone = async id => {
     /* Sonst nur eigene */
 
     return note.from === CURRENT_UID;
-}
-
-/* ===================================================== */
-/* R.PUNKTE SYSTEM */
-/* ===================================================== */
-
-function hasOfficerRights(){
-    return [
-        "president",
-        "vice_president",
-        "sergeant_at_arms"
-    ].includes(CURRENT_RANK);
 }
 
 /* ===================================================== */
@@ -644,8 +610,12 @@ saveMemberObservation.onclick = async () => {
 };
 
 /* ===================================================== */
-/* SECRETARY ENTRY LOADER */
+/* SECRETARY DETAIL / TIMELINE SYSTEM */
 /* ===================================================== */
+
+let CURRENT_MEMBER_DOC = null;
+
+/* Einträge klickbar laden */
 
 async function loadSecretaryEntries(){
 
@@ -659,14 +629,103 @@ async function loadSecretaryEntries(){
 
         const e = docSnap.data();
 
+        let warnClass = "";
+
+        if (e.warn2) warnClass = "warn-w2";
+        else if (e.warn1) warnClass = "warn-w1";
+
         secEntries.innerHTML += `
-            <div class="card">
+            <div class="card sec-entry ${warnClass}"
+                 onclick="openMemberFile('${docSnap.id}')">
+
                 <b>${e.name}</b><br>
                 Start: ${e.startRank}<br>
-                Beitrag: ${e.contribution}€<br>
-                Warns: ${e.warn1 ? "W.1 " : ""}${e.warn2 ? "W.2" : ""}<br>
-                ${e.notes || ""}
+                Beitrag: ${e.contribution || "-"} €<br>
+                Warns: ${e.warn1 ? "W.1 " : ""}${e.warn2 ? "W.2" : ""}
             </div>
         `;
     });
 }
+
+/* Akte öffnen */
+
+window.openMemberFile = async (docId) => {
+
+    CURRENT_MEMBER_DOC = docId;
+
+    const snap = await getDoc(doc(db,"member_observations",docId));
+    const data = snap.data();
+
+    secDetail.innerHTML = `
+        <div class="card">
+            <h4>${data.name}</h4>
+            Mitglied seit: ${data.joinDate || "-"}<br>
+            Start Rang: ${data.startRank}<br>
+            Sponsor: ${data.sponsor || "-"}<br>
+            <br>
+            ${data.notes || ""}
+        </div>
+        <h4>Timeline</h4>
+        <div id="timelineList"></div>
+    `;
+
+    loadTimeline();
+};
+
+/* Timeline laden */
+
+async function loadTimeline(){
+
+    if (!CURRENT_MEMBER_DOC) return;
+
+    const snaps = await getDocs(collection(
+        db,
+        "member_observations",
+        CURRENT_MEMBER_DOC,
+        "timeline"
+    ));
+
+    const container = document.getElementById("timelineList");
+
+    container.innerHTML = "";
+
+    snaps.forEach(docSnap => {
+
+        const t = docSnap.data();
+
+        container.innerHTML += `
+            <div class="timeline-entry">
+                <b>${t.date || "-"}</b> – ${t.rank || ""}<br>
+                ${t.text}
+            </div>
+        `;
+    });
+}
+
+/* Timeline speichern */
+
+addTimelineEntry.onclick = async () => {
+
+    if (!CURRENT_MEMBER_DOC) {
+        alert("Erst Akte öffnen");
+        return;
+    }
+
+    await addDoc(collection(
+        db,
+        "member_observations",
+        CURRENT_MEMBER_DOC,
+        "timeline"
+    ),{
+        date: timelineDate.value,
+        rank: timelineRank.value,
+        text: timelineText.value,
+        by: CURRENT_UID,
+        time: Date.now()
+    });
+
+    timelineText.value = "";
+    timelineRank.value = "";
+
+    loadTimeline();
+};
