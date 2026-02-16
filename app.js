@@ -716,8 +716,6 @@ addTimelineEntry.onclick = async () => {
 /* SECRETARY PROFI SYSTEM */
 /* ===================================================== */
 
-let CURRENT_MEMBER_DOC = null;
-
 /* Akte öffnen + editierbar */
 
 window.openMemberFile = async (docId) => {
