@@ -69,3 +69,30 @@ input, textarea, select {
 #secretaryScreen select {
     margin-top: 6px;
 }
+
+.warn-w1 {
+    border-left: 5px solid gold;
+    background: #2a2400;
+}
+
+.warn-w2 {
+    border-left: 5px solid red;
+    background: #2a0000;
+}
+
+.timeline-entry {
+    border-left: 3px solid dodgerblue;
+    margin-top: 6px;
+    padding-left: 8px;
+    font-size: 14px;
+    opacity: 0.9;
+}
+
+.sec-entry {
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.sec-entry:hover {
+    transform: scale(1.02);
+}
