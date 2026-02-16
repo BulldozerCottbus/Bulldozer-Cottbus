@@ -716,47 +716,6 @@ addTimelineEntry.onclick = async () => {
 /* SECRETARY PROFI SYSTEM */
 /* ===================================================== */
 
-/* Akte öffnen + editierbar */
-
-window.openMemberFile = async (docId) => {
-
-    CURRENT_MEMBER_DOC = docId;
-
-    const snap = await getDoc(doc(db,"member_observations",docId));
-    const data = snap.data();
-
-    secDetail.innerHTML = `
-        <div class="card">
-
-            <h3>Edit Akte</h3>
-
-            <input id="editName" value="${data.name || ""}">
-            <input id="editContribution" value="${data.contribution || ""}">
-
-            <label>
-                <input type="checkbox" id="editWarn1" ${data.warn1 ? "checked" : ""}>
-                W.1
-            </label>
-
-            <label>
-                <input type="checkbox" id="editWarn2" ${data.warn2 ? "checked" : ""}>
-                W.2
-            </label>
-
-            <textarea id="editNotes">${data.notes || ""}</textarea>
-
-            <button onclick="saveMemberFile()">Speichern</button>
-            <button onclick="deleteMemberFile()">Löschen</button>
-
-        </div>
-
-        <h4>Timeline</h4>
-        <div id="timelineList"></div>
-    `;
-
-    loadTimeline();
-};
-
 /* Speichern */
 
 window.saveMemberFile = async () => {
