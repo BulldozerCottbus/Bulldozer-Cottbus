@@ -33,6 +33,7 @@
         <button onclick="showScreen('rides')">🏍 Ausfahrten</button>
         <button onclick="showScreen('notes')">📝 Notizen</button>
         <button onclick="showScreen('tasks')">📋 Aufgaben</button>
+        <button onclick="showSecretaryPanel()">📒 Secretary</button>
         <button onclick="showScreen('calc')">🧮 Rechner</button>
         <button onclick="showScreen('files')">📁 Dateien</button>
         <button onclick="logout()">🚪 Logout</button>
@@ -105,6 +106,57 @@
 
         <h3>Offene Aufgaben</h3>
         <div id="taskList"></div>
+
+        <button onclick="backHome()">⬅ Zurück</button>
+
+    </div>
+</div>
+
+    </div>
+</div>
+
+<!-- ✅ SECRETARY SCREEN HIER -->
+
+<div class="container hidden" id="secretaryScreen">
+    <div class="card">
+
+        <h3>Member Beobachtung</h3>
+
+        <input id="secName" placeholder="Name">
+
+        <input id="secJoinDate" type="date">
+
+        <select id="secStartRank">
+            <option value="supporter">Supporter</option>
+            <option value="hangaround">Hangaround</option>
+            <option value="prospect">Prospect</option>
+            <option value="member">Member</option>
+        </select>
+
+        <input id="secContribution" placeholder="Club Beitrag €">
+
+        <h4>Warnstufen</h4>
+
+        <label><input type="checkbox" id="warn1"> W.1</label>
+        <label><input type="checkbox" id="warn2"> W.2</label>
+
+        <textarea id="warnText" placeholder="Warn Details"></textarea>
+
+        <h4>Herkunft</h4>
+
+        <input id="secSponsor" placeholder="Vorgestellt von">
+
+        <label>
+            <input type="checkbox" id="selfJoined">
+            Selbst zum Club gekommen
+        </label>
+
+        <textarea id="secNotes" placeholder="Notizen"></textarea>
+
+        <button id="saveMemberObservation">Speichern</button>
+
+        <h3>Einträge</h3>
+        <div id="secEntries"></div>
 
         <button onclick="backHome()">⬅ Zurück</button>
 
