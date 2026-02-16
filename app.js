@@ -582,3 +582,91 @@ window.markTaskDone = async id => {
 
     loadTasks();
 };
+
+/* ===================================================== */
+/* SECRETARY RIGHTS */
+/* ===================================================== */
+
+function hasSecretaryRights(){
+
+    return [
+        "secretary",
+        "president",
+        "vice_president",
+        "sergeant_at_arms",
+        "admin"
+    ].includes(CURRENT_RANK);
+}
+
+window.showSecretaryPanel = () => {
+
+    if (!hasSecretaryRights()) {
+        alert("Kein Zugriff");
+        return;
+    }
+
+    showScreen("secretaryScreen");
+    loadSecretaryEntries();
+};
+
+/* ===================================================== */
+/* MEMBER OBSERVATION SAVE */
+/* ===================================================== */
+
+saveMemberObservation.onclick = async () => {
+
+    if (!secName.value) return;
+
+    await addDoc(collection(db,"member_observations"),{
+
+        name: secName.value,
+        joinDate: secJoinDate.value,
+        startRank: secStartRank.value,
+        contribution: secContribution.value,
+
+        warn1: warn1.checked,
+        warn2: warn2.checked,
+        warnText: warnText.value,
+
+        sponsor: selfJoined.checked ? "self_joined" : secSponsor.value,
+
+        notes: secNotes.value,
+
+        createdBy: CURRENT_UID,
+        time: Date.now()
+    });
+
+    secName.value = "";
+    warnText.value = "";
+    secNotes.value = "";
+
+    loadSecretaryEntries();
+};
+
+/* ===================================================== */
+/* SECRETARY ENTRY LOADER */
+/* ===================================================== */
+
+async function loadSecretaryEntries(){
+
+    if (!document.getElementById("secEntries")) return;
+
+    secEntries.innerHTML = "";
+
+    const snaps = await getDocs(collection(db,"member_observations"));
+
+    snaps.forEach(docSnap => {
+
+        const e = docSnap.data();
+
+        secEntries.innerHTML += `
+            <div class="card">
+                <b>${e.name}</b><br>
+                Start: ${e.startRank}<br>
+                Beitrag: ${e.contribution}€<br>
+                Warns: ${e.warn1 ? "W.1 " : ""}${e.warn2 ? "W.2" : ""}<br>
+                ${e.notes || ""}
+            </div>
+        `;
+    });
+}
