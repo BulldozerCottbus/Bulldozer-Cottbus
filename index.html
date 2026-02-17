@@ -167,27 +167,52 @@
       <input id="timelineDate" type="date">
       <input id="timelineRank" placeholder="Rang / Ereignis">
       <textarea id="timelineText" placeholder="Was ist passiert?"></textarea>
+
       <button type="button" id="addTimelineEntry">Eintrag speichern</button>
     </div>
 
-    <!-- Bereich: Besprechungsverlauf -->
+    <!-- Bereich: Besprechungsverlauf (DEIN BLOCK) -->
     <div id="secMeetings" class="hidden">
+
       <h3>Besprechungsverlauf</h3>
 
-      <input id="meetingDate" type="date">
-      <input id="meetingTopic" placeholder="Welche Besprechung / Thema">
-      <textarea id="meetingText" placeholder="Was wurde besprochen?"></textarea>
+      <input id="meetDate" type="date">
 
-      <input id="meetingVote" placeholder="Abstimmung (falls gemacht)">
-      <input id="meetingPerson" placeholder="Welche Person(en) waren beteiligt?">
+      <input id="meetTitle" placeholder="Welche Besprechung / Titel (z.B. Monatsmeeting, Vorstand, außerplanmäßig)">
 
-      <button type="button" id="saveMeeting">Besprechung speichern</button>
+      <textarea id="meetAgenda" placeholder="Themen / Tagesordnung"></textarea>
 
-      <h3>Verlauf</h3>
-      <div id="meetingEntries"></div>
+      <textarea id="meetNotes" placeholder="Protokoll: Was wurde besprochen?"></textarea>
+
+      <h4>Abstimmung</h4>
+      <input id="voteTopic" placeholder="Worum geht die Abstimmung?">
+      <input id="voteOptions" placeholder="Optionen (z.B. Ja/Nein oder A,B,C)">
+      <input id="voteResult" placeholder="Ergebnis (z.B. 7 Ja / 2 Nein / 1 Enthaltung)">
+
+      <h4>Betroffene Person(en)</h4>
+      <input id="meetPersons" placeholder="Namen (kommagetrennt)">
+
+      <h4>Teilnehmer</h4>
+      <input id="meetAttendees" placeholder="Wer war da? (kommagetrennt)">
+
+      <h4>Follow-ups / Aufgaben</h4>
+      <textarea id="meetFollowups" placeholder="Was ist als nächstes zu tun? Wer macht was?"></textarea>
+
+      <select id="meetStatus">
+        <option value="open">Offen</option>
+        <option value="done">Erledigt</option>
+      </select>
+
+      <button type="button" id="saveMeetingBtn">Besprechung speichern</button>
+
+      <h3>Protokolle</h3>
+      <div id="meetingList"></div>
+
     </div>
 
+    <!-- WICHTIG: Ganz unten -->
     <button type="button" onclick="backHome()">⬅ Zurück</button>
+
   </div>
 </div>
 
