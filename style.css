@@ -92,6 +92,11 @@ input, textarea, select {
     cursor: pointer;
     transition: 0.2s;
 }
+#secMeetings textarea,
+#secMeetings input,
+#secMeetings select {
+  margin-top: 6px;
+}
 
 .sec-entry:hover {
     transform: scale(1.02);
