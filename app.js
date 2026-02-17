@@ -553,8 +553,9 @@ window.showSecretaryPanel = () => {
         return;
     }
 
-    showScreen("secretaryScreen");
+    showScreen("secMember");
     loadSecretaryEntries();
+    loadMeetings();
 };
 
 /* ===================================================== */
@@ -750,7 +751,109 @@ window.deleteMemberFile = async () => {
     await deleteDoc(doc(db,"member_observations",CURRENT_MEMBER_DOC));
 
     CURRENT_MEMBER_DOC = null;
+
+    window.secShow = (which) => {
+  const a = document.getElementById("secMember");
+  const b = document.getElementById("secMeetings");
+  if (!a || !b) return;
+  a.classList.add("hidden");
+  b.classList.add("hidden");
+  document.getElementById(which).classList.remove("hidden");
+};
+
     secDetail.innerHTML = "";
 
     loadSecretaryEntries();
+};
+
+async function loadMeetings(){
+  const list = document.getElementById("meetingList");
+  if (!list) return;
+
+  list.innerHTML = "";
+
+  const snaps = await getDocs(collection(db, "meetings"));
+
+  snaps.forEach(docSnap => {
+    const m = docSnap.data();
+
+    list.innerHTML += `
+      <div class="card ${m.status === "done" ? "task-done" : "task-open"}">
+        <b>${m.date || "-"}</b> – ${m.title || "Besprechung"}<br>
+        <small>${m.agenda || ""}</small><br><br>
+        ${m.notes || ""}<br><br>
+        <b>Abstimmung:</b> ${m.voteTopic || "-"}<br>
+        Optionen: ${m.voteOptions || "-"}<br>
+        Ergebnis: ${m.voteResult || "-"}<br><br>
+        <b>Betroffen:</b> ${m.persons || "-"}<br>
+        <b>Teilnehmer:</b> ${m.attendees || "-"}<br><br>
+        <b>Follow-ups:</b><br>${m.followups || "-"}<br><br>
+
+        <button onclick="editMeeting('${docSnap.id}')">Bearbeiten</button>
+        <button onclick="deleteMeeting('${docSnap.id}')">Löschen</button>
+        <button onclick="toggleMeetingStatus('${docSnap.id}', '${m.status || "open"}')">
+          Status: ${m.status === "done" ? "Erledigt" : "Offen"}
+        </button>
+      </div>
+    `;
+  });
+}
+saveMeetingBtn.onclick = async () => {
+
+  if (!hasSecretaryRights()) {
+    alert("Kein Zugriff");
+    return;
+  }
+
+  if (!meetDate.value || !meetTitle.value) {
+    alert("Datum und Titel sind Pflicht");
+    return;
+  }
+
+  await addDoc(collection(db, "meetings"), {
+    date: meetDate.value,
+    title: meetTitle.value,
+    agenda: meetAgenda.value,
+    notes: meetNotes.value,
+
+    voteTopic: voteTopic.value,
+    voteOptions: voteOptions.value,
+    voteResult: voteResult.value,
+
+    persons: meetPersons.value,
+    attendees: meetAttendees.value,
+    followups: meetFollowups.value,
+
+    status: meetStatus.value,
+
+    createdBy: CURRENT_UID,
+    time: Date.now()
+  });
+
+  // ✅ Nach Speichern Felder leeren
+  meetTitle.value = "";
+  meetAgenda.value = "";
+  meetNotes.value = "";
+  voteTopic.value = "";
+  voteOptions.value = "";
+  voteResult.value = "";
+  meetPersons.value = "";
+  meetAttendees.value = "";
+  meetFollowups.value = "";
+  meetStatus.value = "open";
+
+  loadMeetings();
+};
+window.deleteMeeting = async (id) => {
+  if (!hasSecretaryRights()) return;
+  if (!confirm("Besprechung wirklich löschen?")) return;
+  await deleteDoc(doc(db, "meetings", id));
+  loadMeetings();
+};
+
+window.toggleMeetingStatus = async (id, current) => {
+  if (!hasSecretaryRights()) return;
+  const next = current === "done" ? "open" : "done";
+  await updateDoc(doc(db, "meetings", id), { status: next });
+  loadMeetings();
 };
