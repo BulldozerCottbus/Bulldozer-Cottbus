@@ -2,27 +2,23 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
-
-// Optional: falls du später Uploads brauchst (Storage)
-// import { getStorage } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-storage.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-analytics.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyCnFEjFOcrpwjHtVnQ_-QssGtEhY__FzDk",
   authDomain: "bulldozer-f8a26.firebaseapp.com",
   projectId: "bulldozer-f8a26",
-
-  // ✅ Diese 3 Werte bitte aus der Firebase Console ergänzen:
-  storageBucket: "bulldozer-f8a26.appspot.com", // meistens genau so
-  messagingSenderId: "PASTE_YOUR_SENDER_ID",
-  appId: "PASTE_YOUR_APP_ID",
-
-  // Optional (nur wenn du Analytics nutzt)
-  // measurementId: "G-XXXXXXX"
+  storageBucket: "bulldozer-f8a26.firebasestorage.app",
+  messagingSenderId: "576318762826",
+  appId: "1:576318762826:web:7d812e32e152d64d425bb3",
+  measurementId: "G-X3C80RP00D"
 };
 
 export const app = initializeApp(firebaseConfig);
+
+// Analytics ist optional – kann in manchen Umgebungen (z.B. localhost) meckern.
+// Wenn du Probleme bekommst: die nächste Zeile auskommentieren.
+export const analytics = getAnalytics(app);
+
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-
-// Optional: falls du Storage nutzt
-// export const storage = getStorage(app);
