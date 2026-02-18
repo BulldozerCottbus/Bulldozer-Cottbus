@@ -318,6 +318,24 @@ window.backHome = () => showScreen("homeScreen");
 window.toggleWarnInfo = () => {
   const box = document.getElementById("warnInfoBox");
   if (!box) return;
+
+  const rules = document.getElementById("clubRulesBox");
+  if (rules && !rules.classList.contains("hidden")) rules.classList.add("hidden");
+
+  box.classList.toggle("hidden");
+};
+
+/* ===================================================== */
+/* CLUB REGELN (INFOS TAB) */
+/* ===================================================== */
+
+window.toggleClubRules = () => {
+  const box = document.getElementById("clubRulesBox");
+  if (!box) return;
+
+  const warn = document.getElementById("warnInfoBox");
+  if (warn && !warn.classList.contains("hidden")) warn.classList.add("hidden");
+
   box.classList.toggle("hidden");
 };
 
