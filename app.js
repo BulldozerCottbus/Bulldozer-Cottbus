@@ -7,15 +7,17 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 import {
-    doc,
-    getDoc,
-    addDoc,
-    collection,
-    getDocs,
-    query,
-    where,
-    deleteDoc,
-    updateDoc
+  doc,
+  getDoc,
+  addDoc,
+  collection,
+  getDocs,
+  query,
+  where,
+  deleteDoc,
+  updateDoc,
+  orderBy,
+  limit
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* ===================================================== */
@@ -546,6 +548,25 @@ function hasSecretaryRights(){
     ].includes(CURRENT_RANK);
 }
 
+/* ===================================================== */
+/* SECRETARY TABS (WICHTIG: MUSS GLOBAL SEIN, NICHT IN EINER FUNKTION) */
+/* ===================================================== */
+
+window.secShow = (which) => {
+    const a = document.getElementById("secMember");
+    const b = document.getElementById("secMeetings");
+    if (!a || !b) return;
+
+    a.classList.add("hidden");
+    b.classList.add("hidden");
+
+    const target = document.getElementById(which);
+    if (target) target.classList.remove("hidden");
+
+    // Optional: Meetings neu laden wenn Tab geöffnet
+    if (which === "secMeetings") loadMeetings();
+};
+
 window.showSecretaryPanel = () => {
 
     if (!hasSecretaryRights()) {
@@ -553,7 +574,12 @@ window.showSecretaryPanel = () => {
         return;
     }
 
-    showScreen("secMember");
+    // ✅ FIX: showScreen muss den CONTAINER-SCREEN öffnen
+    showScreen("secretaryScreen");
+
+    // ✅ FIX: Tab setzen
+    secShow("secMember");
+
     loadSecretaryEntries();
     loadMeetings();
 };
@@ -752,19 +778,40 @@ window.deleteMemberFile = async () => {
 
     CURRENT_MEMBER_DOC = null;
 
-    window.secShow = (which) => {
-  const a = document.getElementById("secMember");
-  const b = document.getElementById("secMeetings");
-  if (!a || !b) return;
-  a.classList.add("hidden");
-  b.classList.add("hidden");
-  document.getElementById(which).classList.remove("hidden");
-};
-
+    // ✅ FIX: secShow NICHT hier definieren (war bei dir falsch drin)
     secDetail.innerHTML = "";
 
     loadSecretaryEntries();
 };
+
+/* ===================================================== */
+/* MEETINGS (BESPRECHUNGSVERLAUF) */
+/* ===================================================== */
+
+let EDIT_MEETING_ID = null;
+
+function resetMeetingForm(){
+  EDIT_MEETING_ID = null;
+
+  meetDate.value = "";
+  meetTitle.value = "";
+  meetAgenda.value = "";
+  meetNotes.value = "";
+
+  voteTopic.value = "";
+  voteOptions.value = "";
+  voteResult.value = "";
+
+  meetPersons.value = "";
+  meetAttendees.value = "";
+  meetFollowups.value = "";
+
+  meetStatus.value = "open";
+
+  if (document.getElementById("saveMeetingBtn")) {
+    saveMeetingBtn.textContent = "Besprechung speichern";
+  }
+}
 
 async function loadMeetings(){
   const list = document.getElementById("meetingList");
@@ -772,7 +819,15 @@ async function loadMeetings(){
 
   list.innerHTML = "";
 
-  const snaps = await getDocs(collection(db, "meetings"));
+  // ✅ FIX: sortiert + begrenzt (braucht orderBy + limit im Import)
+  const snaps = await getDocs(
+    query(collection(db, "meetings"), orderBy("date", "desc"), limit(50))
+  );
+
+  if (snaps.empty) {
+    list.innerHTML = `<div class="card">Noch keine Protokolle.</div>`;
+    return;
+  }
 
   snaps.forEach(docSnap => {
     const m = docSnap.data();
@@ -798,6 +853,7 @@ async function loadMeetings(){
     `;
   });
 }
+
 saveMeetingBtn.onclick = async () => {
 
   if (!hasSecretaryRights()) {
@@ -810,7 +866,7 @@ saveMeetingBtn.onclick = async () => {
     return;
   }
 
-  await addDoc(collection(db, "meetings"), {
+  const payload = {
     date: meetDate.value,
     title: meetTitle.value,
     agenda: meetAgenda.value,
@@ -828,22 +884,50 @@ saveMeetingBtn.onclick = async () => {
 
     createdBy: CURRENT_UID,
     time: Date.now()
-  });
+  };
 
-  // ✅ Nach Speichern Felder leeren
-  meetTitle.value = "";
-  meetAgenda.value = "";
-  meetNotes.value = "";
-  voteTopic.value = "";
-  voteOptions.value = "";
-  voteResult.value = "";
-  meetPersons.value = "";
-  meetAttendees.value = "";
-  meetFollowups.value = "";
-  meetStatus.value = "open";
+  // ✅ FIX: Wenn Bearbeiten aktiv -> update, sonst add
+  if (EDIT_MEETING_ID) {
+    await updateDoc(doc(db, "meetings", EDIT_MEETING_ID), payload);
+  } else {
+    await addDoc(collection(db, "meetings"), payload);
+  }
 
+  // ✅ Nach Speichern Felder leeren + Modus zurücksetzen
+  resetMeetingForm();
   loadMeetings();
 };
+
+window.editMeeting = async (id) => {
+  if (!hasSecretaryRights()) return;
+
+  const snap = await getDoc(doc(db, "meetings", id));
+  if (!snap.exists()) return alert("Nicht gefunden");
+
+  const m = snap.data();
+  EDIT_MEETING_ID = id;
+
+  meetDate.value = m.date || "";
+  meetTitle.value = m.title || "";
+  meetAgenda.value = m.agenda || "";
+  meetNotes.value = m.notes || "";
+
+  voteTopic.value = m.voteTopic || "";
+  voteOptions.value = m.voteOptions || "";
+  voteResult.value = m.voteResult || "";
+
+  meetPersons.value = m.persons || "";
+  meetAttendees.value = m.attendees || "";
+  meetFollowups.value = m.followups || "";
+
+  meetStatus.value = m.status || "open";
+
+  saveMeetingBtn.textContent = "✅ Änderungen speichern";
+
+  // optional: direkt den Tab zeigen
+  secShow("secMeetings");
+};
+
 window.deleteMeeting = async (id) => {
   if (!hasSecretaryRights()) return;
   if (!confirm("Besprechung wirklich löschen?")) return;
