@@ -231,51 +231,68 @@ window.saveCalculation = async () => {
 /* DATEIEN */
 /* ===================================================== */
 
-// ✅ Notes: alles was mich betrifft (gesendet ODER empfangen)
-const sentSnaps = await getDocs(query(
-  collection(db, "notes"),
-  where("from", "==", CURRENT_UID)
-));
+async function loadFiles(){
 
-const receivedSnaps = await getDocs(query(
-  collection(db, "notes"),
-  where("to", "==", CURRENT_UID)
-));
+  if (!document.getElementById("filesNotes") || !document.getElementById("filesCalcs")) return;
 
-// zusammenführen (ohne doppelte)
-const map = new Map();
-sentSnaps.forEach(d => map.set(d.id, d));
-receivedSnaps.forEach(d => map.set(d.id, d));
+  filesNotes.innerHTML = "";
+  filesCalcs.innerHTML = "";
 
-// ✅ sortieren nach Zeit (neueste zuerst)
-const items = [...map.values()]
-  .map(d => ({ id: d.id, ...d.data() }))
-  .sort((a, b) => (b.time || 0) - (a.time || 0));
+  // ✅ Notes: alles was mich betrifft (gesendet ODER empfangen)
+  const sentSnaps = await getDocs(query(
+    collection(db, "notes"),
+    where("from", "==", CURRENT_UID)
+  ));
 
-filesNotes.innerHTML = "";
+  const receivedSnaps = await getDocs(query(
+    collection(db, "notes"),
+    where("to", "==", CURRENT_UID)
+  ));
 
-items.forEach(n => {
-  filesNotes.innerHTML += `
-    <div class="card note-${n.type || "privat"}">
-      <b>${(n.type || "privat").toUpperCase()}</b><br>
-      ${n.text}
-    </div>
-  `;
-});
+  // zusammenführen (ohne doppelte)
+  const map = new Map();
+  sentSnaps.forEach(d => map.set(d.id, d));
+  receivedSnaps.forEach(d => map.set(d.id, d));
 
-    const calcs = await getDocs(query(
-        collection(db, "calculations"),
-        where("uid", "==", CURRENT_UID)
-    ));
+  // sortieren nach Zeit (neueste zuerst)
+  const items = [...map.values()]
+    .map(d => ({ id: d.id, ...d.data() }))
+    .sort((a, b) => (b.time || 0) - (a.time || 0));
 
-    calcs.forEach(c => {
-
-        filesCalcs.innerHTML += `
-            <div class="card">
-                ${c.data().calc}
-            </div>
-        `;
+  if (items.length === 0) {
+    filesNotes.innerHTML = `<div class="card">Keine Notizen gespeichert.</div>`;
+  } else {
+    items.forEach(n => {
+      filesNotes.innerHTML += `
+        <div class="card note-${n.type || "privat"}">
+          <b>${(n.type || "privat").toUpperCase()}</b><br>
+          ${n.text || ""}
+        </div>
+      `;
     });
+  }
+
+  // ✅ Rechnungen laden (deine alten Daten nutzen uid)
+  const calcsSnap = await getDocs(query(
+    collection(db, "calculations"),
+    where("uid", "==", CURRENT_UID)
+  ));
+
+  const calcs = [];
+  calcsSnap.forEach(d => calcs.push(d.data()));
+  calcs.sort((a, b) => (b.time || 0) - (a.time || 0));
+
+  if (calcs.length === 0) {
+    filesCalcs.innerHTML = `<div class="card">Keine Rechnungen gespeichert.</div>`;
+  } else {
+    calcs.forEach(c => {
+      filesCalcs.innerHTML += `
+        <div class="card">
+          ${c.calc || ""}
+        </div>
+      `;
+    });
+  }
 }
 
 /* ===================================================== */
