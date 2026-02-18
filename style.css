@@ -1,103 +1,175 @@
+/* ===================================================== */
+/* GLOBAL */
+/* ===================================================== */
+
+* {
+  box-sizing: border-box;
+}
+
 body {
-    margin: 0;
-    font-family: Arial;
-    background: #0f0f0f;
-    color: white;
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #0f0f0f;
+  color: white;
 }
+
 header {
-    position: fixed;
-    top: 0;
-    width: 100%;
-    background: black;
-    padding: 12px;
-    text-align: center;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  background: black;
+  padding: 12px;
+  text-align: center;
+  z-index: 1000;
 }
+
 .container {
-    padding: 80px 15px;
-    max-width: 500px;
-    margin: auto;
+  padding: 80px 15px;
+  max-width: 500px;
+  margin: auto;
 }
+
+.hidden {
+  display: none !important;
+}
+
+/* ===================================================== */
+/* CARDS */
+/* ===================================================== */
+
 .card {
-    background: #181818;
-    padding: 15px;
-    border-radius: 10px;
+  background: #181818;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 10px;
 }
+
+/* ===================================================== */
+/* FORMS */
+/* ===================================================== */
+
+input,
+textarea,
+select {
+  width: 100%;
+  max-width: 100%;
+  display: block;
+  background: #222;
+  color: white;
+  padding: 10px;
+  border: 1px solid #333;
+  border-radius: 8px;
+  margin-top: 6px;
+  outline: none;
+}
+
+textarea {
+  min-height: 90px;
+  resize: vertical;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: #555;
+}
+
+/* ===================================================== */
+/* BUTTONS */
+/* ===================================================== */
+
 button {
-    width: 100%;
-    padding: 14px;
-    background: orange;
-    border: none;
-    margin-top: 6px;
+  width: 100%;
+  padding: 14px;
+  background: orange;
+  border: none;
+  margin-top: 6px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: bold;
 }
-input, textarea, select {
-    width: 100%;
-    max-width: 100%;
-    display: block;
-    background: #222;
-    color: white;
+
+button:hover {
+  filter: brightness(1.05);
 }
-.hidden { display: none; }
+
+button:active {
+  transform: scale(0.99);
+}
+
+/* ===================================================== */
+/* NOTES */
+/* ===================================================== */
 
 .note-privat {
-    border-left: 4px solid gray;
+  border-left: 4px solid gray;
 }
 
 .note-club {
-    border-left: 4px solid dodgerblue;
+  border-left: 4px solid dodgerblue;
 }
 
 .note-wichtig {
-    border-left: 4px solid red;
-    background: #2a0000;
+  border-left: 4px solid red;
+  background: #2a0000;
 }
 
 .note-auftrag {
-    border-left: 4px solid orange;
-    background: #2a1a00;
+  border-left: 4px solid orange;
+  background: #2a1a00;
 }
+
+/* ===================================================== */
+/* TASKS */
+/* ===================================================== */
+
 .task-open {
-    border-left: 4px solid orange;
+  border-left: 4px solid orange;
 }
 
 .task-done {
-    border-left: 4px solid green;
-    opacity: 0.6;
+  border-left: 4px solid green;
+  opacity: 0.6;
 }
 
-#secretaryScreen input,
-#secretaryScreen textarea,
-#secretaryScreen select {
-    margin-top: 6px;
+/* ===================================================== */
+/* SECRETARY */
+/* ===================================================== */
+
+/* Tab-Leiste Buttons nebeneinander (überschreibt button width:100%) */
+#secretaryScreen .card[style*="display:flex"] button {
+  width: auto;
+  flex: 1;
 }
 
+/* Warnstufen */
 .warn-w1 {
-    border-left: 5px solid gold;
-    background: #2a2400;
+  border-left: 5px solid gold;
+  background: #2a2400;
 }
 
 .warn-w2 {
-    border-left: 5px solid red;
-    background: #2a0000;
+  border-left: 5px solid red;
+  background: #2a0000;
 }
 
+/* Timeline */
 .timeline-entry {
-    border-left: 3px solid dodgerblue;
-    margin-top: 6px;
-    padding-left: 8px;
-    font-size: 14px;
-    opacity: 0.9;
+  border-left: 3px solid dodgerblue;
+  margin-top: 6px;
+  padding-left: 8px;
+  font-size: 14px;
+  opacity: 0.9;
 }
 
+/* Einträge */
 .sec-entry {
-    cursor: pointer;
-    transition: 0.2s;
-}
-#secMeetings textarea,
-#secMeetings input,
-#secMeetings select {
-  margin-top: 6px;
+  cursor: pointer;
+  transition: 0.2s;
+  will-change: transform;
 }
 
 .sec-entry:hover {
-    transform: scale(1.02);
+  transform: scale(1.02);
 }
