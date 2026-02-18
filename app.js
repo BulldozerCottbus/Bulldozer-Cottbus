@@ -231,24 +231,37 @@ window.saveCalculation = async () => {
 /* DATEIEN */
 /* ===================================================== */
 
-async function loadFiles(){
+// ✅ Notes: alles was mich betrifft (gesendet ODER empfangen)
+const sentSnaps = await getDocs(query(
+  collection(db, "notes"),
+  where("from", "==", CURRENT_UID)
+));
 
-    filesNotes.innerHTML = "";
-    filesCalcs.innerHTML = "";
+const receivedSnaps = await getDocs(query(
+  collection(db, "notes"),
+  where("to", "==", CURRENT_UID)
+));
 
-    const notes = await getDocs(query(
-        collection(db, "notes"),
-        where("uid", "==", CURRENT_UID)
-    ));
+// zusammenführen (ohne doppelte)
+const map = new Map();
+sentSnaps.forEach(d => map.set(d.id, d));
+receivedSnaps.forEach(d => map.set(d.id, d));
 
-    notes.forEach(n => {
+// ✅ sortieren nach Zeit (neueste zuerst)
+const items = [...map.values()]
+  .map(d => ({ id: d.id, ...d.data() }))
+  .sort((a, b) => (b.time || 0) - (a.time || 0));
 
-        filesNotes.innerHTML += `
-            <div class="card">
-                ${n.data().text}
-            </div>
-        `;
-    });
+filesNotes.innerHTML = "";
+
+items.forEach(n => {
+  filesNotes.innerHTML += `
+    <div class="card note-${n.type || "privat"}">
+      <b>${(n.type || "privat").toUpperCase()}</b><br>
+      ${n.text}
+    </div>
+  `;
+});
 
     const calcs = await getDocs(query(
         collection(db, "calculations"),
