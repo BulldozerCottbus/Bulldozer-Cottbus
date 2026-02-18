@@ -270,8 +270,9 @@ async function loadFiles(){
         </div>
       `;
     });
+  }
 
-  // ✅ Rechnungen laden (deine alten Daten nutzen uid)
+  // ✅ Rechnungen laden
   const calcsSnap = await getDocs(query(
     collection(db, "calculations"),
     where("uid", "==", CURRENT_UID)
