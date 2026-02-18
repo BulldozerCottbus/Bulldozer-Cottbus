@@ -1,122 +1,212 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>Chapter App</title>
-
-<link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chapter App</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
 
 <header id="topBar" class="hidden">
-    <span id="rankLabel"></span> |
-    <span id="userName"></span> |
-    Punkte: <span id="points"></span>
+  <span id="rankLabel"></span> |
+  <span id="userName"></span> |
+  Punkte: <span id="points"></span>
 </header>
 
 <div class="container" id="loginScreen">
-    <div class="card">
-        <h3>Login</h3>
-        <input id="email" type="email" placeholder="Email">
-        <input id="password" type="password" placeholder="Passwort">
-        <button id="loginBtn">Login</button>
-        <p id="status"></p>
-    </div>
+  <div class="card">
+    <h3>Login</h3>
+    <input id="email" type="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Passwort">
+    <button id="loginBtn">Login</button>
+    <p id="status"></p>
+  </div>
 </div>
 
 <div class="container hidden" id="homeScreen">
-    <div class="card">
-        
-        <button id="debugButton">DEBUG BUTTON</button>
+  <div class="card">
 
-        <button onclick="showScreen('infos')">📢 Infos</button>
-        <button onclick="showScreen('rides')">🏍 Ausfahrten</button>
-        <button onclick="showScreen('notes')">📝 Notizen</button>
-        <button onclick="showScreen('tasks')">📋 Aufgaben</button>
-        <button onclick="showScreen('secretaryScreen')">📒 Secretary</button>
-        <button onclick="showScreen('calc')">🧮 Rechner</button>
-        <button onclick="showScreen('files')">📁 Dateien</button>
-        <button onclick="logout()">🚪 Logout</button>
+    <button id="debugButton">DEBUG BUTTON</button>
+
+    <button onclick="showScreen('infos')">📢 Infos</button>
+    <button onclick="showScreen('rides')">🏍 Ausfahrten</button>
+    <button onclick="showScreen('notes')">📝 Notizen</button>
+    <button onclick="showScreen('tasks')">📋 Aufgaben</button>
+
+    <!-- ✅ Wichtig: Secretary muss über showSecretaryPanel laufen -->
+    <button onclick="showSecretaryPanel()">📒 Secretary</button>
+
+    <button onclick="showScreen('calc')">🧮 Rechner</button>
+    <button onclick="showScreen('files')">📁 Dateien</button>
+    <button onclick="logout()">🚪 Logout</button>
+  </div>
+</div>
+
+<!-- ✅ INFOS -->
+<div class="container hidden" id="infos">
+  <div class="card">
+    <h3>Infos</h3>
+
+    <!-- optional: nur Führung sieht den Button, wird per JS eingeblendet -->
+    <textarea id="newInfoText" placeholder="Neue Info..."></textarea>
+    <button id="postInfoBtn" class="hidden">Info posten</button>
+
+    <!-- ✅ Warn Info Button + Box -->
+    <button type="button" onclick="toggleWarnInfo()">⚠️ Warn Info</button>
+
+    <div id="warnInfoBox" class="card hidden" style="margin-top:10px;">
+      <h3>📜 Rang-, Warn-, Sperren- & Bereinigungsregeln</h3>
+
+      <h4>1) Ränge & Führerschein</h4>
+      <ul>
+        <li>Ränge <b>über „Member“</b> sind nur erlaubt, wenn mindestens <b>ein gültiger Führerschein</b> vorliegt.</li>
+        <li><b>Ohne Führerschein</b> ist der höchste Rang <b>„Member“</b>.</li>
+        <li>Rangaufstiege über „Member“ sind bis zum Vorliegen eines Führerscheins <b>ausgeschlossen</b>.</li>
+        <li><b>Ausnahmen gibt es nicht.</b></li>
+      </ul>
+
+      <h4>2) Warns – Grundlagen</h4>
+      <ul>
+        <li>Es gibt insgesamt <b>1 bis 4 Warns</b> (aktive Warns).</li>
+        <li>Ab <b>2 Warns</b> gilt automatisch:
+          <ul>
+            <li><b>12 Monate Rangsperre</b></li>
+            <li>In dieser Zeit ist <b>kein Rangaufstieg</b> möglich</li>
+          </ul>
+        </li>
+        <li>Alle Warns werden <b>intern dokumentiert</b> und bleiben nachvollziehbar vermerkt.</li>
+      </ul>
+
+      <h4>3) Warn-Stufen (Kategorien)</h4>
+
+      <div class="card warn-w1">
+        <b>🟡 W.S1 – Warnstufe 1 (leicht bis mittel)</b>
+        <ul>
+          <li>Leichte bis mittlere Verstöße</li>
+          <li>Ein einzelner W.S1 führt <b>niemals</b> direkt zum Ausschluss</li>
+          <li>Dient als klare Verwarnung und Lernmaßnahme</li>
+        </ul>
+      </div>
+
+      <div class="card warn-w2">
+        <b>🔴 W.S2 – Warnstufe 2 (schwerwiegend)</b>
+        <ul>
+          <li>Schwere Verstöße</li>
+          <li>Maximal <b>2× im gesamten Clubverlauf</b></li>
+          <li>Vergabe nur durch <b>Führung / Abstimmung</b></li>
+        </ul>
+        <b>Folgen bei W.S2:</b>
+        <ul>
+          <li><b>1. W.S2:</b> in der Regel Rang-Down auf Hangaround + Neustart</li>
+          <li><b>2. W.S2:</b> zwingender Ausschluss aus dem Club</li>
+        </ul>
+      </div>
+
+      <h4>4) Kombination W.S2 + weiterer Warn (WICHTIG)</h4>
+      <ul>
+        <li>Nach einem bereits vergebenen W.S2 kann ein weiteres Vergehen (auch W.S1) bereits zum <b>direkten Ausschluss</b> führen.</li>
+        <li>Grund: schwere Vorbelastung durch W.S2.</li>
+      </ul>
+
+      <h4>5) Folgen nach Anzahl der Warns</h4>
+      <ul>
+        <li><b>1. Warn:</b> Keine direkte Sanktion, keine Rangänderung, kein Ausschluss (solange kein W.S2 vorliegt).</li>
+        <li><b>2. Warn:</b> Automatische 12-Monats-Rangsperre + je nach Vergehen zusätzliche Einschränkungen.</li>
+        <li><b>3. Warn:</b> Zwingender Rang-Down (Member oder höher → Hangaround) + Neustart erforderlich.</li>
+        <li><b>4. Warn:</b> Zwingender Ausschluss, Entscheidung endgültig.</li>
+      </ul>
+
+      <h4>6) Rückgängigmachung & Bereinigung</h4>
+      <ul>
+        <li>Überprüfung/Bereinigung/Erledigt nur durch gemeinsame Zustimmung von: <b>President, Vice President, Sergeant-at-Arms</b>.</li>
+        <li><b>W.S1</b> kann nach <b>12 Monaten</b> als erledigt markiert werden (bleibt intern vermerkt, zählt aber nicht mehr aktiv).</li>
+        <li><b>W.S1</b> (leichte Verstöße) kann über Clubkasse bereinigt werden (Summe X): bleibt vermerkt, zählt nicht mehr aktiv.</li>
+      </ul>
+
+      <b>❌ Keine Bereinigung bei:</b>
+      <ul>
+        <li>W.S2</li>
+        <li>4. Warn</li>
+        <li>bereits ausgesprochenem Ausschluss</li>
+      </ul>
     </div>
+
+    <h3>Aktuelle Infos</h3>
+    <div id="infosList"></div>
+
+    <button onclick="backHome()">⬅ Zurück</button>
+  </div>
 </div>
 
 <!-- ✅ EINZIGER NOTIZEN SCREEN -->
-
 <div class="container hidden" id="notes">
-    <div class="card">
+  <div class="card">
 
-        <textarea id="noteText" placeholder="Notiz"></textarea>
+    <textarea id="noteText" placeholder="Notiz"></textarea>
 
-        <select id="noteType">
-            <option value="privat">Privat</option>
-            <option value="club">Club Info</option>
-            <option value="wichtig">Wichtig</option>
-            <option value="auftrag">Auftrag</option>
-        </select>
+    <select id="noteType">
+      <option value="privat">Privat</option>
+      <option value="club">Club Info</option>
+      <option value="wichtig">Wichtig</option>
+      <option value="auftrag">Auftrag</option>
+    </select>
 
-        <select id="noteTarget">
-            <option value="">Nur für mich speichern</option>
-        </select>
+    <select id="noteTarget">
+      <option value="">Nur für mich speichern</option>
+    </select>
 
-        <button id="saveNoteBtn">Speichern</button>
+    <button id="saveNoteBtn">Speichern</button>
 
-        <h3>Meine Notizen</h3>
-        <div id="myNotes"></div>
+    <h3>Meine Notizen</h3>
+    <div id="myNotes"></div>
 
-        <button onclick="backHome()">⬅ Zurück</button>
-
-    </div>
+    <button onclick="backHome()">⬅ Zurück</button>
+  </div>
 </div>
 
 <!-- ✅ RIDES -->
-
 <div class="container hidden" id="rides">
-    <div class="card">
-        <h3>Ausfahrten</h3>
-        <div id="ridesList"></div>
+  <div class="card">
+    <h3>Ausfahrten</h3>
+    <div id="ridesList"></div>
 
-        <textarea id="rideText" placeholder="Neue Ausfahrt"></textarea>
+    <textarea id="rideText" placeholder="Neue Ausfahrt"></textarea>
 
-        <select id="ridePriority">
-            <option value="1">Locker</option>
-            <option value="2">Wichtig</option>
-            <option value="3">Pflicht</option>
-        </select>
+    <select id="ridePriority">
+      <option value="1">Locker</option>
+      <option value="2">Wichtig</option>
+      <option value="3">Pflicht</option>
+    </select>
 
-        <button id="createRideBtn" class="hidden">Speichern</button>
+    <button id="createRideBtn" class="hidden">Speichern</button>
 
-        <button onclick="backHome()">⬅ Zurück</button>
-    </div>
+    <button onclick="backHome()">⬅ Zurück</button>
+  </div>
 </div>
 
 <!-- ✅ TASKS -->
-
 <div class="container hidden" id="tasks">
-    <div class="card">
+  <div class="card">
+    <h3>Aufgaben</h3>
 
-        <h3>Aufgaben</h3>
+    <textarea id="taskText" placeholder="Neue Aufgabe"></textarea>
 
-        <textarea id="taskText" placeholder="Neue Aufgabe"></textarea>
+    <select id="taskTarget">
+      <option value="">An mich selbst</option>
+    </select>
 
-        <select id="taskTarget">
-            <option value="">An mich selbst</option>
-        </select>
+    <button id="createTaskBtn">Speichern</button>
 
-        <button id="createTaskBtn">Speichern</button>
+    <h3>Offene Aufgaben</h3>
+    <div id="taskList"></div>
 
-        <h3>Offene Aufgaben</h3>
-        <div id="taskList"></div>
-
-        <button onclick="backHome()">⬅ Zurück</button>
-
-    </div>
+    <button onclick="backHome()">⬅ Zurück</button>
+  </div>
 </div>
 
-<!-- ✅ SECRETARY SCREEN HIER -->
-
+<!-- ✅ SECRETARY SCREEN -->
 <div class="container hidden" id="secretaryScreen">
   <div class="card">
 
@@ -183,28 +273,51 @@
       <h4>Abstimmung</h4>
       <input id="voteTopic" placeholder="Worum geht die Abstimmung?">
       <input id="voteOptions" placeholder="Optionen (z.B. Ja/Nein oder A,B,C)">
-      <input id="voteResult" placehold
+      <input id="voteResult" placeholder="Ergebnis (z.B. 7 Ja / 2 Nein / 1 Enthaltung)">
+
+      <h4>Betroffene Person(en)</h4>
+      <input id="meetPersons" placeholder="Namen (kommagetrennt)">
+
+      <h4>Teilnehmer</h4>
+      <input id="meetAttendees" placeholder="Wer war da? (kommagetrennt)">
+
+      <h4>Follow-ups / Aufgaben</h4>
+      <textarea id="meetFollowups" placeholder="Was ist als nächstes zu tun? Wer macht was?"></textarea>
+
+      <select id="meetStatus">
+        <option value="open">Offen</option>
+        <option value="done">Erledigt</option>
+      </select>
+
+      <button type="button" id="saveMeetingBtn">Besprechung speichern</button>
+
+      <h3>Protokolle</h3>
+      <div id="meetingList"></div>
+    </div>
+
+    <button type="button" onclick="backHome()">⬅ Zurück</button>
+
+  </div>
+</div>
 
 <!-- ✅ RECHNER -->
-
 <div class="container hidden" id="calc">
-    <div class="card">
-        <input id="calcDisplay" placeholder="Rechnung">
-        <button id="calcBtn">Berechnen</button>
-        <button id="saveCalcBtn">Speichern</button>
-        <button onclick="backHome()">⬅ Zurück</button>
-    </div>
+  <div class="card">
+    <input id="calcDisplay" placeholder="Rechnung">
+    <button id="calcBtn">Berechnen</button>
+    <button id="saveCalcBtn">Speichern</button>
+    <button onclick="backHome()">⬅ Zurück</button>
+  </div>
 </div>
 
 <!-- ✅ DATEIEN -->
-
 <div class="container hidden" id="files">
-    <div class="card">
-        <h3>Dateien</h3>
-        <div id="filesNotes"></div>
-        <div id="filesCalcs"></div>
-        <button onclick="backHome()">⬅ Zurück</button>
-    </div>
+  <div class="card">
+    <h3>Dateien</h3>
+    <div id="filesNotes"></div>
+    <div id="filesCalcs"></div>
+    <button onclick="backHome()">⬅ Zurück</button>
+  </div>
 </div>
 
 <script type="module" src="firebase.js"></script>
