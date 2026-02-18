@@ -270,7 +270,6 @@ async function loadFiles(){
         </div>
       `;
     });
-  }
 
   // ✅ Rechnungen laden (deine alten Daten nutzen uid)
   const calcsSnap = await getDocs(query(
