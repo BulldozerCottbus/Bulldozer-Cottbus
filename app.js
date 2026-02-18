@@ -312,6 +312,16 @@ window.showScreen = id => {
 window.backHome = () => showScreen("homeScreen");
 
 /* ===================================================== */
+/* WARN INFO (INFOS TAB) */
+/* ===================================================== */
+
+window.toggleWarnInfo = () => {
+  const box = document.getElementById("warnInfoBox");
+  if (!box) return;
+  box.classList.toggle("hidden");
+};
+
+/* ===================================================== */
 /* USERS FÜR NOTIZEN LADEN */
 /* ===================================================== */
 
