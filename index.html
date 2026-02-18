@@ -121,7 +121,7 @@
   <div class="card">
 
     <!-- Button-Leiste -->
-    <div class="card" style="margin-bottom:10px; display:flex; gap:8px;">
+    <div class="card" style="margin-bottom:10px; display:flex; gap:8px; flex-wrap:wrap;">
       <button type="button" onclick="secShow('secMember')">👁️ Member Beobachtung</button>
       <button type="button" onclick="secShow('secMeetings')">🗓️ Besprechungsverlauf</button>
     </div>
@@ -167,21 +167,17 @@
       <input id="timelineDate" type="date">
       <input id="timelineRank" placeholder="Rang / Ereignis">
       <textarea id="timelineText" placeholder="Was ist passiert?"></textarea>
-
       <button type="button" id="addTimelineEntry">Eintrag speichern</button>
     </div>
 
     <!-- Bereich: Besprechungsverlauf (DEIN BLOCK) -->
     <div id="secMeetings" class="hidden">
-
       <h3>Besprechungsverlauf</h3>
 
       <input id="meetDate" type="date">
-
       <input id="meetTitle" placeholder="Welche Besprechung / Titel (z.B. Monatsmeeting, Vorstand, außerplanmäßig)">
 
       <textarea id="meetAgenda" placeholder="Themen / Tagesordnung"></textarea>
-
       <textarea id="meetNotes" placeholder="Protokoll: Was wurde besprochen?"></textarea>
 
       <h4>Abstimmung</h4>
@@ -207,10 +203,9 @@
 
       <h3>Protokolle</h3>
       <div id="meetingList"></div>
-
     </div>
 
-    <!-- WICHTIG: Ganz unten -->
+    <!-- WICHTIG: Zurück ganz unten -->
     <button type="button" onclick="backHome()">⬅ Zurück</button>
 
   </div>
