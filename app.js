@@ -1116,20 +1116,6 @@ window.deleteWarn = async (warnId) => {
   loadSecretaryEntries();
 };
 
-      <textarea id="warnReason" placeholder="Grund / Details..."></textarea>
-
-      <label class="checkline" for="warnActive">
-        <input type="checkbox" id="warnActive" checked>
-        Aktiv
-      </label>
-
-      <button type="button" id="saveWarnBtn">Warn speichern</button>
-
-      <h4>Liste</h4>
-      <div id="warnList"></div>
-    </div>
-  `;
-
   // Timeline + Warns laden (nachdem HTML existiert!)
   loadTimeline();
   loadWarns();
