@@ -28,7 +28,7 @@
 <div class="container hidden" id="homeScreen">
   <div class="card">
 
-    <button id="debugButton">DEBUG BUTTON</button>
+    <button id="debugButton">BETA 1.0.0</button>
 
     <button onclick="showScreen('infos')">📢 Infos</button>
     <button onclick="showScreen('rides')">🏍 Ausfahrten</button>
@@ -321,15 +321,42 @@
 <div class="container hidden" id="secretaryScreen">
   <div class="card">
 
-    <!-- Button-Leiste -->
-    <div class="card" style="margin-bottom:10px; display:flex; gap:8px; flex-wrap:wrap;">
-      <button type="button" onclick="secShow('secMember')">👁️ Member Beobachtung</button>
-      <button type="button" onclick="secShow('secMeetings')">🗓️ Besprechungsverlauf</button>
+    <!-- ✅ Neue Button-Leiste (6 Tabs) -->
+    <div class="card sec-tabs">
+      <button type="button" onclick="secShow('secDashboard')">📊 Dashboard</button>
+      <button type="button" onclick="secShow('secMember')">👁️ Member Akten</button>
+      <button type="button" onclick="secShow('secMeetings')">🗓️ Meetings</button>
+      <button type="button" onclick="secShow('secLetters')">✉️ Schriftverkehr</button>
+      <button type="button" onclick="secShow('secBylaws')">📘 Statuten</button>
+      <button type="button" onclick="secShow('secArchive')">🗄️ Archiv</button>
     </div>
 
-    <!-- TAB 1: Member Beobachtung -->
-    <div id="secMember">
+    <!-- ✅ TAB: Dashboard -->
+    <div id="secDashboard" class="hidden">
+      <h3>📊 Secretary Dashboard</h3>
+      <div class="card">
+        <div id="secDashTasks">Offene Tasks: ...</div>
+        <div id="secDashMeetings">Offene Meetings: ...</div>
+        <div id="secDashWarnings">Aktive Warns: ...</div>
+        <div id="secDashLetters">Entwürfe: ...</div>
+        <div id="secDashArchive">Archiv Einträge: ...</div>
+      </div>
+      <button type="button" id="secDashRefreshBtn">🔄 Aktualisieren</button>
+    </div>
+
+    <!-- ✅ TAB: Member Akten -->
+    <div id="secMember" class="hidden">
       <h3>Member Beobachtung</h3>
+
+      <!-- ✅ Suche / Filter -->
+      <input id="secSearch" placeholder="🔎 Suche (Name, Rang, Status, Warn...)">
+      <select id="secFilterStatus">
+        <option value="">Alle Status</option>
+        <option value="supporter">Supporter</option>
+        <option value="hangaround">Hangaround</option>
+        <option value="prospect">Prospect</option>
+        <option value="member">Member</option>
+      </select>
 
       <input id="secName" placeholder="Name">
       <input id="secJoinDate" type="date">
@@ -340,6 +367,24 @@
         <option value="prospect">Prospect</option>
         <option value="member">Member</option>
       </select>
+
+      <!-- ✅ NEU: aktueller Status -->
+      <select id="secStatus">
+        <option value="supporter">Supporter</option>
+        <option value="hangaround">Hangaround</option>
+        <option value="prospect">Prospect</option>
+        <option value="member" selected>Member</option>
+      </select>
+
+      <!-- ✅ NEU: Führerschein -->
+      <label style="display:block;margin-top:6px;">
+        <input type="checkbox" id="secLicense">
+        Führerschein vorhanden
+      </label>
+      <input id="secLicenseDate" type="date" placeholder="Führerschein geprüft am">
+
+      <!-- ✅ NEU: Rangsperre -->
+      <input id="secFreezeUntil" type="date" placeholder="Rangsperre bis">
 
       <input id="secContribution" type="number" step="0.01" placeholder="Club Beitrag €">
 
@@ -371,9 +416,17 @@
       <button type="button" id="addTimelineEntry">Eintrag speichern</button>
     </div>
 
-    <!-- TAB 2: Besprechungsverlauf -->
+    <!-- ✅ TAB: Meetings -->
     <div id="secMeetings" class="hidden">
       <h3>Besprechungsverlauf</h3>
+
+      <!-- ✅ Suche / Filter -->
+      <input id="meetSearch" placeholder="🔎 Suche (Titel, Agenda, Personen...)">
+      <select id="meetFilterStatus">
+        <option value="">Alle</option>
+        <option value="open">Nur offen</option>
+        <option value="done">Nur erledigt</option>
+      </select>
 
       <input id="meetDate" type="date">
       <input id="meetTitle" placeholder="Welche Besprechung / Titel (z.B. Monatsmeeting, Vorstand, außerplanmäßig)">
@@ -386,14 +439,40 @@
       <input id="voteOptions" placeholder="Optionen (z.B. Ja/Nein oder A,B,C)">
       <input id="voteResult" placeholder="Ergebnis (z.B. 7 Ja / 2 Nein / 1 Enthaltung)">
 
+      <!-- ✅ Votes erfassen -->
+      <button type="button" id="buildVoteBoxBtn">🗳️ Stimmen erfassen (aus Teilnehmern)</button>
+      <div id="voteBox"></div>
+
       <h4>Betroffene Person(en)</h4>
       <input id="meetPersons" placeholder="Namen (kommagetrennt)">
 
-      <h4>Teilnehmer</h4>
-      <input id="meetAttendees" placeholder="Wer war da? (kommagetrennt)">
+      <h4>Teilnehmer / Anwesenheit</h4>
+
+      <div class="card">
+        <b>Anwesend</b>
+        <div id="meetAttendanceBox" class="picklist"></div>
+      </div>
+
+      <div class="card">
+        <b>Abwesend (entschuldigt)</b>
+        <div id="meetAbsentExcusedBox" class="picklist"></div>
+      </div>
+
+      <div class="card">
+        <b>Abwesend (unentschuldigt)</b>
+        <div id="meetAbsentUnexcusedBox" class="picklist"></div>
+      </div>
+
+      <!-- optionaler Text (wird automatisch gefüllt) -->
+      <input id="meetAttendees" placeholder="Auto: Teilnehmer (Text)" readonly>
 
       <h4>Follow-ups / Aufgaben</h4>
       <textarea id="meetFollowups" placeholder="Was ist als nächstes zu tun? Wer macht was?"></textarea>
+
+      <!-- ✅ Action-Items -->
+      <h4>✅ Action-Items (werden zu Tasks)</h4>
+      <div id="meetActionsList"></div>
+      <button type="button" id="addMeetingActionBtn">+ Action hinzufügen</button>
 
       <select id="meetStatus">
         <option value="open">Offen</option>
@@ -406,8 +485,103 @@
       <div id="meetingList"></div>
     </div>
 
-    <button type="button" onclick="backHome()">⬅ Zurück</button>
+    <!-- ✅ TAB: Schriftverkehr -->
+    <div id="secLetters" class="hidden">
+      <h3>✉️ Schriftverkehr</h3>
 
+      <select id="letterTemplate">
+        <option value="">Vorlage wählen (optional)</option>
+        <option value="invite">Einladung</option>
+        <option value="warning">Warnung</option>
+        <option value="confirm">Bestätigung</option>
+        <option value="reply">Antwort</option>
+      </select>
+
+      <input id="letterTo" placeholder="Empfänger (Name/Club/Organisation)">
+      <input id="letterSubject" placeholder="Betreff">
+      <textarea id="letterBody" placeholder="Text..."></textarea>
+
+      <select id="letterStatus">
+        <option value="draft">Entwurf</option>
+        <option value="sent">Gesendet (dokumentiert)</option>
+        <option value="archived">Archiviert</option>
+      </select>
+
+      <button type="button" id="saveLetterBtn">💾 Speichern</button>
+      <button type="button" id="resetLetterBtn">🧹 Neu</button>
+
+      <h3>Outbox</h3>
+      <input id="letterSearch" placeholder="🔎 Suche">
+      <select id="letterFilter">
+        <option value="">Alle</option>
+        <option value="draft">Entwürfe</option>
+        <option value="sent">Gesendet</option>
+        <option value="archived">Archiv</option>
+      </select>
+      <div id="lettersList"></div>
+    </div>
+
+    <!-- ✅ TAB: Statuten / Bylaws -->
+    <div id="secBylaws" class="hidden">
+      <h3>📘 Statuten / Bylaws</h3>
+
+      <div class="card">
+        <b>Aktive Version</b>
+        <div id="bylawsActiveInfo">Lade...</div>
+      </div>
+
+      <input id="bylawsTitle" placeholder="Titel (z.B. Bylaws v3)">
+      <textarea id="bylawsText" placeholder="Text der Statuten..."></textarea>
+      <textarea id="bylawsReason" placeholder="Änderungsgrund / Changelog..."></textarea>
+
+      <button type="button" id="createBylawsBtn">➕ Neue Version speichern & aktiv setzen</button>
+
+      <h3>Versionen</h3>
+      <div id="bylawsList"></div>
+    </div>
+
+    <!-- ✅ TAB: Archiv -->
+    <div id="secArchive" class="hidden">
+      <h3>🗄️ Archiv</h3>
+
+      <input id="archTitle" placeholder="Titel">
+      <select id="archCategory">
+        <option value="meeting">Meeting</option>
+        <option value="member">Member</option>
+        <option value="letter">Letter</option>
+        <option value="rule">Regel/Statut</option>
+        <option value="other">Sonstiges</option>
+      </select>
+      <input id="archTags" placeholder="Tags (kommagetrennt)">
+      <input id="archUrl" placeholder="Link (z.B. Google Drive / Foto / Datei URL)">
+
+      <label style="display:block;margin-top:6px;">
+        <input type="checkbox" id="archLinkMember">
+        Mit aktueller Member-Akte verknüpfen
+      </label>
+
+      <label style="display:block;margin-top:6px;">
+        <input type="checkbox" id="archLinkMeeting">
+        Mit aktuellem Meeting (Bearbeiten-Modus) verknüpfen
+      </label>
+
+      <button type="button" id="saveArchiveBtn">💾 Archiv-Eintrag speichern</button>
+
+      <h3>Einträge</h3>
+      <input id="archiveSearch" placeholder="🔎 Suche">
+      <select id="archiveFilter">
+        <option value="">Alle Kategorien</option>
+        <option value="meeting">Meeting</option>
+        <option value="member">Member</option>
+        <option value="letter">Letter</option>
+        <option value="rule">Regel/Statut</option>
+        <option value="other">Sonstiges</option>
+      </select>
+
+      <div id="archiveList"></div>
+    </div>
+
+    <button type="button" onclick="backHome()">⬅ Zurück</button>
   </div>
 </div>
 
