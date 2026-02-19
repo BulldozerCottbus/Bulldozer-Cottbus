@@ -611,22 +611,51 @@ function hasSecretaryRights(){
 /* SECRETARY TABS (WICHTIG: MUSS GLOBAL SEIN, NICHT IN EINER FUNKTION) */
 /* ===================================================== */
 
+/* ===================================================== */
+/* SECRETARY TABS (GLOBAL) */
+/* ===================================================== */
+
 window.secShow = (which) => {
-    const a = document.getElementById("secMember");
-    const b = document.getElementById("secMeetings");
-    if (!a || !b) return;
+  const tabs = [
+    "secDashboard",
+    "secMember",
+    "secMeetings",
+    "secLetters",
+    "secBylaws",
+    "secArchive"
+  ];
 
-    a.classList.add("hidden");
-    b.classList.add("hidden");
+  // alle ausblenden
+  tabs.forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.classList.add("hidden");
+  });
 
-    const target = document.getElementById(which);
-    if (target) target.classList.remove("hidden");
+  // Ziel einblenden
+  const target = document.getElementById(which);
+  if (target) target.classList.remove("hidden");
 
-    // Optional: Meetings neu laden wenn Tab geöffnet
-    if (which === "secMeetings") loadMeetings();
+  // Lazy-Load pro Tab (nur wenn Funktion existiert, damit nix crasht)
+  if (which === "secDashboard" && typeof loadSecretaryDashboard === "function") loadSecretaryDashboard();
+  if (which === "secMember" && typeof loadSecretaryEntries === "function") loadSecretaryEntries();
+  if (which === "secMeetings" && typeof loadMeetings === "function") loadMeetings();
+  if (which === "secLetters" && typeof loadLetters === "function") loadLetters();
+  if (which === "secBylaws" && typeof loadBylaws === "function") loadBylaws();
+  if (which === "secArchive" && typeof loadArchive === "function") loadArchive();
 };
 
 window.showSecretaryPanel = () => {
+  if (!hasSecretaryRights()) {
+    alert("Kein Zugriff");
+    return;
+  }
+
+  // Secretary-Screen öffnen
+  showScreen("secretaryScreen");
+
+  // Start-Tab (kannst du ändern auf "secMember", wenn du willst)
+  secShow("secDashboard");
+};
 
     if (!hasSecretaryRights()) {
         alert("Kein Zugriff");
