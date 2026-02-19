@@ -1,9 +1,9 @@
 import { auth, db } from "./firebase.js";
 
 import {
-  signInWithEmailAndPassword,
-  onAuthStateChanged,
-  signOut
+    signInWithEmailAndPassword,
+    onAuthStateChanged,
+    signOut
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
 
 import {
@@ -27,175 +27,26 @@ import {
 let CURRENT_UID = null;
 let CURRENT_RANK = null;
 
-// ✅ Helper: sicher Elemente holen (ohne "global id variable" Problem)
-const $ = (id) => document.getElementById(id);
-
 /* ===================================================== */
-/* DOM REFS (damit Module nicht crasht) */
+/* LOGIN */
 /* ===================================================== */
 
-const loginScreen = $("loginScreen");
-const homeScreen = $("homeScreen");
-const topBar = $("topBar");
+loginBtn.onclick = async () => {
 
-const rankLabel = $("rankLabel");
-const userName = $("userName");
-const points = $("points");
+    try {
 
-const email = $("email");
-const password = $("password");
-const loginBtn = $("loginBtn");
-const status = $("status");
+        await signInWithEmailAndPassword(
+            auth,
+            email.value,
+            password.value
+        );
 
-const postInfoBtn = $("postInfoBtn");
-const newInfoText = $("newInfoText");
-const infosList = $("infosList");
+    } catch (e) {
 
-const ridesList = $("ridesList");
-const rideText = $("rideText");
-const ridePriority = $("ridePriority");
-const createRideBtn = $("createRideBtn");
-
-const noteText = $("noteText");
-const noteType = $("noteType");
-const noteTarget = $("noteTarget");
-const saveNoteBtn = $("saveNoteBtn");
-const myNotes = $("myNotes");
-
-const taskText = $("taskText");
-const taskTarget = $("taskTarget");
-const createTaskBtn = $("createTaskBtn");
-const taskList = $("taskList");
-
-const helpText = $("helpText");
-const helpList = $("helpList");
-
-const calcDisplay = $("calcDisplay");
-const calcBtn = $("calcBtn");
-const saveCalcBtn = $("saveCalcBtn");
-
-const filesNotes = $("filesNotes");
-const filesCalcs = $("filesCalcs");
-
-/* Secretary Member */
-const secSearch = $("secSearch");
-const secFilterStatus = $("secFilterStatus");
-
-const secName = $("secName");
-const secJoinDate = $("secJoinDate");
-const secStatus = $("secStatus");
-
-const secLicense = $("secLicense");
-const secLicenseDate = $("secLicenseDate");
-
-const warn1 = $("warn1");
-const warn2 = $("warn2");
-const warnText = $("warnText");
-
-const secSponsor = $("secSponsor");
-const selfJoined = $("selfJoined");
-
-const secNotes = $("secNotes");
-const saveMemberObservation = $("saveMemberObservation");
-
-const secEntries = $("secEntries");
-const secDetail = $("secDetail");
-
-const timelineDate = $("timelineDate");
-const timelineRank = $("timelineRank");
-const timelineText = $("timelineText");
-const addTimelineEntry = $("addTimelineEntry");
-
-/* Meetings */
-const meetDate = $("meetDate");
-const meetTitle = $("meetTitle");
-const meetAgenda = $("meetAgenda");
-const meetNotes = $("meetNotes");
-const voteTopic = $("voteTopic");
-const voteOptions = $("voteOptions");
-const voteResult = $("voteResult");
-const meetPersons = $("meetPersons");
-const meetAttendees = $("meetAttendees");
-const meetFollowups = $("meetFollowups");
-const meetStatus = $("meetStatus");
-const saveMeetingBtn = $("saveMeetingBtn");
-
-/* ===================================================== */
-/* UI BINDINGS (Buttons) */
-/* ===================================================== */
-
-function bindUI() {
-  // LOGIN
-  if (typeof loginBtn !== "undefined") {
-    loginBtn.onclick = async () => {
-      try {
-        await signInWithEmailAndPassword(auth, email.value, password.value);
-      } catch (e) {
         status.innerText = e.message;
-      }
-    };
-  }
 
-  // Base buttons
-  if (typeof postInfoBtn !== "undefined") postInfoBtn.onclick = () => window.postInfo();
-  if (typeof createRideBtn !== "undefined") createRideBtn.onclick = () => window.createRide();
-  if (typeof saveNoteBtn !== "undefined") saveNoteBtn.onclick = () => window.saveNote();
-
-  if (typeof calcBtn !== "undefined") calcBtn.onclick = () => window.calcResult();
-  if (typeof saveCalcBtn !== "undefined") saveCalcBtn.onclick = () => window.saveCalculation();
-
-  // Secretary extras (NEU) - immer per getElementById, damit es nie crasht
-  const addAct = $("addMeetingActionBtn");
-  if (addAct) addAct.onclick = () => addMeetingActionRow();
-
-  const buildVote = $("buildVoteBoxBtn");
-  if (buildVote) buildVote.onclick = () => buildVoteBox();
-
-  const saveL = $("saveLetterBtn");
-  if (saveL) saveL.onclick = () => saveLetter();
-
-  const resetL = $("resetLetterBtn");
-  if (resetL) resetL.onclick = () => resetLetterForm();
-
-  const createBy = $("createBylawsBtn");
-  if (createBy) createBy.onclick = () => createBylawsVersion();
-
-  const saveArch = $("saveArchiveBtn");
-  if (saveArch) saveArch.onclick = () => saveArchiveEntry();
-
-  const dashR = $("secDashRefreshBtn");
-  if (dashR) dashR.onclick = () => loadSecretaryDashboard();
-
-  // Search hooks
-  const secSearch = $("secSearch");
-  if (secSearch) secSearch.oninput = () => renderSecretaryEntries();
-
-  const meetSearch = $("meetSearch");
-  if (meetSearch) meetSearch.oninput = () => renderMeetings();
-
-  const letterSearch = $("letterSearch");
-  if (letterSearch) letterSearch.oninput = () => renderLetters();
-
-  const archiveSearch = $("archiveSearch");
-  if (archiveSearch) archiveSearch.oninput = () => renderArchive();
-
-  const secFilter = $("secFilterStatus");
-  if (secFilter) secFilter.onchange = () => renderSecretaryEntries();
-
-  const meetFilter = $("meetFilterStatus");
-  if (meetFilter) meetFilter.onchange = () => renderMeetings();
-
-  const letterFilter = $("letterFilter");
-  if (letterFilter) letterFilter.onchange = () => renderLetters();
-
-  const archiveFilter = $("archiveFilter");
-  if (archiveFilter) archiveFilter.onchange = () => renderArchive();
-
-  const lt = $("letterTemplate");
-  if (lt) lt.onchange = () => applyLetterTemplate();
-}
-
-bindUI();
+    }
+};
 
 window.logout = async () => await signOut(auth);
 
@@ -204,119 +55,123 @@ window.logout = async () => await signOut(auth);
 /* ===================================================== */
 
 onAuthStateChanged(auth, async user => {
-  if (!user) return;
 
-  CURRENT_UID = user.uid;
+    if (!user) return;
 
-  loginScreen.classList.add("hidden");
-  homeScreen.classList.remove("hidden");
-  topBar.classList.remove("hidden");
+    CURRENT_UID = user.uid;
 
-  const snap = await getDoc(doc(db, "users", user.uid));
-  const data = snap.data() || {};
+    loginScreen.classList.add("hidden");
+    homeScreen.classList.remove("hidden");
+    topBar.classList.remove("hidden");
 
-  CURRENT_RANK = data.rank;
+    const snap = await getDoc(doc(db, "users", user.uid));
+    const data = snap.data();
 
-  rankLabel.innerText = data.rank || "-";
-  userName.innerText = data.name || "-";
-  points.innerText = data.rPoints || 0;
+    CURRENT_RANK = data.rank;
 
-  applyRankRights(data.rank);
+    rankLabel.innerText = data.rank;
+    userName.innerText = data.name;
+    points.innerText = data.rPoints;
 
-  // ✅ NEU: Users Cache laden (Namen/Ränge für Picklists)
-  await loadUsersCache();
+    applyRankRights(data.rank);
 
-  loadInfos();
-  loadRides();
-  loadFiles();
-  loadHelp();
-  loadUsersForNotes();
-  loadMyNotes();
-  loadUsersForTasks();
-  loadTasks();
-
-  // ✅ Secretary: Picklists vorbereiten (wenn Tab geöffnet)
-  prepareMeetingPicklists();
+   loadInfos();
+loadRides();
+loadFiles();
+loadHelp();
+loadUsersForNotes();
+loadMyNotes();
+loadUsersForTasks();
+loadTasks();
 });
 
 /* ===================================================== */
 /* RANK RIGHTS */
 /* ===================================================== */
 
-function applyRankRights(rank) {
-  if (["president", "vice_president", "sergeant_at_arms", "secretary"].includes(rank)) {
-    postInfoBtn.classList.remove("hidden");
-  }
+function applyRankRights(rank){
 
-  if (["president", "vice_president", "sergeant_at_arms", "road_captain"].includes(rank)) {
-    createRideBtn.classList.remove("hidden");
-  }
+    if(["president","vice_president","sergeant_at_arms","secretary"].includes(rank)){
+        postInfoBtn.classList.remove("hidden");
+    }
+
+    if(["president","vice_president","sergeant_at_arms","road_captain"].includes(rank)){
+        createRideBtn.classList.remove("hidden");
+    }
 }
 
 /* ===================================================== */
 /* INFOSYSTEM */
 /* ===================================================== */
 
-async function loadInfos() {
-  infosList.innerHTML = "";
+async function loadInfos(){
 
-  const snaps = await getDocs(collection(db, "infos"));
+    infosList.innerHTML = "";
 
-  snaps.forEach(docSnap => {
-    const data = docSnap.data();
-    infosList.innerHTML += `
-      <div class="card">
-        ${data.text}
-      </div>
-    `;
-  });
+    const snaps = await getDocs(collection(db, "infos"));
+
+    snaps.forEach(docSnap => {
+
+        const data = docSnap.data();
+
+        infosList.innerHTML += `
+            <div class="card">
+                ${data.text}
+            </div>
+        `;
+    });
 }
 
 window.postInfo = async () => {
-  if (!newInfoText.value) return;
 
-  await addDoc(collection(db, "infos"), {
-    text: newInfoText.value,
-    time: Date.now(),
-    uid: CURRENT_UID
-  });
+    if (!newInfoText.value) return;
 
-  newInfoText.value = "";
+    await addDoc(collection(db, "infos"), {
+        text: newInfoText.value,
+        time: Date.now(),
+        uid: CURRENT_UID
+    });
 
-  loadInfos();
+    newInfoText.value = "";
+
+    loadInfos();
 };
 
 /* ===================================================== */
 /* RIDESYSTEM */
 /* ===================================================== */
 
-async function loadRides() {
-  ridesList.innerHTML = "";
+async function loadRides(){
 
-  const snaps = await getDocs(collection(db, "rides"));
+    ridesList.innerHTML = "";
 
-  snaps.forEach(docSnap => {
-    const r = docSnap.data();
-    ridesList.innerHTML += `
-      <div class="card priority${r.priority}">
-        (${r.priority}) ${r.text}
-      </div>
-    `;
-  });
+    const snaps = await getDocs(collection(db, "rides"));
+
+    snaps.forEach(docSnap => {
+
+        const r = docSnap.data();
+
+        ridesList.innerHTML += `
+            <div class="card priority${r.priority}">
+                (${r.priority}) ${r.text}
+            </div>
+        `;
+    });
 }
 
 window.createRide = async () => {
-  if (!rideText.value) return;
 
-  await addDoc(collection(db, "rides"), {
-    text: rideText.value,
-    priority: ridePriority.value,
-    time: Date.now()
-  });
+    if (!rideText.value) return;
 
-  rideText.value = "";
+    await addDoc(collection(db, "rides"), {
+        text: rideText.value,
+        priority: ridePriority.value,
+        time: Date.now()
+    });
 
-  loadRides();
+    rideText.value = "";
+
+    loadRides();
 };
 
 /* ===================================================== */
@@ -324,23 +179,24 @@ window.createRide = async () => {
 /* ===================================================== */
 
 window.saveNote = async () => {
-  if (!noteText.value) return;
 
-  const target = noteTarget?.value || CURRENT_UID;
-  const type = noteType?.value || "privat";
+    if (!noteText.value) return;
 
-  await addDoc(collection(db, "notes"), {
-    from: CURRENT_UID,
-    to: target || CURRENT_UID,
-    text: noteText.value,
-    type: type,
-    time: Date.now()
-  });
+    const target = noteTarget?.value || CURRENT_UID;
+    const type = noteType?.value || "privat";
 
-  noteText.value = "";
+    await addDoc(collection(db,"notes"),{
+        from: CURRENT_UID,
+        to: target || CURRENT_UID,
+        text: noteText.value,
+        type: type,
+        time: Date.now()
+    });
 
-  loadFiles();
-  loadMyNotes();
+    noteText.value = "";
+
+    loadFiles();
+    loadMyNotes();
 };
 
 /* ===================================================== */
@@ -348,29 +204,36 @@ window.saveNote = async () => {
 /* ===================================================== */
 
 window.calcResult = () => {
-  try {
-    calcDisplay.value = Function("return " + calcDisplay.value)();
-  } catch {
-    alert("Rechenfehler");
-  }
+
+    try {
+
+        calcDisplay.value = Function("return " + calcDisplay.value)();
+
+    } catch {
+
+        alert("Rechenfehler");
+
+    }
 };
 
 window.saveCalculation = async () => {
-  await addDoc(collection(db, "calculations"), {
-    uid: CURRENT_UID,
-    calc: calcDisplay.value,
-    time: Date.now()
-  });
 
-  loadFiles();
+    await addDoc(collection(db, "calculations"), {
+        uid: CURRENT_UID,
+        calc: calcDisplay.value,
+        time: Date.now()
+    });
+
+    loadFiles();
 };
 
 /* ===================================================== */
 /* DATEIEN */
 /* ===================================================== */
 
-async function loadFiles() {
-  if (!$("filesNotes") || !$("filesCalcs")) return;
+async function loadFiles(){
+
+  if (!document.getElementById("filesNotes") || !document.getElementById("filesCalcs")) return;
 
   filesNotes.innerHTML = "";
   filesCalcs.innerHTML = "";
@@ -409,6 +272,7 @@ async function loadFiles() {
     });
   }
 
+  // ✅ Rechnungen laden (deine alten Daten nutzen uid)
   // ✅ Rechnungen laden
   const calcsSnap = await getDocs(query(
     collection(db, "calculations"),
@@ -436,32 +300,35 @@ async function loadFiles() {
 /* HILFE */
 /* ===================================================== */
 
-async function loadHelp() {
-  helpList.innerHTML = "";
+async function loadHelp(){
 
-  const snaps = await getDocs(collection(db, "help_requests"));
+    helpList.innerHTML = "";
 
-  snaps.forEach(docSnap => {
-    helpList.innerHTML += `
-      <div class="card">
-        ${docSnap.data().text}
-      </div>
-    `;
-  });
+    const snaps = await getDocs(collection(db, "help_requests"));
+
+    snaps.forEach(docSnap => {
+
+        helpList.innerHTML += `
+            <div class="card">
+                ${docSnap.data().text}
+            </div>
+        `;
+    });
 }
 
 window.createHelp = async () => {
-  if (!helpText.value) return;
 
-  await addDoc(collection(db, "help_requests"), {
-    uid: CURRENT_UID,
-    text: helpText.value,
-    time: Date.now()
-  });
+    if (!helpText.value) return;
 
-  helpText.value = "";
+    await addDoc(collection(db, "help_requests"), {
+        uid: CURRENT_UID,
+        text: helpText.value,
+        time: Date.now()
+    });
 
-  loadHelp();
+    helpText.value = "";
+
+    loadHelp();
 };
 
 /* ===================================================== */
@@ -469,8 +336,8 @@ window.createHelp = async () => {
 /* ===================================================== */
 
 window.showScreen = id => {
-  document.querySelectorAll(".container").forEach(s => s.classList.add("hidden"));
-  document.getElementById(id).classList.remove("hidden");
+    document.querySelectorAll(".container").forEach(s=>s.classList.add("hidden"));
+    document.getElementById(id).classList.remove("hidden");
 };
 
 window.backHome = () => showScreen("homeScreen");
@@ -480,10 +347,10 @@ window.backHome = () => showScreen("homeScreen");
 /* ===================================================== */
 
 window.toggleWarnInfo = () => {
-  const box = $("warnInfoBox");
+  const box = document.getElementById("warnInfoBox");
   if (!box) return;
 
-  const rules = $("clubRulesBox");
+  const rules = document.getElementById("clubRulesBox");
   if (rules && !rules.classList.contains("hidden")) rules.classList.add("hidden");
 
   box.classList.toggle("hidden");
@@ -494,10 +361,10 @@ window.toggleWarnInfo = () => {
 /* ===================================================== */
 
 window.toggleClubRules = () => {
-  const box = $("clubRulesBox");
+  const box = document.getElementById("clubRulesBox");
   if (!box) return;
 
-  const warn = $("warnInfoBox");
+  const warn = document.getElementById("warnInfoBox");
   if (warn && !warn.classList.contains("hidden")) warn.classList.add("hidden");
 
   box.classList.toggle("hidden");
@@ -507,54 +374,61 @@ window.toggleClubRules = () => {
 /* USERS FÜR NOTIZEN LADEN */
 /* ===================================================== */
 
-async function loadUsersForNotes() {
-  if (!$("noteTarget")) return;
+async function loadUsersForNotes(){
 
-  noteTarget.innerHTML = `<option value="">Nur für mich speichern</option>`;
+    if (!document.getElementById("noteTarget")) return;
 
-  const snaps = await getDocs(collection(db, "users"));
+    noteTarget.innerHTML = `<option value="">Nur für mich speichern</option>`;
 
-  snaps.forEach(docSnap => {
-    const data = docSnap.data();
-    noteTarget.innerHTML += `
-      <option value="${docSnap.id}">
-        ${data.name}
-      </option>
-    `;
-  });
+    const snaps = await getDocs(collection(db,"users"));
+
+    snaps.forEach(docSnap => {
+
+        const data = docSnap.data();
+
+        noteTarget.innerHTML += `
+            <option value="${docSnap.id}">
+                ${data.name}
+            </option>
+        `;
+    });
 }
 
 /* ===================================================== */
 /* EIGENE NOTIZEN LADEN */
 /* ===================================================== */
 
-async function loadMyNotes() {
-  if (!$("myNotes")) return;
+async function loadMyNotes(){
 
-  myNotes.innerHTML = "";
+    if (!document.getElementById("myNotes")) return;
 
-  const snaps = await getDocs(collection(db, "notes"));
+    myNotes.innerHTML = "";
 
-  snaps.forEach(docSnap => {
-    const n = docSnap.data();
+    const snaps = await getDocs(collection(db,"notes"));
 
-    /* Sichtbarkeitslogik */
-    if (!canViewAllNotes()) {
-      if (n.to !== CURRENT_UID && n.from !== CURRENT_UID) return;
-    }
+    snaps.forEach(docSnap => {
 
-    const deleteButton = canDeleteNote(n)
-      ? `<button onclick="deleteNote('${docSnap.id}')">Löschen</button>`
-      : "";
+        const n = docSnap.data();
 
-    myNotes.innerHTML += `
-      <div class="card note-${n.type || "privat"}">
+        /* Sichtbarkeitslogik */
+
+        if (!canViewAllNotes()) {
+
+            if (n.to !== CURRENT_UID && n.from !== CURRENT_UID) return;
+        }
+
+        const deleteButton = canDeleteNote(n)
+            ? `<button onclick="deleteNote('${docSnap.id}')">Löschen</button>`
+            : "";
+
+myNotes.innerHTML += `
+    <div class="card note-${n.type || "privat"}">
         <b>${(n.type || "privat").toUpperCase()}</b><br>
-        ${n.text || ""}
+        ${n.text}
         ${deleteButton}
-      </div>
-    `;
-  });
+    </div>
+`;
+    });
 }
 
 /* ===================================================== */
@@ -562,118 +436,130 @@ async function loadMyNotes() {
 /* ===================================================== */
 
 window.deleteNote = async (id) => {
-  await deleteDoc(doc(db, "notes", id));
-  loadMyNotes();
-  loadFiles();
+
+    await deleteDoc(doc(db,"notes",id));
+
+    loadMyNotes();
+    loadFiles();
 };
 
 /* ===================================================== */
 /* RANGRECHTE / SICHTBARKEIT */
 /* ===================================================== */
 
-function canViewAllNotes() {
-  return [
-    "president",
-    "vice_president",
-    "sergeant_at_arms",
-    "secretary"
-  ].includes(CURRENT_RANK);
+function canViewAllNotes(){
+
+    return [
+        "president",
+        "vice_president",
+        "sergeant_at_arms",
+        "secretary"
+    ].includes(CURRENT_RANK);
 }
 
-function canDeleteNote(note) {
-  if (canViewAllNotes()) return true;
-  return note.from === CURRENT_UID;
+function canDeleteNote(note){
+
+    if (canViewAllNotes()) return true;
+
+    return note.from === CURRENT_UID;
 }
 
 /* ===================================================== */
 /* TASK SYSTEM */
 /* ===================================================== */
 
-async function loadUsersForTasks() {
-  if (!$("taskTarget")) return;
+async function loadUsersForTasks(){
 
-  taskTarget.innerHTML = `<option value="">An mich selbst</option>`;
+    if (!document.getElementById("taskTarget")) return;
 
-  const snaps = await getDocs(collection(db, "users"));
+    taskTarget.innerHTML = `<option value="">An mich selbst</option>`;
 
-  snaps.forEach(docSnap => {
-    const data = docSnap.data();
-    taskTarget.innerHTML += `
-      <option value="${docSnap.id}">
-        ${data.name}
-      </option>
-    `;
-  });
+    const snaps = await getDocs(collection(db,"users"));
+
+    snaps.forEach(docSnap => {
+
+        const data = docSnap.data();
+
+        taskTarget.innerHTML += `
+            <option value="${docSnap.id}">
+                ${data.name}
+            </option>
+        `;
+    });
 }
 
-if (typeof createTaskBtn !== "undefined") {
-  createTaskBtn.onclick = async () => {
+createTaskBtn.onclick = async () => {
+
     if (!taskText.value) return;
 
-    await addDoc(collection(db, "tasks"), {
-      from: CURRENT_UID,
-      to: taskTarget.value || CURRENT_UID,
-      text: taskText.value,
-      status: "open",
-      time: Date.now()
+    await addDoc(collection(db,"tasks"),{
+        from: CURRENT_UID,
+        to: taskTarget.value || CURRENT_UID,
+        text: taskText.value,
+        status: "open",
+        time: Date.now()
     });
 
     taskText.value = "";
 
     loadTasks();
-  };
-}
+};
 
-async function loadTasks() {
-  if (!$("taskList")) return;
+async function loadTasks(){
 
-  taskList.innerHTML = "";
+    if (!document.getElementById("taskList")) return;
 
-  const snaps = await getDocs(collection(db, "tasks"));
+    taskList.innerHTML = "";
 
-  snaps.forEach(docSnap => {
-    const t = docSnap.data();
+    const snaps = await getDocs(collection(db,"tasks"));
 
-    if (!canViewAllNotes()) {
-      if (t.to !== CURRENT_UID) return;
-    }
+    snaps.forEach(docSnap => {
 
-    const doneButton = `
-      <button onclick="markTaskDone('${docSnap.id}')">
-        Erledigt
-      </button>
-    `;
+        const t = docSnap.data();
 
-    taskList.innerHTML += `
-      <div class="card task-${t.status || "open"}">
-        ${t.text || ""}
-        ${doneButton}
-      </div>
-    `;
-  });
+        if (!canViewAllNotes()) {
+            if (t.to !== CURRENT_UID) return;
+        }
+
+        const doneButton = `
+            <button onclick="markTaskDone('${docSnap.id}')">
+                Erledigt
+            </button>
+        `;
+
+        taskList.innerHTML += `
+            <div class="card task-${t.status}">
+                ${t.text}
+                ${doneButton}
+            </div>
+        `;
+    });
 }
 
 window.markTaskDone = async id => {
-  await updateDoc(doc(db, "tasks", id), {
-    status: "done"
-  });
-  loadTasks();
+
+    await updateDoc(doc(db,"tasks",id),{
+        status: "done"
+    });
+
+    loadTasks();
 };
 
 /* ===================================================== */
 /* OFFICER & ADMIN RIGHTS ENGINE */
 /* ===================================================== */
 
-function isAdmin() {
-  return CURRENT_RANK === "admin";
+function isAdmin(){
+    return CURRENT_RANK === "admin";
 }
 
-function hasOfficerRights() {
-  return [
-    "president",
-    "vice_president",
-    "sergeant_at_arms"
-  ].includes(CURRENT_RANK) || isAdmin();
+function hasOfficerRights(){
+
+    return [
+        "president",
+        "vice_president",
+        "sergeant_at_arms"
+    ].includes(CURRENT_RANK) || isAdmin();
 }
 
 /* ===================================================== */
@@ -681,437 +567,436 @@ function hasOfficerRights() {
 /* ===================================================== */
 
 window.addPoints = async (targetUid, amount) => {
-  if (!hasOfficerRights()) {
-    alert("Keine Berechtigung");
-    return;
-  }
 
-  const ref = doc(db, "users", targetUid);
-  const snap = await getDoc(ref);
+    if (!hasOfficerRights()) {
+        alert("Keine Berechtigung");
+        return;
+    }
 
-  const current = snap.data().rPoints || 0;
+    const ref = doc(db,"users",targetUid);
+    const snap = await getDoc(ref);
 
-  await updateDoc(ref, {
-    rPoints: current + Number(amount)
-  });
+    const current = snap.data().rPoints || 0;
 
-  await addDoc(collection(db, "points_log"), {
-    targetUid,
-    amount: Number(amount),
-    by: CURRENT_UID,
-    time: Date.now()
-  });
+    await updateDoc(ref,{
+        rPoints: current + Number(amount)
+    });
 
-  alert("Punkte vergeben");
+    await addDoc(collection(db,"points_log"),{
+        targetUid,
+        amount: Number(amount),
+        by: CURRENT_UID,
+        time: Date.now()
+    });
+
+    alert("Punkte vergeben");
 };
 
 /* ===================================================== */
 /* SECRETARY RIGHTS */
 /* ===================================================== */
 
-function hasSecretaryRights() {
-  return [
-    "secretary",
-    "president",
-    "vice_president",
-    "sergeant_at_arms",
-    "admin"
-  ].includes(CURRENT_RANK);
+function hasSecretaryRights(){
+
+    return [
+        "secretary",
+        "president",
+        "vice_president",
+        "sergeant_at_arms",
+        "admin"
+    ].includes(CURRENT_RANK);
 }
 
 /* ===================================================== */
-/* USERS CACHE (uid -> name/rank) */
-/* ===================================================== */
-
-let USERS_CACHE = new Map();
-
-async function loadUsersCache() {
-  USERS_CACHE.clear();
-  const snaps = await getDocs(collection(db, "users"));
-  snaps.forEach(d => {
-    const u = d.data() || {};
-    USERS_CACHE.set(d.id, { name: u.name || "Unbekannt", rank: u.rank || "member" });
-  });
-}
-
-function userNameByUid(uid) {
-  return USERS_CACHE.get(uid)?.name || uid || "-";
-}
-/* ===================================================== */
-/* SECRETARY TABS (GLOBAL) */
+/* SECRETARY TABS (WICHTIG: MUSS GLOBAL SEIN, NICHT IN EINER FUNKTION) */
 /* ===================================================== */
 
 window.secShow = (which) => {
-  const tabs = [
-    "secDashboard",
-    "secMember",
-    "secMeetings",
-    "secLetters",
-    "secBylaws",
-    "secArchive"
-  ];
+    const a = document.getElementById("secMember");
+    const b = document.getElementById("secMeetings");
+    if (!a || !b) return;
 
-  // hide all
-  tabs.forEach(id => {
-    const el = $(id);
-    if (el) el.classList.add("hidden");
-  });
+    a.classList.add("hidden");
+    b.classList.add("hidden");
 
-  // show target
-  const target = $(which);
-  if (target) target.classList.remove("hidden");
+    const target = document.getElementById(which);
+    if (target) target.classList.remove("hidden");
 
-  // auto loads per tab
-  if (which === "secDashboard") loadSecretaryDashboard();
-  if (which === "secMember") loadSecretaryEntries();
-  if (which === "secMeetings") loadMeetings();
-  if (which === "secLetters") loadLetters();
-  if (which === "secBylaws") loadBylaws();
-  if (which === "secArchive") loadArchive();
+    // Optional: Meetings neu laden wenn Tab geöffnet
+    if (which === "secMeetings") loadMeetings();
 };
 
 window.showSecretaryPanel = () => {
+
+    if (!hasSecretaryRights()) {
+        alert("Kein Zugriff");
+        return;
+    }
+
+    // ✅ FIX: showScreen muss den CONTAINER-SCREEN öffnen
+    showScreen("secretaryScreen");
+
+    // ✅ FIX: Tab setzen
+    secShow("secMember");
+
+    loadSecretaryEntries();
+    loadMeetings();
+};
+
+/* ===================================================== */
+/* MEMBER OBSERVATION SAVE */
+/* ===================================================== */
+
+saveMemberObservation.onclick = async () => {
+
+    if (!secName.value) return;
+
+    await addDoc(collection(db,"member_observations"),{
+
+        name: secName.value,
+        joinDate: secJoinDate.value,
+        startRank: secStartRank.value,
+        contribution: secContribution.value,
+
+        warn1: warn1.checked,
+        warn2: warn2.checked,
+        warnText: warnText.value,
+
+        sponsor: selfJoined.checked ? "self_joined" : secSponsor.value,
+
+        notes: secNotes.value,
+
+        createdBy: CURRENT_UID,
+        time: Date.now()
+    });
+
+    secName.value = "";
+    warnText.value = "";
+    secNotes.value = "";
+
+    loadSecretaryEntries();
+};
+
+/* ===================================================== */
+/* SECRETARY DETAIL / TIMELINE SYSTEM */
+/* ===================================================== */
+
+let CURRENT_MEMBER_DOC = null;
+
+/* Einträge klickbar laden */
+
+async function loadSecretaryEntries(){
+
+    if (!document.getElementById("secEntries")) return;
+
+    secEntries.innerHTML = "";
+
+    const snaps = await getDocs(collection(db,"member_observations"));
+
+    snaps.forEach(docSnap => {
+
+        const e = docSnap.data();
+
+        let warnClass = "";
+
+        if (e.warn2) warnClass = "warn-w2";
+        else if (e.warn1) warnClass = "warn-w1";
+
+        secEntries.innerHTML += `
+            <div class="card sec-entry ${warnClass}"
+                 onclick="openMemberFile('${docSnap.id}')">
+
+                <b>${e.name}</b><br>
+                Start: ${e.startRank}<br>
+                Beitrag: ${e.contribution || "-"} €<br>
+                Warns: ${e.warn1 ? "W.1 " : ""}${e.warn2 ? "W.2" : ""}
+            </div>
+        `;
+    });
+}
+
+/* Akte öffnen */
+
+window.openMemberFile = async (docId) => {
+
+    CURRENT_MEMBER_DOC = docId;
+
+    const snap = await getDoc(doc(db,"member_observations",docId));
+    const data = snap.data();
+
+    secDetail.innerHTML = `
+        <div class="card">
+            <h4>${data.name}</h4>
+            Mitglied seit: ${data.joinDate || "-"}<br>
+            Start Rang: ${data.startRank}<br>
+            Sponsor: ${data.sponsor || "-"}<br>
+            <br>
+            ${data.notes || ""}
+        </div>
+        <h4>Timeline</h4>
+        <div id="timelineList"></div>
+    `;
+
+    loadTimeline();
+};
+
+/* Timeline laden */
+
+async function loadTimeline(){
+
+    if (!CURRENT_MEMBER_DOC) return;
+
+    const snaps = await getDocs(collection(
+        db,
+        "member_observations",
+        CURRENT_MEMBER_DOC,
+        "timeline"
+    ));
+
+    const container = document.getElementById("timelineList");
+
+    container.innerHTML = "";
+
+    snaps.forEach(docSnap => {
+
+        const t = docSnap.data();
+
+        container.innerHTML += `
+            <div class="timeline-entry">
+                <b>${t.date || "-"}</b> – ${t.rank || ""}<br>
+                ${t.text}
+            </div>
+        `;
+    });
+}
+
+/* Timeline speichern */
+
+addTimelineEntry.onclick = async () => {
+
+    if (!CURRENT_MEMBER_DOC) {
+        alert("Erst Akte öffnen");
+        return;
+    }
+
+    await addDoc(collection(
+        db,
+        "member_observations",
+        CURRENT_MEMBER_DOC,
+        "timeline"
+    ),{
+        date: timelineDate.value,
+        rank: timelineRank.value,
+        text: timelineText.value,
+        by: CURRENT_UID,
+        time: Date.now()
+    });
+
+    timelineText.value = "";
+    timelineRank.value = "";
+
+    loadTimeline();
+};
+
+/* ===================================================== */
+/* SECRETARY PROFI SYSTEM */
+/* ===================================================== */
+
+/* Speichern */
+
+window.saveMemberFile = async () => {
+
+    if (!CURRENT_MEMBER_DOC) return;
+
+    await updateDoc(doc(db,"member_observations",CURRENT_MEMBER_DOC),{
+
+        name: editName.value,
+        contribution: editContribution.value,
+
+        warn1: editWarn1.checked,
+        warn2: editWarn2.checked,
+
+        notes: editNotes.value
+    });
+
+    alert("Gespeichert");
+
+    loadSecretaryEntries();
+    openMemberFile(CURRENT_MEMBER_DOC);
+};
+
+/* Löschen */
+
+window.deleteMemberFile = async () => {
+
+    if (!CURRENT_MEMBER_DOC) return;
+
+    if (!confirm("Akte wirklich löschen?")) return;
+
+    await deleteDoc(doc(db,"member_observations",CURRENT_MEMBER_DOC));
+
+    CURRENT_MEMBER_DOC = null;
+
+    // ✅ FIX: secShow NICHT hier definieren (war bei dir falsch drin)
+    secDetail.innerHTML = "";
+
+    loadSecretaryEntries();
+};
+
+/* ===================================================== */
+/* MEETINGS (BESPRECHUNGSVERLAUF) */
+/* ===================================================== */
+
+let EDIT_MEETING_ID = null;
+
+function resetMeetingForm(){
+  EDIT_MEETING_ID = null;
+
+  meetDate.value = "";
+  meetTitle.value = "";
+  meetAgenda.value = "";
+  meetNotes.value = "";
+
+  voteTopic.value = "";
+  voteOptions.value = "";
+  voteResult.value = "";
+
+  meetPersons.value = "";
+  meetAttendees.value = "";
+  meetFollowups.value = "";
+
+  meetStatus.value = "open";
+
+  if (document.getElementById("saveMeetingBtn")) {
+    saveMeetingBtn.textContent = "Besprechung speichern";
+  }
+}
+
+async function loadMeetings(){
+  const list = document.getElementById("meetingList");
+  if (!list) return;
+
+  list.innerHTML = "";
+
+  // ✅ FIX: sortiert + begrenzt (braucht orderBy + limit im Import)
+  const snaps = await getDocs(
+    query(collection(db, "meetings"), orderBy("date", "desc"), limit(50))
+  );
+
+  if (snaps.empty) {
+    list.innerHTML = `<div class="card">Noch keine Protokolle.</div>`;
+    return;
+  }
+
+  snaps.forEach(docSnap => {
+    const m = docSnap.data();
+
+    list.innerHTML += `
+      <div class="card ${m.status === "done" ? "task-done" : "task-open"}">
+        <b>${m.date || "-"}</b> – ${m.title || "Besprechung"}<br>
+        <small>${m.agenda || ""}</small><br><br>
+        ${m.notes || ""}<br><br>
+        <b>Abstimmung:</b> ${m.voteTopic || "-"}<br>
+        Optionen: ${m.voteOptions || "-"}<br>
+        Ergebnis: ${m.voteResult || "-"}<br><br>
+        <b>Betroffen:</b> ${m.persons || "-"}<br>
+        <b>Teilnehmer:</b> ${m.attendees || "-"}<br><br>
+        <b>Follow-ups:</b><br>${m.followups || "-"}<br><br>
+
+        <button onclick="editMeeting('${docSnap.id}')">Bearbeiten</button>
+        <button onclick="deleteMeeting('${docSnap.id}')">Löschen</button>
+        <button onclick="toggleMeetingStatus('${docSnap.id}', '${m.status || "open"}')">
+          Status: ${m.status === "done" ? "Erledigt" : "Offen"}
+        </button>
+      </div>
+    `;
+  });
+}
+
+saveMeetingBtn.onclick = async () => {
+
   if (!hasSecretaryRights()) {
     alert("Kein Zugriff");
     return;
   }
 
-  showScreen("secretaryScreen");
-  secShow("secDashboard");
-};
+  if (!meetDate.value || !meetTitle.value) {
+    alert("Datum und Titel sind Pflicht");
+    return;
+  }
 
-/* ===================================================== */
-/* SECRETARY: MEMBER OBSERVATION SAVE */
-/* ===================================================== */
+  const payload = {
+    date: meetDate.value,
+    title: meetTitle.value,
+    agenda: meetAgenda.value,
+    notes: meetNotes.value,
 
-if (typeof saveMemberObservation !== "undefined") {
-saveMemberObservation.onclick = async () => {
+    voteTopic: voteTopic.value,
+    voteOptions: voteOptions.value,
+    voteResult: voteResult.value,
 
-  if (!secName.value) return;
+    persons: meetPersons.value,
+    attendees: meetAttendees.value,
+    followups: meetFollowups.value,
 
-  await addDoc(collection(db,"member_observations"),{
-
-    name: secName.value,
-    joinDate: secJoinDate.value,
-
-    // ✅ nur noch 1× Status
-    status: secStatus.value,
-
-    // ✅ Führerschein
-    hasLicense: !!secLicense.checked,
-    licenseCheckedAt: secLicenseDate.value,
-
-    // ✅ Warns
-    warn1: warn1.checked,
-    warn2: warn2.checked,
-    warnText: warnText.value,
-
-    // ✅ Herkunft
-    sponsor: selfJoined.checked ? "self_joined" : secSponsor.value,
-
-    notes: secNotes.value,
+    status: meetStatus.value,
 
     createdBy: CURRENT_UID,
     time: Date.now()
-  });
+  };
 
-  // reset
-  secName.value = "";
-  secJoinDate.value = "";
-  secStatus.value = "member";
-
-  secLicense.checked = false;
-  secLicenseDate.value = "";
-
-  warn1.checked = false;
-  warn2.checked = false;
-  warnText.value = "";
-
-  secSponsor.value = "";
-  selfJoined.checked = false;
-
-  secNotes.value = "";
-
-  loadSecretaryEntries();
-};
-
-/* ===================================================== */
-/* SECRETARY: MEMBER LIST CACHE + FILTER */
-/* ===================================================== */
-
-let SECRETARY_ENTRIES_CACHE = [];
-
-async function loadSecretaryEntries(){
-
-  if (!document.getElementById("secEntries")) return;
-
-  secEntries.innerHTML = "";
-
-  const snaps = await getDocs(collection(db,"member_observations"));
-
-  snaps.forEach(docSnap => {
-
-    const e = docSnap.data();
-
-    let warnClass = "";
-    if (e.warn2) warnClass = "warn-w2";
-    else if (e.warn1) warnClass = "warn-w1";
-
-    const statusText = (e.status || e.startRank || "-");
-
-    secEntries.innerHTML += `
-      <div class="card sec-entry ${warnClass}"
-           onclick="openMemberFile('${docSnap.id}')">
-        <b>${e.name}</b><br>
-        Status: ${statusText}<br>
-        Warns: ${e.warn1 ? "W.1 " : ""}${e.warn2 ? "W.2" : ""}
-      </div>
-    `;
-  });
-}
-
-  // newest first
-  SECRETARY_ENTRIES_CACHE.sort((a, b) => (b.time || 0) - (a.time || 0));
-
-  renderSecretaryEntries();
-}
-
-function renderSecretaryEntries() {
-  if (!$("secEntries")) return;
-
-  const search = ($("secSearch")?.value || "").trim().toLowerCase();
-  const statusFilter = $("secFilterStatus")?.value || "";
-
-  const list = SECRETARY_ENTRIES_CACHE.filter(e => {
-    const status = (e.status || e.startRank || "").toLowerCase();
-    if (statusFilter && status !== statusFilter) return false;
-
-    if (!search) return true;
-
-    const blob = [
-      e.name,
-      e.startRank,
-      e.status,
-      e.sponsor,
-      e.notes,
-      e.warnText,
-      e.hasLicense ? "führerschein" : "",
-      e.warn1 ? "warn1" : "",
-      e.warn2 ? "warn2" : ""
-    ].join(" ").toLowerCase();
-
-    return blob.includes(search);
-  });
-
-  if (list.length === 0) {
-    secEntries.innerHTML = `<div class="card">Keine passenden Einträge.</div>`;
-    return;
+  // ✅ FIX: Wenn Bearbeiten aktiv -> update, sonst add
+  if (EDIT_MEETING_ID) {
+    await updateDoc(doc(db, "meetings", EDIT_MEETING_ID), payload);
+  } else {
+    await addDoc(collection(db, "meetings"), payload);
   }
 
-  secEntries.innerHTML = "";
+  // ✅ Nach Speichern Felder leeren + Modus zurücksetzen
+  resetMeetingForm();
+  loadMeetings();
+};
 
-  list.forEach(e => {
-    let warnClass = "";
-    if (e.warn2) warnClass = "warn-w2";
-    else if (e.warn1) warnClass = "warn-w1";
+window.editMeeting = async (id) => {
+  if (!hasSecretaryRights()) return;
 
-    const status = e.status || e.startRank || "-";
-    const license = e.hasLicense ? "✅" : "❌";
-    const freeze = e.freezeUntil ? `Sperre bis: ${e.freezeUntil}` : "";
-
-    secEntries.innerHTML += `
-      <div class="card sec-entry ${warnClass}"
-           onclick="openMemberFile('${e.id}')">
-
-        <b>${e.name || "-"}</b><br>
-        Status: ${status}<br>
-        Führerschein: ${license}<br>
-        Beitrag: ${e.contribution || "-"} €<br>
-        ${freeze ? `<small>${freeze}</small><br>` : ""}
-        Warns: ${e.warn1 ? "W.1 " : ""}${e.warn2 ? "W.2" : ""}
-      </div>
-    `;
-  });
-}
-
-/* ===================================================== */
-/* SECRETARY: DETAIL / TIMELINE / WARNS */
-/* ===================================================== */
-
-let CURRENT_MEMBER_DOC = null;
-
-/* Akte öffnen */
-window.openMemberFile = async (docId) => {
-  CURRENT_MEMBER_DOC = docId;
-
-  const snap = await getDoc(doc(db, "member_observations", docId));
+  const snap = await getDoc(doc(db, "meetings", id));
   if (!snap.exists()) return alert("Nicht gefunden");
 
-  const data = snap.data() || {};
+  const m = snap.data();
+  EDIT_MEETING_ID = id;
 
-  const statusText = (data.status || data.startRank || "-");
-  const licenseText = data.hasLicense ? "✅ Ja" : "❌ Nein";
-  const licenseDate = data.licenseCheckedAt || "-";
+  meetDate.value = m.date || "";
+  meetTitle.value = m.title || "";
+  meetAgenda.value = m.agenda || "";
+  meetNotes.value = m.notes || "";
 
-  // ✅ UI (Akte + Timeline + Warns) – alles als String
-  secDetail.innerHTML = `
-    <div class="card">
-      <h4>${data.name || "-"}</h4>
-      Mitglied seit: ${data.joinDate || "-"}<br>
-      Status: ${statusText}<br>
-      Führerschein: ${licenseText}<br>
-      Geprüft am: ${licenseDate}<br>
-      Sponsor: ${data.sponsor || "-"}<br><br>
-      ${data.notes || ""}
-    </div>
+  voteTopic.value = m.voteTopic || "";
+  voteOptions.value = m.voteOptions || "";
+  voteResult.value = m.voteResult || "";
 
-    <h4>Timeline</h4>
-    <div id="timelineList"></div>
+  meetPersons.value = m.persons || "";
+  meetAttendees.value = m.attendees || "";
+  meetFollowups.value = m.followups || "";
 
-    <div class="card">
-      <h4>⚠️ Warns (Detail)</h4>
+  meetStatus.value = m.status || "open";
 
-      <div class="row">
-        <input id="warnIssued" type="date">
-        <select id="warnLevel">
-          <option value="W1">W.S1</option>
-          <option value="W2">W.S2</option>
-        </select>
-      </div>
+  saveMeetingBtn.textContent = "✅ Änderungen speichern";
 
-      <textarea id="warnReason" placeholder="Grund / Details..."></textarea>
-
-      <label class="checkline" for="warnActive">
-        <input type="checkbox" id="warnActive" checked>
-        Aktiv
-      </label>
-
-      <button type="button" id="saveWarnBtn">Warn speichern</button>
-
-      <h4>Liste</h4>
-      <div id="warnList"></div>
-    </div>
-  `;
-
-  // ✅ Wichtig: erst NACH innerHTML, sonst gibt's die IDs noch nicht
-  loadTimeline();
-  loadWarns();
-
-  const saveWarnBtn = document.getElementById("saveWarnBtn");
-  if (saveWarnBtn) saveWarnBtn.onclick = saveWarnFromDetail;
+  // optional: direkt den Tab zeigen
+  secShow("secMeetings");
 };
 
-/* =========================
-   WARNS: Laden
-========================= */
-async function loadWarns() {
-  if (!CURRENT_MEMBER_DOC) return;
-
-  const warnList = document.getElementById("warnList");
-  if (!warnList) return;
-
-  warnList.innerHTML = "";
-
-  const snaps = await getDocs(collection(
-    db,
-    "member_observations",
-    CURRENT_MEMBER_DOC,
-    "warns"
-  ));
-
-  if (snaps.empty) {
-    warnList.innerHTML = `<div class="card">Keine Warns gespeichert.</div>`;
-    return;
-  }
-
-  const items = [];
-  snaps.forEach(d => items.push({ id: d.id, ...d.data() }));
-
-  // Neueste zuerst
-  items.sort((a, b) => (b.time || 0) - (a.time || 0));
-
-  items.forEach(w => {
-    const active = (w.active === true); // default false wenn nicht gesetzt
-    warnList.innerHTML += `
-      <div class="card ${active ? "warn-w2" : "task-done"}" style="margin-bottom:6px;">
-        <b>${w.level || "-"}</b> – ${w.issued || "-"} ${active ? "" : "(erledigt)"}<br>
-        ${w.reason || ""}
-        <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
-          <button type="button" class="gray" onclick="toggleWarnActive('${w.id}', ${active ? "true" : "false"})">
-            ${active ? "Als erledigt markieren" : "Wieder aktiv"}
-          </button>
-          <button type="button" class="danger" onclick="deleteWarn('${w.id}')">Löschen</button>
-        </div>
-      </div>
-    `;
-  });
-}
-
-/* =========================
-   WARNS: Speichern
-========================= */
-async function saveWarnFromDetail() {
-  if (!CURRENT_MEMBER_DOC) return alert("Erst Akte öffnen");
-
-  const issuedEl = document.getElementById("warnIssued");
-  const levelEl = document.getElementById("warnLevel");
-  const reasonEl = document.getElementById("warnReason");
-  const activeEl = document.getElementById("warnActive");
-
-  const issued = issuedEl ? issuedEl.value : "";
-  const level = levelEl ? levelEl.value : "W1";
-  const reason = reasonEl ? reasonEl.value : "";
-  const active = activeEl ? !!activeEl.checked : true;
-
-  if (!issued) return alert("Bitte Datum wählen");
-  if (!reason.trim()) return alert("Bitte Grund/Details eintragen");
-
-  await addDoc(collection(
-    db,
-    "member_observations",
-    CURRENT_MEMBER_DOC,
-    "warns"
-  ), {
-    issued,
-    level,
-    reason,
-    active,
-    by: CURRENT_UID,
-    time: Date.now()
-  });
-
-  // reset
-  if (reasonEl) reasonEl.value = "";
-  if (activeEl) activeEl.checked = true;
-
-  loadWarns();
-  loadSecretaryEntries(); // damit Liste oben Warn-Markierung aktuell bleibt
-}
-
-/* =========================
-   WARNS: Aktiv/Erledigt
-========================= */
-window.toggleWarnActive = async (warnId, current) => {
-  if (!CURRENT_MEMBER_DOC) return;
-
-  await updateDoc(
-    doc(db, "member_observations", CURRENT_MEMBER_DOC, "warns", warnId),
-    { active: !current }
-  );
-
-  loadWarns();
-  loadSecretaryEntries();
+window.deleteMeeting = async (id) => {
+  if (!hasSecretaryRights()) return;
+  if (!confirm("Besprechung wirklich löschen?")) return;
+  await deleteDoc(doc(db, "meetings", id));
+  loadMeetings();
 };
 
-/* =========================
-   WARNS: Löschen
-========================= */
-window.deleteWarn = async (warnId) => {
-  if (!CURRENT_MEMBER_DOC) return;
-  if (!confirm("Warn wirklich löschen?")) return;
-
-  await deleteDoc(doc(db, "member_observations", CURRENT_MEMBER_DOC, "warns", warnId));
-
-  loadWarns();
-  loadSecretaryEntries();
+window.toggleMeetingStatus = async (id, current) => {
+  if (!hasSecretaryRights()) return;
+  const next = current === "done" ? "open" : "done";
+  await updateDoc(doc(db, "meetings", id), { status: next });
+  loadMeetings();
 };
