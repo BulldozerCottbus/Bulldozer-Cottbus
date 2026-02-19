@@ -194,41 +194,113 @@ button:active {
 }
 
 /* ===================================================== */
-/* SECRETARY EXTENSIONS (NEU) */
+/* SECRETARY EXTENSIONS (FIXED) */
 /* ===================================================== */
 
-/* Tab-Leiste (6 Buttons) */
+/* ✅ Tabs: sauber als Grid (3 Spalten) + keine Wort-Zerhackung */
 .sec-tabs{
-  margin-bottom:10px;
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
+  margin-bottom: 10px;
+  padding: 10px;
+
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
 }
 
-/* überschreibt global button width:100% */
 .sec-tabs button{
-  width:auto !important;
-  flex:1;
-  padding: 12px;
+  width: 100% !important;
+  margin-top: 0;          /* sonst macht global button margin-top Lücken */
+  padding: 12px 10px;
+  line-height: 1.15;
+
+  white-space: normal;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+  hyphens: none;
+
+  font-size: 14px;
 }
 
-/* Picklists (Attendance) */
+/* ✅ Label über Feldern (Date, Dropdown etc.) */
+.field-label{
+  display:block;
+  margin-top: 10px;
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+/* ✅ Checkbox-Zeilen: Checkbox links, Text rechts (perfekt aligned) */
+.checkline{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  margin-top: 10px;
+  user-select:none;
+}
+
+.checkline.small{
+  margin-top: 0;
+}
+
+/* ✅ Checkboxen überall gleich groß + ohne „hoch reinrutschen“ */
+.checkline input[type="checkbox"]{
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  flex: 0 0 auto;
+  vertical-align: middle;
+}
+
+/* ✅ Warnstufen nebeneinander */
+.warn-checks{
+  display:flex;
+  gap: 18px;
+  align-items:center;
+  margin-top: 6px;
+}
+
+/* ===================================================== */
+/* Meetings Attendance Picklist */
+/* ===================================================== */
+
 .picklist{
   display:flex;
   flex-direction:column;
-  gap:6px;
-  margin-top:6px;
+  gap: 6px;
+  margin-top: 6px;
+
+  /* verhindert "Julia\nn" */
+  overflow-wrap: normal !important;
+  word-break: normal !important;
 }
 
-.pickitem{
+.picklist .pick-item,
+.picklist .pickitem,         /* falls du es irgendwo so geschrieben hast */
+.picklist .card {            /* fallback falls JS aktuell cards rendert */
   display:flex;
   align-items:center;
-  gap:8px;
-  background:#202020;
-  padding:8px;
-  border-radius:8px;
-  border:1px solid #2d2d2d;
+  gap: 10px;
+
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #2d2d2d;
+  background: #202020;
+
+  margin: 0;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
 }
+
+.picklist input[type="checkbox"]{
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  flex: 0 0 auto;
+}
+
+/* ===================================================== */
+/* Helpers (bleiben aus deinem Original, aber sauber) */
+/* ===================================================== */
 
 /* Row Layouts für kleinere Inputs nebeneinander */
 .row{
