@@ -162,12 +162,6 @@ button:active {
 /* SECRETARY */
 /* ===================================================== */
 
-/* Tab-Leiste Buttons nebeneinander (überschreibt button width:100%) */
-#secretaryScreen .card[style*="display:flex"] button {
-  width: auto;
-  flex: 1;
-}
-
 /* Warnstufen */
 .warn-w1 {
   border-left: 5px solid gold;
@@ -197,4 +191,86 @@ button:active {
 
 .sec-entry:hover {
   transform: scale(1.02);
+}
+
+/* ===================================================== */
+/* SECRETARY EXTENSIONS (NEU) */
+/* ===================================================== */
+
+/* Tab-Leiste (6 Buttons) */
+.sec-tabs{
+  margin-bottom:10px;
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+/* überschreibt global button width:100% */
+.sec-tabs button{
+  width:auto !important;
+  flex:1;
+  padding: 12px;
+}
+
+/* Picklists (Attendance) */
+.picklist{
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  margin-top:6px;
+}
+
+.pickitem{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  background:#202020;
+  padding:8px;
+  border-radius:8px;
+  border:1px solid #2d2d2d;
+}
+
+/* Row Layouts für kleinere Inputs nebeneinander */
+.row{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
+.row > *{
+  flex:1;
+  min-width:120px;
+}
+
+/* Kleine Buttons */
+.smallbtn{
+  padding:10px;
+  border-radius:10px;
+  font-weight:bold;
+}
+
+/* Farb-Helper */
+.danger{
+  background:#c0392b !important;
+}
+
+.gray{
+  background:#444 !important;
+}
+
+/* Badge / Label */
+.badge{
+  display:inline-block;
+  padding:4px 8px;
+  border-radius:999px;
+  font-size:12px;
+  background:#333;
+  margin-right:6px;
+}
+
+/* Separator */
+.hr{
+  height:1px;
+  background:#2b2b2b;
+  margin:10px 0;
 }
