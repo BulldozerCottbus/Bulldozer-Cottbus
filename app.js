@@ -941,7 +941,6 @@ function renderSecretaryEntries() {
 let CURRENT_MEMBER_DOC = null;
 
 /* Akte öffnen */
-
 window.openMemberFile = async (docId) => {
   CURRENT_MEMBER_DOC = docId;
 
@@ -950,43 +949,197 @@ window.openMemberFile = async (docId) => {
 
   const data = snap.data() || {};
 
-  const status = data.status || data.startRank || "-";
-  const license = data.hasLicense ? "✅ Ja" : "❌ Nein";
-
   const statusText = (data.status || data.startRank || "-");
-const licenseText = data.hasLicense ? "✅ Ja" : "❌ Nein";
-const licenseDate = data.licenseCheckedAt || "-";
+  const licenseText = data.hasLicense ? "✅ Ja" : "❌ Nein";
+  const licenseDate = data.licenseCheckedAt || "-";
 
-secDetail.innerHTML = `
-  <div class="card">
-    <h4>${data.name}</h4>
-    Mitglied seit: ${data.joinDate || "-"}<br>
-    Status: ${(data.status || data.startRank || "-")}<br>
-    Führerschein: ${data.hasLicense ? "✅ Ja" : "❌ Nein"}<br>
-    Geprüft am: ${data.licenseCheckedAt || "-"}<br>
-    Sponsor: ${data.sponsor || "-"}<br><br>
-    ${data.notes || ""}
-  </div>
+  // ✅ UI (Akte + Timeline + Warns) – alles als String
+  secDetail.innerHTML = `
+    <div class="card">
+      <h4>${data.name || "-"}</h4>
+      Mitglied seit: ${data.joinDate || "-"}<br>
+      Status: ${statusText}<br>
+      Führerschein: ${licenseText}<br>
+      Geprüft am: ${licenseDate}<br>
+      Sponsor: ${data.sponsor || "-"}<br><br>
+      ${data.notes || ""}
+    </div>
 
-  <h4>Timeline</h4>
-  <div id="timelineList"></div>
-`;
-
-loadTimeline();
-};
-
+    <h4>Timeline</h4>
+    <div id="timelineList"></div>
 
     <div class="card">
       <h4>⚠️ Warns (Detail)</h4>
 
       <div class="row">
-        <input id="warnIssued" type="date" placeholder="Datum">
+        <input id="warnIssued" type="date">
         <select id="warnLevel">
           <option value="W1">W.S1</option>
           <option value="W2">W.S2</option>
         </select>
       </div>
 
+      <textarea id="warnReason" placeholder="Grund / Details..."></textarea>
+
+      <label class="checkline" for="warnActive">
+        <input type="checkbox" id="warnActive" checked>
+        Aktiv
+      </label>
+
+      <button type="button" id="saveWarnBtn">Warn speichern</button>
+
+      <h4>Liste</h4>
+      <div id="warnList"></div>
+    </div>
+  `;
+
+  // ✅ Wichtig: erst NACH innerHTML, sonst gibt's die IDs noch nicht
+  loadTimeline();
+  loadWarns();
+
+  const saveWarnBtn = document.getElementById("saveWarnBtn");
+  if (saveWarnBtn) saveWarnBtn.onclick = saveWarnFromDetail;
+};
+
+/* =========================
+   WARNS: Laden
+========================= */
+async function loadWarns() {
+  if (!CURRENT_MEMBER_DOC) return;
+
+  const warnList = document.getElementById("warnList");
+  if (!warnList) return;
+
+  warnList.innerHTML = "";
+
+  const snaps = await getDocs(collection(
+    db,
+    "member_observations",
+    CURRENT_MEMBER_DOC,
+    "warns"
+  ));
+
+  if (snaps.empty) {
+    warnList.innerHTML = `<div class="card">Keine Warns gespeichert.</div>`;
+    return;
+  }
+
+  const items = [];
+  snaps.forEach(d => items.push({ id: d.id, ...d.data() }));
+
+  // Neueste zuerst
+  items.sort((a, b) => (b.time || 0) - (a.time || 0));
+
+  items.forEach(w => {
+    const active = (w.active === true); // default false wenn nicht gesetzt
+    warnList.innerHTML += `
+      <div class="card ${active ? "warn-w2" : "task-done"}" style="margin-bottom:6px;">
+        <b>${w.level || "-"}</b> – ${w.issued || "-"} ${active ? "" : "(erledigt)"}<br>
+        ${w.reason || ""}
+        <div style="margin-top:8px; display:flex; gap:8px; flex-wrap:wrap;">
+          <button type="button" class="gray" onclick="toggleWarnActive('${w.id}', ${active ? "true" : "false"})">
+            ${active ? "Als erledigt markieren" : "Wieder aktiv"}
+          </button>
+          <button type="button" class="danger" onclick="deleteWarn('${w.id}')">Löschen</button>
+        </div>
+      </div>
+    `;
+  });
+}
+
+/* =========================
+   WARNS: Speichern
+========================= */
+async function saveWarnFromDetail() {
+  if (!CURRENT_MEMBER_DOC) return alert("Erst Akte öffnen");
+
+  const issuedEl = document.getElementById("warnIssued");
+  const levelEl = document.getElementById("warnLevel");
+  const reasonEl = document.getElementById("warnReason");
+  const activeEl = document.getElementById("warnActive");
+
+  const issued = issuedEl ? issuedEl.value : "";
+  const level = levelEl ? levelEl.value : "W1";
+  const reason = reasonEl ? reasonEl.value : "";
+  const active = activeEl ? !!activeEl.checked : true;
+
+  if (!issued) return alert("Bitte Datum wählen");
+  if (!reason.trim()) return alert("Bitte Grund/Details eintragen");
+
+  await addDoc(collection(
+    db,
+    "member_observations",
+    CURRENT_MEMBER_DOC,
+    "warns"
+  ), {
+    issued,
+    level,
+    reason,
+    active,
+    by: CURRENT_UID,
+    time: Date.now()
+  });
+
+  // reset
+  if (reasonEl) reasonEl.value = "";
+  if (activeEl) activeEl.checked = true;
+
+  loadWarns();
+  loadSecretaryEntries(); // damit Liste oben Warn-Markierung aktuell bleibt
+}
+
+/* =========================
+   WARNS: Aktiv/Erledigt
+========================= */
+window.toggleWarnActive = async (warnId, current) => {
+  if (!CURRENT_MEMBER_DOC) return;
+
+  await updateDoc(
+    doc(db, "member_observations", CURRENT_MEMBER_DOC, "warns", warnId),
+    { active: !current }
+  );
+
+  loadWarns();
+  loadSecretaryEntries();
+};
+
+/* =========================
+   WARNS: Löschen
+========================= */
+window.deleteWarn = async (warnId) => {
+  if (!CURRENT_MEMBER_DOC) return;
+  if (!confirm("Warn wirklich löschen?")) return;
+
+  await deleteDoc(doc(db, "member_observations", CURRENT_MEMBER_DOC, "warns", warnId));
+
+  loadWarns();
+  loadSecretaryEntries();
+};
+
+      <textarea id="warnReason" placeholder="Grund / Details..."></textarea>
+
+      <label class="checkline" for="warnActive">
+        <input type="checkbox" id="warnActive" checked>
+        Aktiv
+      </label>
+
+      <button type="button" id="saveWarnBtn">Warn speichern</button>
+
+      <h4>Liste</h4>
+      <div id="warnList"></div>
+    </div>
+  `;
+
+  // Timeline + Warns laden (nachdem HTML existiert!)
+  loadTimeline();
+  loadWarns();
+
+  // Button-Handler (muss NACH innerHTML gesetzt werden!)
+  const saveWarnBtn = document.getElementById("saveWarnBtn");
+  if (saveWarnBtn) {
+    saveWarnBtn.onclick = saveWarnFromDetail;
+  }
+};
       <textarea id="warnReason" placeholder="Grund / Details"></textarea>
 
       <div class="row">
