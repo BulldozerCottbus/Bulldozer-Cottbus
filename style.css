@@ -6,11 +6,34 @@
   box-sizing: border-box;
 }
 
+/* ✅ Mobile Fix: niemals links/rechts raus + nur vertikal scrollen */
+html, body {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: hidden;          /* verhindert horizontal scroll */
+  overscroll-behavior-x: none; /* verhindert horizontales "Gummiband" */
+  touch-action: pan-y;         /* erlaubt nur vertikales scrollen */
+  -webkit-text-size-adjust: 100%;
+}
+
+/* ✅ lange Wörter/Links brechen um (verhindert "zu breit") */
+body, .container, .card {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
 body {
   margin: 0;
   font-family: Arial, sans-serif;
   background: #0f0f0f;
   color: white;
+}
+
+/* ✅ Medien/Embeds niemals breiter als Screen */
+img, video, iframe, canvas {
+  max-width: 100%;
+  height: auto;
+  display: block;
 }
 
 header {
@@ -25,9 +48,11 @@ header {
 }
 
 .container {
-  padding: 80px 15px;
+  width: 100%;
   max-width: 500px;
-  margin: auto;
+  margin: 0 auto;
+  padding: 80px 15px;
+  overflow-x: hidden; /* extra safety */
 }
 
 .hidden {
