@@ -78,17 +78,26 @@ const filesNotes = $("filesNotes");
 const filesCalcs = $("filesCalcs");
 
 /* Secretary Member */
+const secSearch = $("secSearch");
+const secFilterStatus = $("secFilterStatus");
+
 const secName = $("secName");
 const secJoinDate = $("secJoinDate");
-const secStartRank = $("secStartRank");
-const secContribution = $("secContribution");
+const secStatus = $("secStatus");
+
+const secLicense = $("secLicense");
+const secLicenseDate = $("secLicenseDate");
+
 const warn1 = $("warn1");
 const warn2 = $("warn2");
 const warnText = $("warnText");
-const selfJoined = $("selfJoined");
+
 const secSponsor = $("secSponsor");
+const selfJoined = $("selfJoined");
+
 const secNotes = $("secNotes");
 const saveMemberObservation = $("saveMemberObservation");
+
 const secEntries = $("secEntries");
 const secDetail = $("secDetail");
 
@@ -776,51 +785,55 @@ window.showSecretaryPanel = () => {
 /* ===================================================== */
 
 if (typeof saveMemberObservation !== "undefined") {
-  saveMemberObservation.onclick = async () => {
-    if (!secName.value) return;
+saveMemberObservation.onclick = async () => {
 
-    const statusEl = $("secStatus");
-    const licenseEl = $("secLicense");
-    const licenseDateEl = $("secLicenseDate");
-    const freezeEl = $("secFreezeUntil");
+  if (!secName.value) return;
 
-    await addDoc(collection(db, "member_observations"), {
-      name: secName.value,
-      joinDate: secJoinDate.value,
-      startRank: secStartRank.value,
+  await addDoc(collection(db,"member_observations"),{
 
-      // ✅ NEU
-      status: statusEl ? statusEl.value : secStartRank.value,
-      hasLicense: licenseEl ? !!licenseEl.checked : false,
-      licenseCheckedAt: licenseDateEl ? licenseDateEl.value : "",
-      freezeUntil: freezeEl ? freezeEl.value : "",
+    name: secName.value,
+    joinDate: secJoinDate.value,
 
-      contribution: secContribution.value,
+    // ✅ nur noch 1× Status
+    status: secStatus.value,
 
-      warn1: warn1.checked,
-      warn2: warn2.checked,
-      warnText: warnText.value,
+    // ✅ Führerschein
+    hasLicense: !!secLicense.checked,
+    licenseCheckedAt: secLicenseDate.value,
 
-      sponsor: selfJoined.checked ? "self_joined" : secSponsor.value,
+    // ✅ Warns
+    warn1: warn1.checked,
+    warn2: warn2.checked,
+    warnText: warnText.value,
 
-      notes: secNotes.value,
+    // ✅ Herkunft
+    sponsor: selfJoined.checked ? "self_joined" : secSponsor.value,
 
-      createdBy: CURRENT_UID,
-      time: Date.now()
-    });
+    notes: secNotes.value,
 
-    secName.value = "";
-    warnText.value = "";
-    secNotes.value = "";
+    createdBy: CURRENT_UID,
+    time: Date.now()
+  });
 
-    if (statusEl) statusEl.value = "member";
-    if (licenseEl) licenseEl.checked = false;
-    if (licenseDateEl) licenseDateEl.value = "";
-    if (freezeEl) freezeEl.value = "";
+  // reset
+  secName.value = "";
+  secJoinDate.value = "";
+  secStatus.value = "member";
 
-    loadSecretaryEntries();
-  };
-}
+  secLicense.checked = false;
+  secLicenseDate.value = "";
+
+  warn1.checked = false;
+  warn2.checked = false;
+  warnText.value = "";
+
+  secSponsor.value = "";
+  selfJoined.checked = false;
+
+  secNotes.value = "";
+
+  loadSecretaryEntries();
+};
 
 /* ===================================================== */
 /* SECRETARY: MEMBER LIST CACHE + FILTER */
@@ -828,21 +841,34 @@ if (typeof saveMemberObservation !== "undefined") {
 
 let SECRETARY_ENTRIES_CACHE = [];
 
-async function loadSecretaryEntries() {
-  if (!$("secEntries")) return;
+async function loadSecretaryEntries(){
 
-  secEntries.innerHTML = `<div class="card">Lade...</div>`;
-  SECRETARY_ENTRIES_CACHE = [];
+  if (!document.getElementById("secEntries")) return;
 
-  const snaps = await getDocs(collection(db, "member_observations"));
+  secEntries.innerHTML = "";
+
+  const snaps = await getDocs(collection(db,"member_observations"));
 
   snaps.forEach(docSnap => {
-    const e = docSnap.data() || {};
-    SECRETARY_ENTRIES_CACHE.push({
-      id: docSnap.id,
-      ...e
-    });
+
+    const e = docSnap.data();
+
+    let warnClass = "";
+    if (e.warn2) warnClass = "warn-w2";
+    else if (e.warn1) warnClass = "warn-w1";
+
+    const statusText = (e.status || e.startRank || "-");
+
+    secEntries.innerHTML += `
+      <div class="card sec-entry ${warnClass}"
+           onclick="openMemberFile('${docSnap.id}')">
+        <b>${e.name}</b><br>
+        Status: ${statusText}<br>
+        Warns: ${e.warn1 ? "W.1 " : ""}${e.warn2 ? "W.2" : ""}
+      </div>
+    `;
   });
+}
 
   // newest first
   SECRETARY_ENTRIES_CACHE.sort((a, b) => (b.time || 0) - (a.time || 0));
@@ -927,20 +953,24 @@ window.openMemberFile = async (docId) => {
   const status = data.status || data.startRank || "-";
   const license = data.hasLicense ? "✅ Ja" : "❌ Nein";
 
-  secDetail.innerHTML = `
-    <div class="card">
-      <h4>${data.name || "-"}</h4>
-      Mitglied seit: ${data.joinDate || "-"}<br>
-      Start Rang: ${data.startRank || "-"}<br>
-      Status: ${status}<br>
-      Führerschein: ${license}<br>
-      ${data.licenseCheckedAt ? `Geprüft am: ${data.licenseCheckedAt}<br>` : ""}
-      ${data.freezeUntil ? `<b>Rangsperre bis:</b> ${data.freezeUntil}<br>` : ""}
-      Sponsor: ${data.sponsor || "-"}<br>
-      Beitrag: ${data.contribution || "-"} €<br>
-      <br>
-      ${data.notes || ""}
-    </div>
+  const statusText = (data.status || data.startRank || "-");
+const licenseText = data.hasLicense ? "✅ Ja" : "❌ Nein";
+const licenseDate = data.licenseCheckedAt || "-";
+
+secDetail.innerHTML = `
+  <div class="card">
+    <h4>${data.name}</h4>
+    Mitglied seit: ${data.joinDate || "-"}<br>
+    Status: ${statusText}<br>
+    Führerschein: ${licenseText}<br>
+    Geprüft am: ${licenseDate}<br>
+    Sponsor: ${data.sponsor || "-"}<br>
+    <br>
+    ${data.notes || ""}
+  </div>
+  <h4>Timeline</h4>
+  <div id="timelineList"></div>
+`;
 
     <div class="card">
       <h4>⚠️ Warns (Detail)</h4>
