@@ -961,16 +961,20 @@ secDetail.innerHTML = `
   <div class="card">
     <h4>${data.name}</h4>
     Mitglied seit: ${data.joinDate || "-"}<br>
-    Status: ${statusText}<br>
-    Führerschein: ${licenseText}<br>
-    Geprüft am: ${licenseDate}<br>
-    Sponsor: ${data.sponsor || "-"}<br>
-    <br>
+    Status: ${(data.status || data.startRank || "-")}<br>
+    Führerschein: ${data.hasLicense ? "✅ Ja" : "❌ Nein"}<br>
+    Geprüft am: ${data.licenseCheckedAt || "-"}<br>
+    Sponsor: ${data.sponsor || "-"}<br><br>
     ${data.notes || ""}
   </div>
+
   <h4>Timeline</h4>
   <div id="timelineList"></div>
 `;
+
+loadTimeline();
+};
+
 
     <div class="card">
       <h4>⚠️ Warns (Detail)</h4>
