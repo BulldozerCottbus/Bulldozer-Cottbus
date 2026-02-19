@@ -31,6 +31,87 @@ let CURRENT_RANK = null;
 const $ = (id) => document.getElementById(id);
 
 /* ===================================================== */
+/* DOM REFS (damit Module nicht crasht) */
+/* ===================================================== */
+
+const loginScreen = $("loginScreen");
+const homeScreen = $("homeScreen");
+const topBar = $("topBar");
+
+const rankLabel = $("rankLabel");
+const userName = $("userName");
+const points = $("points");
+
+const email = $("email");
+const password = $("password");
+const loginBtn = $("loginBtn");
+const status = $("status");
+
+const postInfoBtn = $("postInfoBtn");
+const newInfoText = $("newInfoText");
+const infosList = $("infosList");
+
+const ridesList = $("ridesList");
+const rideText = $("rideText");
+const ridePriority = $("ridePriority");
+const createRideBtn = $("createRideBtn");
+
+const noteText = $("noteText");
+const noteType = $("noteType");
+const noteTarget = $("noteTarget");
+const saveNoteBtn = $("saveNoteBtn");
+const myNotes = $("myNotes");
+
+const taskText = $("taskText");
+const taskTarget = $("taskTarget");
+const createTaskBtn = $("createTaskBtn");
+const taskList = $("taskList");
+
+const helpText = $("helpText");
+const helpList = $("helpList");
+
+const calcDisplay = $("calcDisplay");
+const calcBtn = $("calcBtn");
+const saveCalcBtn = $("saveCalcBtn");
+
+const filesNotes = $("filesNotes");
+const filesCalcs = $("filesCalcs");
+
+/* Secretary Member */
+const secName = $("secName");
+const secJoinDate = $("secJoinDate");
+const secStartRank = $("secStartRank");
+const secContribution = $("secContribution");
+const warn1 = $("warn1");
+const warn2 = $("warn2");
+const warnText = $("warnText");
+const selfJoined = $("selfJoined");
+const secSponsor = $("secSponsor");
+const secNotes = $("secNotes");
+const saveMemberObservation = $("saveMemberObservation");
+const secEntries = $("secEntries");
+const secDetail = $("secDetail");
+
+const timelineDate = $("timelineDate");
+const timelineRank = $("timelineRank");
+const timelineText = $("timelineText");
+const addTimelineEntry = $("addTimelineEntry");
+
+/* Meetings */
+const meetDate = $("meetDate");
+const meetTitle = $("meetTitle");
+const meetAgenda = $("meetAgenda");
+const meetNotes = $("meetNotes");
+const voteTopic = $("voteTopic");
+const voteOptions = $("voteOptions");
+const voteResult = $("voteResult");
+const meetPersons = $("meetPersons");
+const meetAttendees = $("meetAttendees");
+const meetFollowups = $("meetFollowups");
+const meetStatus = $("meetStatus");
+const saveMeetingBtn = $("saveMeetingBtn");
+
+/* ===================================================== */
 /* UI BINDINGS (Buttons) */
 /* ===================================================== */
 
