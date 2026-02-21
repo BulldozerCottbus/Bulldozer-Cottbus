@@ -16,9 +16,14 @@ const firebaseConfig = {
 
 export const app = initializeApp(firebaseConfig);
 
-// Analytics ist optional – kann in manchen Umgebungen (z.B. localhost) meckern.
-// Wenn du Probleme bekommst: die nächste Zeile auskommentieren.
-export const analytics = getAnalytics(app);
+// Analytics optional & safe
+export let analytics = null;
+try {
+  analytics = getAnalytics(app);
+} catch (e) {
+  // z.B. localhost / blockierte Cookies / unsupportet env
+  console.warn("Firebase Analytics deaktiviert:", e?.message || e);
+}
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);
