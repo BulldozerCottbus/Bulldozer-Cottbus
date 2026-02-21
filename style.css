@@ -124,23 +124,6 @@ button:active {
 }
 
 /* ===================================================== */
-/* RIDES (NEU: Priorities sichtbar) */
-/* ===================================================== */
-
-.priority1 {
-  border-left: 4px solid #777;
-}
-
-.priority2 {
-  border-left: 4px solid orange;
-}
-
-.priority3 {
-  border-left: 4px solid red;
-  background: #2a0000;
-}
-
-/* ===================================================== */
 /* NOTES */
 /* ===================================================== */
 
@@ -291,25 +274,8 @@ button:active {
   word-break: normal !important;
 }
 
-/* ✅ Basis-Style für pickitem (auch außerhalb .picklist z.B. VoteBox) */
-.pickitem,
-.pick-item{
-  display:flex;
-  align-items:center;
-  gap: 10px;
-
-  padding: 10px 12px;
-  border-radius: 8px;
-  border: 1px solid #2d2d2d;
-  background: #202020;
-
-  margin: 0;
-  overflow-wrap: normal !important;
-  word-break: normal !important;
-}
-
 .picklist .pick-item,
-.picklist .pickitem,
+.picklist .pickitem,         /* falls du es irgendwo so geschrieben hast */
 .picklist .card {            /* fallback falls JS aktuell cards rendert */
   display:flex;
   align-items:center;
@@ -379,4 +345,73 @@ button:active {
   height:1px;
   background:#2b2b2b;
   margin:10px 0;
+}
+
+/* ===================================================== */
+/* ✅ TREASURY (NEU) */
+/* ===================================================== */
+
+.money-good{
+  border-left: 4px solid #2ecc71;
+}
+
+.money-warn{
+  border-left: 4px solid orange;
+}
+
+.money-bad{
+  border-left: 4px solid #c0392b;
+  background:#2a0000;
+}
+
+/* Modal Overlay */
+.modal{
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+  z-index: 5000;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding: 12px;
+}
+
+.modal-card{
+  width: min(520px, 95vw);
+  max-height: 85vh;
+  overflow:auto;
+  background:#181818;
+  border:1px solid #2b2b2b;
+  border-radius:12px;
+  padding: 12px;
+}
+
+.month-grid{
+  display:grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.month-grid label{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:10px;
+  border-radius:10px;
+  background:#202020;
+  border:1px solid #2d2d2d;
+  user-select:none;
+}
+
+.month-grid input[type="checkbox"]{
+  width: 18px;
+  height: 18px;
+  margin: 0;
+}
+
+.readonly-hint{
+  font-size: 12px;
+  opacity: 0.8;
+  margin-top: 6px;
 }
