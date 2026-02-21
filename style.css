@@ -127,13 +127,8 @@ button:active {
 /* NOTES */
 /* ===================================================== */
 
-.note-privat {
-  border-left: 4px solid gray;
-}
-
-.note-club {
-  border-left: 4px solid dodgerblue;
-}
+.note-privat { border-left: 4px solid gray; }
+.note-club { border-left: 4px solid dodgerblue; }
 
 .note-wichtig {
   border-left: 4px solid red;
@@ -149,9 +144,7 @@ button:active {
 /* TASKS */
 /* ===================================================== */
 
-.task-open {
-  border-left: 4px solid orange;
-}
+.task-open { border-left: 4px solid orange; }
 
 .task-done {
   border-left: 4px solid green;
@@ -189,15 +182,12 @@ button:active {
   will-change: transform;
 }
 
-.sec-entry:hover {
-  transform: scale(1.02);
-}
+.sec-entry:hover { transform: scale(1.02); }
 
 /* ===================================================== */
 /* SECRETARY EXTENSIONS (FIXED) */
 /* ===================================================== */
 
-/* ✅ Tabs: sauber als Grid (3 Spalten) + keine Wort-Zerhackung */
 .sec-tabs{
   margin-bottom: 10px;
   padding: 10px;
@@ -209,7 +199,7 @@ button:active {
 
 .sec-tabs button{
   width: 100% !important;
-  margin-top: 0;          /* sonst macht global button margin-top Lücken */
+  margin-top: 0;
   padding: 12px 10px;
   line-height: 1.15;
 
@@ -221,7 +211,6 @@ button:active {
   font-size: 14px;
 }
 
-/* ✅ Label über Feldern (Date, Dropdown etc.) */
 .field-label{
   display:block;
   margin-top: 10px;
@@ -229,7 +218,6 @@ button:active {
   opacity: 0.85;
 }
 
-/* ✅ Checkbox-Zeilen: Checkbox links, Text rechts (perfekt aligned) */
 .checkline{
   display:flex;
   align-items:center;
@@ -238,11 +226,8 @@ button:active {
   user-select:none;
 }
 
-.checkline.small{
-  margin-top: 0;
-}
+.checkline.small{ margin-top: 0; }
 
-/* ✅ Checkboxen überall gleich groß + ohne „hoch reinrutschen“ */
 .checkline input[type="checkbox"]{
   width: 18px;
   height: 18px;
@@ -251,7 +236,6 @@ button:active {
   vertical-align: middle;
 }
 
-/* ✅ Warnstufen nebeneinander */
 .warn-checks{
   display:flex;
   gap: 18px;
@@ -269,14 +253,13 @@ button:active {
   gap: 6px;
   margin-top: 6px;
 
-  /* verhindert "Julia\nn" */
   overflow-wrap: normal !important;
   word-break: normal !important;
 }
 
 .picklist .pick-item,
-.picklist .pickitem,         /* falls du es irgendwo so geschrieben hast */
-.picklist .card {            /* fallback falls JS aktuell cards rendert */
+.picklist .pickitem,
+.picklist .card {
   display:flex;
   align-items:center;
   gap: 10px;
@@ -299,10 +282,9 @@ button:active {
 }
 
 /* ===================================================== */
-/* Helpers (bleiben aus deinem Original, aber sauber) */
+/* Helpers */
 /* ===================================================== */
 
-/* Row Layouts für kleinere Inputs nebeneinander */
 .row{
   display:flex;
   gap:8px;
@@ -314,23 +296,15 @@ button:active {
   min-width:120px;
 }
 
-/* Kleine Buttons */
 .smallbtn{
   padding:10px;
   border-radius:10px;
   font-weight:bold;
 }
 
-/* Farb-Helper */
-.danger{
-  background:#c0392b !important;
-}
+.danger{ background:#c0392b !important; }
+.gray{ background:#444 !important; }
 
-.gray{
-  background:#444 !important;
-}
-
-/* Badge / Label */
 .badge{
   display:inline-block;
   padding:4px 8px;
@@ -340,7 +314,6 @@ button:active {
   margin-right:6px;
 }
 
-/* Separator */
 .hr{
   height:1px;
   background:#2b2b2b;
@@ -351,20 +324,13 @@ button:active {
 /* ✅ TREASURY (NEU) */
 /* ===================================================== */
 
-.money-good{
-  border-left: 4px solid #2ecc71;
-}
-
-.money-warn{
-  border-left: 4px solid orange;
-}
-
+.money-good{ border-left: 4px solid #2ecc71; }
+.money-warn{ border-left: 4px solid orange; }
 .money-bad{
   border-left: 4px solid #c0392b;
   background:#2a0000;
 }
 
-/* Modal Overlay */
 .modal{
   position: fixed;
   inset: 0;
@@ -414,4 +380,9 @@ button:active {
   font-size: 12px;
   opacity: 0.8;
   margin-top: 6px;
+}
+
+.mono{
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  white-space: pre-wrap;
 }
