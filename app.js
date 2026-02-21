@@ -32,7 +32,22 @@ function setText(id, txt) {
 }
 
 function escapeAttr(s) {
-  return String(s || "").replace(/"/g, "&quot;");
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function escapeHTML(s) {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function nl2br(s) {
+  return escapeHTML(s).replace(/\n/g, "<br>");
 }
 
 /* ===================================================== */
@@ -332,7 +347,7 @@ async function loadInfos() {
 
   snaps.forEach(docSnap => {
     const data = docSnap.data() || {};
-    infosList.innerHTML += `<div class="card">${data.text || ""}</div>`;
+    infosList.innerHTML += `<div class="card">${nl2br(data.text || "")}</div>`;
   });
 }
 
@@ -1502,6 +1517,7 @@ async function saveMeeting() {
   for (let i = 0; i < payload.actions.length; i++) {
     const a = payload.actions[i];
 
+    // Neu anlegen
     if (!a.taskId) {
       const tRef = await addDoc(collection(db, "tasks"), {
         from: CURRENT_UID,
@@ -1513,17 +1529,37 @@ async function saveMeeting() {
         time: Date.now()
       });
       a.taskId = tRef.id;
-    } else {
-      const tDoc = await getDoc(doc(db, "tasks", a.taskId));
-      const existing = tDoc.exists() ? (tDoc.data() || {}) : {};
-      await updateDoc(doc(db, "tasks", a.taskId), {
+      continue;
+    }
+
+    // Existiert der Task noch?
+    const tRef = doc(db, "tasks", a.taskId);
+    const tDoc = await getDoc(tRef);
+
+    // Wenn Task gelöscht wurde → neu erstellen statt updateDoc() Crash
+    if (!tDoc.exists()) {
+      const newRef = await addDoc(collection(db, "tasks"), {
+        from: CURRENT_UID,
         to: a.toUid,
         text: `[Meeting ${md.value}] ${a.text}`,
+        status: "open",
         dueDate: a.dueDate || "",
         meetingId: meetingId,
-        status: existing.status || "open"
+        time: Date.now()
       });
+      a.taskId = newRef.id;
+      continue;
     }
+
+    // Update bestehend (Status beibehalten)
+    const existing = tDoc.data() || {};
+    await updateDoc(tRef, {
+      to: a.toUid,
+      text: `[Meeting ${md.value}] ${a.text}`,
+      dueDate: a.dueDate || "",
+      meetingId: meetingId,
+      status: existing.status || "open"
+    });
   }
 
   // Actions zurück in meeting schreiben (mit taskId)
