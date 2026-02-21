@@ -38,6 +38,7 @@
 
     <!-- ✅ Wichtig: Secretary muss über showSecretaryPanel laufen -->
     <button onclick="showSecretaryPanel()">📒 Secretary</button>
+    <button onclick="showTreasuryPanel()">💰 Treasurer</button>
 
     <button onclick="showScreen('calc')">🧮 Rechner</button>
     <button onclick="showScreen('files')">📁 Dateien</button>
@@ -585,6 +586,147 @@
     </div>
 
     <button type="button" onclick="backHome()">⬅ Zurück</button>
+  </div>
+</div>
+
+  <!-- ✅ TREASURY SCREEN -->
+<div class="container hidden" id="treasuryScreen">
+  <div class="card">
+
+    <!-- ✅ Tabs (3 Stück) -->
+    <div class="card sec-tabs">
+      <button type="button" onclick="treasShow('treasDashboard')">📊 Dashboard</button>
+      <button type="button" onclick="treasShow('treasClub')">💼 Clubkasse</button>
+      <button type="button" onclick="treasShow('treasMembers')">👤 Member Kasse</button>
+    </div>
+
+    <!-- ✅ TAB: Dashboard -->
+    <div id="treasDashboard" class="hidden">
+      <h3>📊 Treasurer Dashboard</h3>
+      <div class="card">
+        <div id="treasDashLatest">Letzter Monat: ...</div>
+        <div id="treasDashSollIst">Clubkasse Soll/Ist: ...</div>
+        <div id="treasDashMembers">Member-Akten: ...</div>
+      </div>
+      <button type="button" id="treasDashRefreshBtn">🔄 Aktualisieren</button>
+      <div class="readonly-hint" id="treasReadHint"></div>
+    </div>
+
+    <!-- ✅ TAB: Clubkasse -->
+    <div id="treasClub" class="hidden">
+      <h3>💼 Clubkasse (Monats-Akte)</h3>
+
+      <label class="field-label" for="treasMonth">Monat</label>
+      <input id="treasMonth" type="month">
+
+      <label class="field-label" for="treasBudgetPerPerson">Monatsbudget pro Person (€)</label>
+      <input id="treasBudgetPerPerson" type="number" placeholder="z.B. 30" value="30">
+
+      <h4>Einnahmen</h4>
+      <div class="row">
+        <input id="treasIncomeSponsor" type="number" placeholder="Sponsor €">
+        <input id="treasIncomeRides" type="number" placeholder="Plus Fahrten Geld €">
+      </div>
+      <input id="treasIncomeOther" type="number" placeholder="Andere Einnahmen €">
+
+      <h4>Ausgaben</h4>
+      <div class="row">
+        <input id="treasCostClub" type="number" placeholder="Clubkasse Ausgaben €">
+        <input id="treasCostOther" type="number" placeholder="Andere Kosten (Strom etc.) €">
+      </div>
+      <textarea id="treasCostNote" placeholder="Notiz zu Ausgaben (Strom, Party, Miete, ...)" ></textarea>
+
+      <h4>Clubkasse Soll / Ist</h4>
+      <div class="row">
+        <input id="treasCashSoll" type="number" placeholder="Soll € (z.B. 100)">
+        <input id="treasCashIst" type="number" placeholder="Ist € (z.B. 80)">
+      </div>
+      <div id="treasCashDiff" class="card">Differenz: -</div>
+
+      <textarea id="treasClubNote" placeholder="Allgemeine Notiz zum Monat"></textarea>
+
+      <button type="button" id="saveTreasReportBtn">💾 Monats-Akte speichern</button>
+      <button type="button" id="resetTreasReportBtn" class="gray">🧹 Neu</button>
+
+      <h3>Akten</h3>
+      <div id="treasReportList"></div>
+    </div>
+
+    <!-- ✅ TAB: Member Kasse -->
+    <div id="treasMembers" class="hidden">
+      <h3>👤 Member Kasse (Einzel-Akten)</h3>
+
+      <input id="treasMemberSearch" placeholder="🔎 Suche (Name, Rang, Notiz...)">
+      <button type="button" id="treasAddMemberBtn">➕ Person hinzufügen</button>
+
+      <div id="treasMemberList"></div>
+    </div>
+
+    <button type="button" onclick="backHome()">⬅ Zurück</button>
+  </div>
+</div>
+
+<!-- ✅ TREASURY MEMBER MODAL -->
+<div id="treasMemberModal" class="modal hidden">
+  <div class="modal-card">
+    <h3 id="tmTitle">👤 Member-Akte</h3>
+
+    <input id="tmName" placeholder="1) Name">
+    <input id="tmRank" placeholder="2) Rang">
+    <label class="field-label" for="tmJoinDate">3) Eintrittsdatum</label>
+    <input id="tmJoinDate" type="date">
+
+    <h4>4) Club Kosten</h4>
+    <div class="row">
+      <input id="tmClubMonthly" type="number" placeholder="Club Kasse pro Monat € (z.B. 30)" value="30">
+      <input id="tmOtherMonthly" type="number" placeholder="Andere Kosten pro Monat € (z.B. 0)" value="0">
+    </div>
+
+    <textarea id="tmNote" placeholder="5) Notiz"></textarea>
+
+    <h4>6) Monate (Januar–Dezember)</h4>
+    <div class="month-grid">
+      <label><input type="checkbox" id="tm_jan">Jan</label>
+      <label><input type="checkbox" id="tm_feb">Feb</label>
+      <label><input type="checkbox" id="tm_mar">Mär</label>
+      <label><input type="checkbox" id="tm_apr">Apr</label>
+      <label><input type="checkbox" id="tm_may">Mai</label>
+      <label><input type="checkbox" id="tm_jun">Jun</label>
+      <label><input type="checkbox" id="tm_jul">Jul</label>
+      <label><input type="checkbox" id="tm_aug">Aug</label>
+      <label><input type="checkbox" id="tm_sep">Sep</label>
+      <label><input type="checkbox" id="tm_oct">Okt</label>
+      <label><input type="checkbox" id="tm_nov">Nov</label>
+      <label><input type="checkbox" id="tm_dec">Dez</label>
+    </div>
+
+    <h4>7) Strafgebühren</h4>
+    <div class="row">
+      <input id="tmFineAmount" type="number" placeholder="Betrag €">
+      <input id="tmFineReason" placeholder="Notiz warum">
+    </div>
+
+    <h4>8) Verspätung</h4>
+    <input id="tmLateNote" placeholder="z.B. 3 Monate nicht gezahlt / Grund...">
+
+    <h4>9) Allgemeine Notiz</h4>
+    <textarea id="tmGeneralNote" placeholder="Alles rein: warum nicht zahlen kann, Absprachen, ..."></textarea>
+
+    <h4>10) Soll / Ist (Zahlstatus)</h4>
+    <div class="row">
+      <input id="tmSollTotal" type="number" placeholder="Soll € (z.B. 100)">
+      <input id="tmIstTotal" type="number" placeholder="Ist € (gezahlt) (z.B. 80)">
+    </div>
+
+    <div id="tmRestInfo" class="card">Offen: -</div>
+
+    <div class="row">
+      <button type="button" id="tmSaveBtn">💾 Speichern</button>
+      <button type="button" id="tmDeleteBtn" class="danger">🗑️ Löschen</button>
+      <button type="button" onclick="closeTreasuryMemberModal()" class="gray">✖ Schließen</button>
+    </div>
+
+    <div class="readonly-hint" id="tmReadOnlyHint"></div>
   </div>
 </div>
 
