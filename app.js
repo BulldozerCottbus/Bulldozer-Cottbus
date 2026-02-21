@@ -39,6 +39,43 @@ function escapeAttr(s) {
     .replace(/>/g, "&gt;");
 }
 
+/* ===================================================== */
+/* TREASURY HELPERS (DATE / EXEMPT) */
+/* ===================================================== */
+
+function isValidISODate(v) {
+  const s = String(v || "").trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(s);
+}
+
+// akzeptiert nur YYYY-MM-DD, alles andere => ""
+function normISODate(v) {
+  const s = String(v || "").trim();
+  return isValidISODate(s) ? s : "";
+}
+
+// Hangaround + Supporter zahlen nichts
+function isDuesExempt(member) {
+  const st = String(member?.status || member?.rank || "").toLowerCase().trim();
+  return st === "hangaround" || st === "supporter";
+}
+
+// Monate von Eintrittsmonat bis reportMonth (YYYY-MM) inkl.
+// Beispiel: start 2026-01-16, report 2026-02 => 2 Monate (Jan+Feb)
+function monthsOwedFromJoin(joinISO, reportMonth) {
+  if (!isValidISODate(joinISO)) return 0;
+  const rm = String(reportMonth || "").trim();
+  if (!/^\d{4}-\d{2}$/.test(rm)) return 0;
+
+  const [jy, jm] = joinISO.split("-").slice(0, 2).map(Number);
+  const [ry, rmo] = rm.split("-").map(Number);
+
+  if (!jy || !jm || !ry || !rmo) return 0;
+
+  const diff = (ry - jy) * 12 + (rmo - jm);
+  return diff >= 0 ? (diff + 1) : 0;
+}
+
 function escapeHTML(s) {
   return String(s ?? "")
     .replace(/&/g, "&amp;")
@@ -48,6 +85,129 @@ function escapeHTML(s) {
 
 function nl2br(s) {
   return escapeHTML(s).replace(/\n/g, "<br>");
+}
+
+/* ===================================================== */
+/* TREASURY HELPERS (DATE / EXEMPT / PAID) */
+/* ===================================================== */
+
+function isValidISODate(v) {
+  const s = String(v || "").trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(s);
+}
+
+function normISODate(v) {
+  const s = String(v || "").trim();
+  return isValidISODate(s) ? s : "";
+}
+
+// Hangaround + Supporter zahlen nichts
+function isDuesExempt(member) {
+  const st = String(member?.status || member?.rank || "").toLowerCase().trim();
+  return st === "hangaround" || st === "supporter";
+}
+
+// Monate von Eintrittsmonat bis reportMonth (YYYY-MM) inkl.
+function monthsOwedFromJoin(joinISO, reportMonth) {
+  if (!isValidISODate(joinISO)) return 0;
+  const rm = String(reportMonth || "").trim();
+  if (!/^\d{4}-\d{2}$/.test(rm)) return 0;
+
+  const [jy, jm] = joinISO.split("-").slice(0, 2).map(Number);
+  const [ry, rmo] = rm.split("-").map(Number);
+
+  if (!jy || !jm || !ry || !rmo) return 0;
+
+  const diff = (ry - jy) * 12 + (rmo - jm);
+  return diff >= 0 ? (diff + 1) : 0;
+}
+
+// Monat-Name -> Nummer (de/en) (für Checkbox-Modelle)
+function monthKeyToNum(key) {
+  const k = String(key || "").toLowerCase().trim();
+
+  const map = {
+    jan: 1, januar: 1, january: 1,
+    feb: 2, februar: 2, february: 2,
+    mar: 3, maerz: 3, märz: 3, march: 3,
+    apr: 4, april: 4,
+    mai: 5, may: 5,
+    jun: 6, juni: 6, june: 6,
+    jul: 7, juli: 7, july: 7,
+    aug: 8, august: 8,
+    sep: 9, sept: 9, september: 9,
+    okt: 10, october: 10, oktober: 10,
+    nov: 11, november: 11,
+    dez: 12, december: 12, dezember: 12
+  };
+
+  if (map[k]) return map[k];
+
+  // auch "01","02" etc zulassen
+  if (/^\d{1,2}$/.test(k)) {
+    const n = Number(k);
+    return n >= 1 && n <= 12 ? n : null;
+  }
+  return null;
+}
+
+// Ist-Betrag robust ermitteln (egal wie du es speicherst)
+function calcPaidAmountFromMember(member, perMonthTotal, reportMonth) {
+  // 1) Wenn du irgendwo einen fertigen Betrag speicherst:
+  const numericKeys = ["paidTotal", "paid", "ist", "paidAmount", "amountPaid"];
+  for (const k of numericKeys) {
+    if (member && member[k] != null && member[k] !== "") {
+      const n = Number(member[k]);
+      if (!Number.isNaN(n)) return n;
+    }
+  }
+
+  // 2) Wenn du Checkboxen speicherst (Objekt oder Array):
+  // Varianten:
+  // - member.paidMonths = { januar:true, februar:false, ... }
+  // - member.monthsPaid = { "2026-01":true, "2026-02":true }
+  // - member.paidMonths = ["2026-01","2026-02"]
+  const rm = String(reportMonth || "").trim();
+  const rmMonthNum = /^\d{4}-\d{2}$/.test(rm) ? Number(rm.split("-")[1]) : 12;
+
+  // Objekt-Variante
+  const obj = (member && (member.monthsPaid || member.paidMonths || member.months)) || null;
+  if (obj && typeof obj === "object" && !Array.isArray(obj)) {
+    let count = 0;
+    for (const [key, val] of Object.entries(obj)) {
+      if (!val) continue;
+
+      // key kann "2026-01" sein
+      if (/^\d{4}-\d{2}$/.test(key)) {
+        // nur bis reportMonth zählen (wenn reportMonth gesetzt)
+        if (!/^\d{4}-\d{2}$/.test(rm) || key <= rm) count++;
+        continue;
+      }
+
+      // key kann "januar" sein
+      const mn = monthKeyToNum(key);
+      if (mn && mn <= rmMonthNum) count++;
+    }
+    return count * Number(perMonthTotal || 0);
+  }
+
+  // Array-Variante
+  if (Array.isArray(obj)) {
+    let count = 0;
+    obj.forEach((key) => {
+      if (!key) return;
+      const s = String(key).trim();
+      if (/^\d{4}-\d{2}$/.test(s)) {
+        if (!/^\d{4}-\d{2}$/.test(rm) || s <= rm) count++;
+      } else {
+        const mn = monthKeyToNum(s);
+        if (mn && mn <= rmMonthNum) count++;
+      }
+    });
+    return count * Number(perMonthTotal || 0);
+  }
+
+  return 0;
 }
 
 /* ===================================================== */
@@ -2397,7 +2557,7 @@ async function ensureTreasuryMembersLoaded() {
 }
 
 function calcMonthStatsFromCache(monthStr) {
-  const key = monthKeyFromInput(monthStr);
+  const key = monthKeyFromInput(monthStr);        // z.B. "januar" / "februar" etc. (dein System)
   const members = TREASURY_MEMBERS_CACHE || [];
 
   let sollTotal = 0;
@@ -2406,20 +2566,43 @@ function calcMonthStatsFromCache(monthStr) {
   const openMembers = [];
   const paidMembers = [];
 
+  const monthYM = String(monthStr || "").trim(); // erwartet "YYYY-MM"
+
   members.forEach(m => {
     const club = Number(m.clubMonthly || 0);
     const other = Number(m.otherMonthly || 0);
-    const due = club + other;
+    const baseDue = club + other;
 
-    // wenn kein Monat gewählt wird, nur Summen anzeigen
+    // ✅ FIX: Eintrittsdatum prüfen (nur echtes YYYY-MM-DD zählt)
+    const joinISO = normISODate(m.joinDate || m.entryDate || m.join || "");
+
+    // ✅ FIX: Hangaround/Supporter zahlen nichts
+    const exempt = isDuesExempt(m);
+
+    // ✅ FIX: Nur zahlen, wenn:
+    // - Monat gewählt ist (key vorhanden)
+    // - nicht exempt (kein Hangaround/Supporter)
+    // - Eintrittsdatum vorhanden (gültig)
+    // - und der ausgewählte Monat >= Eintrittsmonat ist
+    let due = 0;
+    if (key && !exempt && joinISO && /^\d{4}-\d{2}$/.test(monthYM)) {
+      const joinYM = joinISO.slice(0, 7); // "YYYY-MM"
+      if (monthYM >= joinYM) due = baseDue;
+    }
+
+    // ✅ wenn kein Monat gewählt wird, nur Summen anzeigen (wie vorher)
+    // paid wird nur ausgewertet, wenn key da ist
     const paid = key ? !!(m.monthsPaid && m.monthsPaid[key]) : false;
 
+    // ✅ Totals nur für Leute, die in dem Monat überhaupt zahlen müssen
     sollTotal += due;
+
     if (paid) {
       istTotal += due;
-      paidMembers.push({ m, due });
+      if (due > 0) paidMembers.push({ m, due });
     } else {
-      openMembers.push({ m, due });
+      // ✅ WICHTIG: Wer 0 zahlen muss, darf NICHT in "offen" landen
+      if (due > 0) openMembers.push({ m, due });
     }
   });
 
