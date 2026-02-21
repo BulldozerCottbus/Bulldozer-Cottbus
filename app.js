@@ -334,7 +334,7 @@ function bindUI() {
   const archiveFilter = $("archiveFilter");
   if (archiveFilter) archiveFilter.onchange = () => renderArchive();
   
-    // Treasury
+  // Treasury
   const treasDashRefresh = $("treasDashRefreshBtn");
   if (treasDashRefresh) treasDashRefresh.onclick = () => loadTreasuryDashboard();
 
@@ -350,10 +350,22 @@ function bindUI() {
   const mSearch = $("treasMemberSearch");
   if (mSearch) mSearch.oninput = () => renderTreasuryMembers();
 
+  const treasMonth = $("treasMonth");
+  if (treasMonth) treasMonth.onchange = () => onTreasuryMonthChanged();
+
+  const autoChk = $("treasAutoSollIst");
+  if (autoChk) autoChk.onchange = () => onTreasuryMonthChanged();
+
   const cashSoll = $("treasCashSoll");
   const cashIst = $("treasCashIst");
   if (cashSoll) cashSoll.oninput = () => updateTreasCashDiff();
   if (cashIst) cashIst.oninput = () => updateTreasCashDiff();
+
+  const churchBtn = $("treasChurchBtn");
+  if (churchBtn) churchBtn.onclick = () => generateChurchReportFromSelectedMonth();
+
+  const churchCopyBtn = $("treasChurchCopyBtn");
+  if (churchCopyBtn) churchCopyBtn.onclick = () => copyChurchReport();
 
   const tmSoll = $("tmSollTotal");
   const tmIst = $("tmIstTotal");
@@ -2198,6 +2210,73 @@ async function loadSecretaryDashboard() {
 /* TREASURY: PANEL / TABS */
 /* ===================================================== */
 
+const TM_MONTHS = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+const TM_MONTH_LABELS = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+
+function monthKeyFromInput(monthStr) {
+  // monthStr: "YYYY-MM"
+  if (!monthStr || !monthStr.includes("-")) return null;
+  const mm = Number(monthStr.split("-")[1]);
+  if (!mm || mm < 1 || mm > 12) return null;
+  return TM_MONTHS[mm - 1];
+}
+
+function monthLabelFromInput(monthStr) {
+  if (!monthStr || !monthStr.includes("-")) return "-";
+  const [yy, mmStr] = monthStr.split("-");
+  const mm = Number(mmStr);
+  if (!mm || mm < 1 || mm > 12) return monthStr;
+  return `${TM_MONTH_LABELS[mm - 1]} ${yy}`;
+}
+
+function euro(n) {
+  const x = Number(n || 0);
+  return `${x.toFixed(2).replace(".", ",")}€`;
+}
+
+function escapeHtml(s) {
+  return String(s || "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+}
+
+function isTreasurerUIReadOnly() {
+  // UI: President/Vice/Sergeant dürfen ansehen, Treasurer darf editieren
+  return !isTreasurerOnly();
+}
+
+function setTreasuryTabReadOnly(tabId, readOnly) {
+  const root = $(tabId);
+  if (!root) return;
+  root.querySelectorAll("input, textarea, select").forEach(el => {
+    // Monat darf jeder Viewer auswählen (damit Bericht/Liste funktioniert)
+    if (el.id === "treasMonth") return;
+    if (el.id === "treasAutoSollIst") return;
+    el.disabled = !!readOnly;
+  });
+
+  const saveBtn = $("saveTreasReportBtn");
+  const resetBtn = $("resetTreasReportBtn");
+  const hint = $("treasClubReadOnlyHint");
+
+  if (saveBtn) saveBtn.style.display = readOnly ? "none" : "block";
+  if (resetBtn) resetBtn.style.display = readOnly ? "none" : "block";
+
+  if (hint) {
+    hint.innerText = readOnly
+      ? "Nur Ansicht: Speichern/Bearbeiten/Löschen kann nur der Treasurer."
+      : "";
+  }
+
+  const memHint = $("treasMembersReadOnlyHint");
+  const addBtn = $("treasAddMemberBtn");
+  if (memHint) memHint.innerText = readOnly ? "Nur Ansicht: Neue Personen/Akten kann nur der Treasurer anlegen." : "";
+  if (addBtn) addBtn.style.display = readOnly ? "none" : "block";
+}
+
 window.treasShow = (which) => {
   const tabs = ["treasDashboard", "treasClub", "treasMembers"];
   tabs.forEach(id => {
@@ -2208,18 +2287,20 @@ window.treasShow = (which) => {
   const target = $(which);
   if (target) target.classList.remove("hidden");
 
+  // Readonly UI setzen
+  setTreasuryTabReadOnly("treasClub", isTreasurerUIReadOnly());
+  setTreasuryTabReadOnly("treasMembers", isTreasurerUIReadOnly());
+
   if (which === "treasDashboard") loadTreasuryDashboard();
   if (which === "treasClub") loadTreasuryReports();
   if (which === "treasMembers") loadTreasuryMembers();
 };
 
 window.showTreasuryPanel = () => {
-  // Button sieht jeder, aber öffnen nur diese Rollen:
   if (!hasTreasuryAccess()) {
     alert("Kein Zugriff");
     return;
   }
-
   window.showScreen("treasuryScreen");
   window.treasShow("treasDashboard");
 };
@@ -2232,20 +2313,23 @@ async function loadTreasuryDashboard() {
   const latest = $("treasDashLatest");
   const sollIst = $("treasDashSollIst");
   const mem = $("treasDashMembers");
+  const open = $("treasDashOpenCount");
   const hint = $("treasReadHint");
 
   if (hint) {
     hint.innerText = isTreasurerOnly()
-      ? "Du bist Treasurer: Du kannst hier erstellen/bearbeiten/löschen."
+      ? "Du bist Treasurer: Du kannst erstellen/bearbeiten/löschen."
       : "Nur Ansicht: Erstellen/Bearbeiten/Löschen kann nur der Treasurer.";
   }
 
-  if (!latest || !sollIst || !mem) return;
+  if (!latest || !sollIst || !mem || !open) return;
 
   latest.innerText = "Letzter Monat: ...";
   sollIst.innerText = "Clubkasse Soll/Ist: ...";
   mem.innerText = "Member-Akten: ...";
+  open.innerText = "Offene Zahler (Monat): ...";
 
+  // latest report
   try {
     const rs = await getDocs(query(collection(db, "treasury_reports"), orderBy("month", "desc"), limit(1)));
     if (rs.empty) {
@@ -2256,19 +2340,137 @@ async function loadTreasuryDashboard() {
       latest.innerText = `Letzter Monat: ${d.month || "-"}`;
       const s = Number(d.cashSoll || 0);
       const i = Number(d.cashIst || 0);
-      sollIst.innerText = `Clubkasse Soll/Ist: ${s}€ / ${i}€ (offen: ${Math.max(0, s - i)}€)`;
+      sollIst.innerText = `Clubkasse Soll/Ist: ${euro(s)} / ${euro(i)} (offen: ${euro(Math.max(0, s - i))})`;
     }
-  } catch (e) {
+  } catch {
     latest.innerText = "Letzter Monat: (Fehler/Rechte)";
     sollIst.innerText = "Clubkasse Soll/Ist: (Fehler/Rechte)";
   }
 
+  // count members
   try {
     const ms = await getDocs(query(collection(db, "treasury_members"), limit(200)));
     mem.innerText = `Member-Akten: ${ms.size}${ms.size === 200 ? "+" : ""}`;
-  } catch (e) {
+  } catch {
     mem.innerText = "Member-Akten: (Fehler/Rechte)";
   }
+
+  // offene Zahler für aktuell ausgewählten Monat (oder aktueller Monat)
+  try {
+    const monthStr = $("treasMonth")?.value || new Date().toISOString().slice(0,7);
+    await ensureTreasuryMembersLoaded();
+    const stats = calcMonthStatsFromCache(monthStr);
+    open.innerText = `Offene Zahler (${monthLabelFromInput(monthStr)}): ${stats.openMembers.length}`;
+  } catch {
+    open.innerText = "Offene Zahler (Monat): (Fehler/Rechte)";
+  }
+}
+
+/* ===================================================== */
+/* TREASURY: AUTO-BERECHNUNG (Monat) */
+/* ===================================================== */
+
+async function ensureTreasuryMembersLoaded() {
+  if (TREASURY_MEMBERS_CACHE && TREASURY_MEMBERS_CACHE.length) return;
+  await loadTreasuryMembers();
+}
+
+function calcMonthStatsFromCache(monthStr) {
+  const key = monthKeyFromInput(monthStr);
+  const members = TREASURY_MEMBERS_CACHE || [];
+
+  let sollTotal = 0;
+  let istTotal = 0;
+
+  const openMembers = [];
+  const paidMembers = [];
+
+  members.forEach(m => {
+    const club = Number(m.clubMonthly || 0);
+    const other = Number(m.otherMonthly || 0);
+    const due = club + other;
+
+    // wenn kein Monat gewählt wird, nur Summen anzeigen
+    const paid = key ? !!(m.monthsPaid && m.monthsPaid[key]) : false;
+
+    sollTotal += due;
+    if (paid) {
+      istTotal += due;
+      paidMembers.push({ m, due });
+    } else {
+      openMembers.push({ m, due });
+    }
+  });
+
+  // Fines als Extra-Info (nicht automatisch in Monatssoll gerechnet)
+  const fines = members
+    .filter(m => Number(m.fineAmount || 0) > 0)
+    .map(m => ({ m, fine: Number(m.fineAmount || 0) }));
+
+  return { key, sollTotal, istTotal, openMembers, paidMembers, fines };
+}
+
+async function onTreasuryMonthChanged() {
+  const monthStr = $("treasMonth")?.value || "";
+  if (!monthStr) {
+    const list = $("treasOpenContribList");
+    if (list) list.innerHTML = "Wähle einen Monat…";
+    return;
+  }
+
+  await ensureTreasuryMembersLoaded();
+
+  const stats = calcMonthStatsFromCache(monthStr);
+
+  const info = $("treasAutoInfo");
+  if (info) {
+    info.innerText = `Auto: Soll/Ist aus Member-Akten für ${monthLabelFromInput(monthStr)} (Häkchen = bezahlt).`;
+  }
+
+  // Auto Soll/Ist setzen, wenn aktiviert
+  const auto = !!$("treasAutoSollIst")?.checked;
+  if (auto) {
+    const sEl = $("treasCashSoll");
+    const iEl = $("treasCashIst");
+    if (sEl) sEl.value = String(Math.round(stats.sollTotal * 100) / 100);
+    if (iEl) iEl.value = String(Math.round(stats.istTotal * 100) / 100);
+  }
+  updateTreasCashDiff();
+
+  // Offen-Liste rendern
+  renderOpenContribList(monthStr, stats);
+}
+
+function renderOpenContribList(monthStr, stats) {
+  const box = $("treasOpenContribList");
+  if (!box) return;
+
+  if (!stats.openMembers.length) {
+    box.innerHTML = `<div class="card money-good">Alle haben für ${monthLabelFromInput(monthStr)} bezahlt ✅</div>`;
+    return;
+  }
+
+  const lines = stats.openMembers
+    .sort((a,b) => (a.m.name || "").localeCompare(b.m.name || ""))
+    .map(({m, due}) => {
+      const fine = Number(m.fineAmount || 0);
+      const fineTxt = fine > 0 ? ` | Strafe: ${euro(fine)} (${escapeHtml(m.fineReason || "-")})` : "";
+      const lateTxt = m.lateNote ? ` | Verspätung: ${escapeHtml(m.lateNote)}` : "";
+      const noteTxt = m.note ? ` | Notiz: ${escapeHtml(m.note)}` : "";
+      return `<div class="card money-warn">
+        <b>${escapeHtml(m.name || "-")}</b> – offen: <b>${euro(due)}</b>
+        <br><small>Rang: ${escapeHtml(m.rank || "-")} | Eintritt: ${escapeHtml(m.joinDate || "-")}${fineTxt}${lateTxt}${noteTxt}</small>
+      </div>`;
+    }).join("");
+
+  const totalOpen = stats.openMembers.reduce((s,x) => s + Number(x.due || 0), 0);
+
+  box.innerHTML = `
+    <div class="card money-bad">
+      <b>Offen gesamt:</b> ${euro(totalOpen)} (${stats.openMembers.length} Person(en))
+    </div>
+    ${lines}
+  `;
 }
 
 /* ===================================================== */
@@ -2283,7 +2485,7 @@ function updateTreasCashDiff() {
   if (!box) return;
 
   const offen = Math.max(0, s - i);
-  box.innerText = `Differenz (Ist - Soll): ${diff}€ | Offen: ${offen}€`;
+  box.innerText = `Differenz (Ist - Soll): ${diff.toFixed(2).replace(".", ",")}€ | Offen: ${offen.toFixed(2).replace(".", ",")}€`;
 
   box.classList.remove("money-good", "money-warn", "money-bad");
   if (offen === 0 && s > 0) box.classList.add("money-good");
@@ -2311,6 +2513,9 @@ function resetTreasuryReportForm() {
   setVal("treasCashIst", "");
   setVal("treasClubNote", "");
 
+  const list = $("treasOpenContribList");
+  if (list) list.innerHTML = "Wähle einen Monat…";
+
   updateTreasCashDiff();
 }
 
@@ -2330,7 +2535,7 @@ async function loadTreasuryReports() {
   }
 
   renderTreasuryReports();
-  updateTreasCashDiff();
+  await onTreasuryMonthChanged(); // Auto-Liste + Soll/Ist aktualisieren
 }
 
 function renderTreasuryReports() {
@@ -2357,15 +2562,15 @@ function renderTreasuryReports() {
 
     list.innerHTML += `
       <div class="card ${cls}">
-        <b>${r.month || "-"}</b><br>
-        Budget/Person: ${Number(r.budgetPerPerson || 0)}€<br><br>
+        <b>${escapeHtml(r.month || "-")}</b><br>
+        Budget/Person (Info): ${euro(Number(r.budgetPerPerson || 0))}<br><br>
 
-        <b>Einnahmen:</b> Sponsor ${Number(r.incomeSponsor || 0)}€ | Fahrten ${Number(r.incomeRides || 0)}€ | Sonst ${Number(r.incomeOther || 0)}€<br>
-        <b>Ausgaben:</b> Club ${Number(r.costClub || 0)}€ | Andere ${Number(r.costOther || 0)}€<br>
-        <small>${(r.costNote || "").replace(/\n/g, "<br>")}</small><br><br>
+        <b>Einnahmen:</b> Sponsor ${euro(Number(r.incomeSponsor || 0))} | Fahrten ${euro(Number(r.incomeRides || 0))} | Sonst ${euro(Number(r.incomeOther || 0))}<br>
+        <b>Ausgaben:</b> Club ${euro(Number(r.costClub || 0))} | Andere ${euro(Number(r.costOther || 0))}<br>
+        <small>${escapeHtml(r.costNote || "").replace(/\n/g, "<br>")}</small><br><br>
 
-        <b>Clubkasse Soll/Ist:</b> ${s}€ / ${i}€ (offen: ${offen}€)<br>
-        <small>${(r.note || "").replace(/\n/g, "<br>")}</small><br><br>
+        <b>Clubkasse Soll/Ist:</b> ${euro(s)} / ${euro(i)} (offen: ${euro(offen)})<br>
+        <small>${escapeHtml(r.note || "").replace(/\n/g, "<br>")}</small><br><br>
 
         <button type="button" onclick="editTreasuryReport('${r.id}')">Ansehen</button>
         ${canEdit ? `<button type="button" class="danger" onclick="deleteTreasuryReport('${r.id}')">Löschen</button>` : ""}
@@ -2379,6 +2584,18 @@ async function saveTreasuryReport() {
 
   const month = $("treasMonth")?.value || "";
   if (!month) return alert("Monat fehlt");
+
+  // Auto Soll/Ist erzwingen, wenn aktiviert
+  const auto = !!$("treasAutoSollIst")?.checked;
+  if (auto) {
+    await ensureTreasuryMembersLoaded();
+    const stats = calcMonthStatsFromCache(month);
+    const sEl = $("treasCashSoll");
+    const iEl = $("treasCashIst");
+    if (sEl) sEl.value = String(Math.round(stats.sollTotal * 100) / 100);
+    if (iEl) iEl.value = String(Math.round(stats.istTotal * 100) / 100);
+    updateTreasCashDiff();
+  }
 
   const payload = {
     month,
@@ -2396,6 +2613,7 @@ async function saveTreasuryReport() {
     cashIst: Number($("treasCashIst")?.value || 0),
     note: $("treasClubNote")?.value || "",
 
+    autoSollIst: auto,
     updatedBy: CURRENT_UID,
     updatedAt: Date.now()
   };
@@ -2445,6 +2663,7 @@ window.editTreasuryReport = async (id) => {
   setVal("treasClubNote", r.note ?? "");
 
   updateTreasCashDiff();
+  await onTreasuryMonthChanged();
 
   window.treasShow("treasClub");
 };
@@ -2459,10 +2678,84 @@ window.deleteTreasuryReport = async (id) => {
 };
 
 /* ===================================================== */
-/* TREASURY: MEMBER AKTEN */
+/* TREASURY: CHURCH / TREFFEN FINANZBERICHT */
 /* ===================================================== */
 
-const TM_MONTHS = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+async function generateChurchReportFromSelectedMonth() {
+  const monthStr = $("treasMonth")?.value || "";
+  if (!monthStr) return alert("Bitte im Tab „Clubkasse“ zuerst einen Monat auswählen.");
+
+  await ensureTreasuryMembersLoaded();
+  const stats = calcMonthStatsFromCache(monthStr);
+
+  // optional: passenden Monats-Report suchen (Einnahmen/Ausgaben etc.)
+  if (!TREASURY_REPORTS_CACHE || !TREASURY_REPORTS_CACHE.length) {
+    try { await loadTreasuryReports(); } catch {}
+  }
+  const rep = (TREASURY_REPORTS_CACHE || []).find(r => r.month === monthStr) || null;
+
+  const openSum = stats.openMembers.reduce((s,x) => s + Number(x.due||0), 0);
+
+  const linesOpen = stats.openMembers
+    .sort((a,b) => (a.m.name || "").localeCompare(b.m.name || ""))
+    .map(({m, due}) => {
+      const fine = Number(m.fineAmount || 0);
+      const fineTxt = fine > 0 ? ` | Strafe: ${euro(fine)} (${m.fineReason || "-"})` : "";
+      const lateTxt = m.lateNote ? ` | Verspätung: ${m.lateNote}` : "";
+      return `- ${m.name || "-"} (${m.rank || "-"}) offen: ${euro(due)}${fineTxt}${lateTxt}`;
+    });
+
+  const head =
+`BULLDOZER – FINANZBERICHT (Church)
+Monat: ${monthLabelFromInput(monthStr)}
+
+Beiträge (Auto aus Member-Häkchen):
+- Soll gesamt: ${euro(stats.sollTotal)}
+- Ist gesamt: ${euro(stats.istTotal)}
+- Offen gesamt: ${euro(openSum)} (${stats.openMembers.length} Person(en))`;
+
+  const repPart = rep ? `
+Monats-Akte (Treasurer):
+- Einnahmen: Sponsor ${euro(rep.incomeSponsor)} | Fahrten ${euro(rep.incomeRides)} | Sonst ${euro(rep.incomeOther)}
+- Ausgaben: Club ${euro(rep.costClub)} | Andere ${euro(rep.costOther)}
+- Notiz Ausgaben: ${(rep.costNote || "-")}
+- Notiz Monat: ${(rep.note || "-")}` : `
+Monats-Akte:
+- (Keine gespeicherte Monats-Akte gefunden – nur Auto-Beiträge angezeigt)`;
+
+  const openPart =
+linesOpen.length
+? `\nOffene Zahler:\n${linesOpen.join("\n")}`
+: `\nOffene Zahler:\n- Keine ✅`;
+
+  const text = `${head}\n${repPart}\n${openPart}\n\nStand: ${new Date().toLocaleString()}`;
+
+  const out = $("treasChurchText");
+  if (out) out.value = text;
+
+  // Dashboard anzeigen, damit man’s direkt sieht
+  window.treasShow("treasDashboard");
+}
+
+async function copyChurchReport() {
+  const out = $("treasChurchText");
+  if (!out || !out.value) return alert("Kein Bericht vorhanden.");
+  try {
+    await navigator.clipboard.writeText(out.value);
+    alert("Bericht kopiert ✅");
+  } catch {
+    // Fallback
+    out.removeAttribute("readonly");
+    out.select();
+    document.execCommand("copy");
+    out.setAttribute("readonly", "readonly");
+    alert("Bericht kopiert ✅");
+  }
+}
+
+/* ===================================================== */
+/* TREASURY: MEMBER AKTEN (Modal) */
+/* ===================================================== */
 
 function getModalMonths() {
   const out = {};
@@ -2482,7 +2775,7 @@ function updateMemberRest() {
   const box = $("tmRestInfo");
   if (!box) return;
 
-  box.innerText = `Offen: ${offen}€ (Soll ${s}€ / Ist ${i}€)`;
+  box.innerText = `Offen: ${euro(offen)} (Soll ${euro(s)} / Ist ${euro(i)})`;
 
   box.classList.remove("money-good", "money-warn", "money-bad");
   if (offen === 0 && s > 0) box.classList.add("money-good");
@@ -2497,7 +2790,6 @@ function setTreasMemberModalReadOnly(readOnly) {
   if (!modal) return;
 
   modal.querySelectorAll("input, textarea, select").forEach(el => {
-    // Schließen-Button bleibt anklickbar (ist ein <button>)
     el.disabled = TREAS_MEMBER_MODAL_READONLY;
   });
 
@@ -2559,13 +2851,11 @@ function renderTreasuryMembers() {
   if (!list) return;
 
   const search = ($("treasMemberSearch")?.value || "").trim().toLowerCase();
-  let items = [...TREASURY_MEMBERS_CACHE];
+  let items = [...(TREASURY_MEMBERS_CACHE || [])];
 
   if (search) {
     items = items.filter(m => {
-      const blob = [
-        m.name, m.rank, m.note, m.generalNote, m.lateNote, m.fineReason
-      ].join(" ").toLowerCase();
+      const blob = [m.name, m.rank, m.note, m.generalNote, m.lateNote, m.fineReason].join(" ").toLowerCase();
       return blob.includes(search);
     });
   }
@@ -2588,10 +2878,10 @@ function renderTreasuryMembers() {
 
     list.innerHTML += `
       <div class="card ${cls}" onclick="openTreasuryMemberModal('${m.id}')">
-        <b>${m.name || "-"}</b><br>
-        Rang: ${m.rank || "-"}<br>
-        Eintritt: ${m.joinDate || "-"}<br>
-        Soll/Ist: ${s}€ / ${i}€ (offen: ${offen}€)
+        <b>${escapeHtml(m.name || "-")}</b><br>
+        Rang: ${escapeHtml(m.rank || "-")}<br>
+        Eintritt: ${escapeHtml(m.joinDate || "-")}<br>
+        Soll/Ist: ${euro(s)} / ${euro(i)} (offen: ${euro(offen)})
       </div>
     `;
   });
@@ -2606,7 +2896,6 @@ window.openTreasuryMemberModal = async (id) => {
   const title = $("tmTitle");
   if (title) title.innerText = id ? "👤 Member-Akte ansehen" : "➕ Neue Member-Akte";
 
-  // ReadOnly: wenn nicht Treasurer, dann nur ansehen
   setTreasMemberModalReadOnly(!isTreasurerOnly());
 
   if (id) {
@@ -2694,7 +2983,9 @@ async function saveTreasuryMember() {
   }
 
   closeTreasuryMemberModal();
-  loadTreasuryMembers();
+  TREASURY_MEMBERS_CACHE = []; // Cache reset, damit Auto korrekt neu rechnet
+  await loadTreasuryMembers();
+  await onTreasuryMonthChanged();
   loadTreasuryDashboard();
 }
 
@@ -2706,6 +2997,9 @@ async function deleteTreasuryMember() {
 
   await deleteDoc(doc(db, "treasury_members", EDIT_TREAS_MEMBER_ID));
   closeTreasuryMemberModal();
-  loadTreasuryMembers();
+
+  TREASURY_MEMBERS_CACHE = [];
+  await loadTreasuryMembers();
+  await onTreasuryMonthChanged();
   loadTreasuryDashboard();
 }
