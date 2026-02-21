@@ -82,6 +82,14 @@ let BYLAWS_CACHE = [];
 let ARCHIVE_CACHE = [];
 let PENDING_ARCHIVE_LINK = { memberId: null, meetingId: null };
 
+/* Treasury */
+let TREASURY_REPORTS_CACHE = [];
+let EDIT_TREAS_REPORT_ID = null;
+
+let TREASURY_MEMBERS_CACHE = [];
+let EDIT_TREAS_MEMBER_ID = null;
+let TREAS_MEMBER_MODAL_READONLY = false;
+
 /* ===================================================== */
 /* AUTH / LOGIN */
 /* ===================================================== */
@@ -143,6 +151,16 @@ function hasOfficerRights() {
 
 function hasSecretaryRights() {
   return ["secretary", "president", "vice_president", "sergeant_at_arms", "admin"].includes(CURRENT_RANK);
+}
+
+function hasTreasuryAccess() {
+  // darf den Treasurer Screen öffnen (ansehen)
+  return ["president", "vice_president", "sergeant_at_arms", "treasurer", "admin"].includes(CURRENT_RANK);
+}
+
+function isTreasurerOnly() {
+  // NUR Treasurer darf erstellen/bearbeiten/löschen
+  return ["treasurer", "admin"].includes(CURRENT_RANK);
 }
 
 function canViewAllNotes() {
@@ -315,6 +333,38 @@ function bindUI() {
 
   const archiveFilter = $("archiveFilter");
   if (archiveFilter) archiveFilter.onchange = () => renderArchive();
+  
+    // Treasury
+  const treasDashRefresh = $("treasDashRefreshBtn");
+  if (treasDashRefresh) treasDashRefresh.onclick = () => loadTreasuryDashboard();
+
+  const saveTR = $("saveTreasReportBtn");
+  if (saveTR) saveTR.onclick = () => saveTreasuryReport();
+
+  const resetTR = $("resetTreasReportBtn");
+  if (resetTR) resetTR.onclick = () => resetTreasuryReportForm();
+
+  const addM = $("treasAddMemberBtn");
+  if (addM) addM.onclick = () => openTreasuryMemberModal(null);
+
+  const mSearch = $("treasMemberSearch");
+  if (mSearch) mSearch.oninput = () => renderTreasuryMembers();
+
+  const cashSoll = $("treasCashSoll");
+  const cashIst = $("treasCashIst");
+  if (cashSoll) cashSoll.oninput = () => updateTreasCashDiff();
+  if (cashIst) cashIst.oninput = () => updateTreasCashDiff();
+
+  const tmSoll = $("tmSollTotal");
+  const tmIst = $("tmIstTotal");
+  if (tmSoll) tmSoll.oninput = () => updateMemberRest();
+  if (tmIst) tmIst.oninput = () => updateMemberRest();
+
+  const tmSave = $("tmSaveBtn");
+  if (tmSave) tmSave.onclick = () => saveTreasuryMember();
+
+  const tmDel = $("tmDeleteBtn");
+  if (tmDel) tmDel.onclick = () => deleteTreasuryMember();
 }
 
 /* ===================================================== */
@@ -2142,4 +2192,520 @@ async function loadSecretaryDashboard() {
   } catch {
     wEl.innerText = "Aktive Warns: (Fehler/Rechte)";
   }
+}
+
+/* ===================================================== */
+/* TREASURY: PANEL / TABS */
+/* ===================================================== */
+
+window.treasShow = (which) => {
+  const tabs = ["treasDashboard", "treasClub", "treasMembers"];
+  tabs.forEach(id => {
+    const el = $(id);
+    if (el) el.classList.add("hidden");
+  });
+
+  const target = $(which);
+  if (target) target.classList.remove("hidden");
+
+  if (which === "treasDashboard") loadTreasuryDashboard();
+  if (which === "treasClub") loadTreasuryReports();
+  if (which === "treasMembers") loadTreasuryMembers();
+};
+
+window.showTreasuryPanel = () => {
+  // Button sieht jeder, aber öffnen nur diese Rollen:
+  if (!hasTreasuryAccess()) {
+    alert("Kein Zugriff");
+    return;
+  }
+
+  window.showScreen("treasuryScreen");
+  window.treasShow("treasDashboard");
+};
+
+/* ===================================================== */
+/* TREASURY: DASHBOARD */
+/* ===================================================== */
+
+async function loadTreasuryDashboard() {
+  const latest = $("treasDashLatest");
+  const sollIst = $("treasDashSollIst");
+  const mem = $("treasDashMembers");
+  const hint = $("treasReadHint");
+
+  if (hint) {
+    hint.innerText = isTreasurerOnly()
+      ? "Du bist Treasurer: Du kannst hier erstellen/bearbeiten/löschen."
+      : "Nur Ansicht: Erstellen/Bearbeiten/Löschen kann nur der Treasurer.";
+  }
+
+  if (!latest || !sollIst || !mem) return;
+
+  latest.innerText = "Letzter Monat: ...";
+  sollIst.innerText = "Clubkasse Soll/Ist: ...";
+  mem.innerText = "Member-Akten: ...";
+
+  try {
+    const rs = await getDocs(query(collection(db, "treasury_reports"), orderBy("month", "desc"), limit(1)));
+    if (rs.empty) {
+      latest.innerText = "Letzter Monat: keine Akten";
+      sollIst.innerText = "Clubkasse Soll/Ist: -";
+    } else {
+      const d = rs.docs[0].data() || {};
+      latest.innerText = `Letzter Monat: ${d.month || "-"}`;
+      const s = Number(d.cashSoll || 0);
+      const i = Number(d.cashIst || 0);
+      sollIst.innerText = `Clubkasse Soll/Ist: ${s}€ / ${i}€ (offen: ${Math.max(0, s - i)}€)`;
+    }
+  } catch (e) {
+    latest.innerText = "Letzter Monat: (Fehler/Rechte)";
+    sollIst.innerText = "Clubkasse Soll/Ist: (Fehler/Rechte)";
+  }
+
+  try {
+    const ms = await getDocs(query(collection(db, "treasury_members"), limit(200)));
+    mem.innerText = `Member-Akten: ${ms.size}${ms.size === 200 ? "+" : ""}`;
+  } catch (e) {
+    mem.innerText = "Member-Akten: (Fehler/Rechte)";
+  }
+}
+
+/* ===================================================== */
+/* TREASURY: CLUB REPORTS (Monats-Akten) */
+/* ===================================================== */
+
+function updateTreasCashDiff() {
+  const s = Number($("treasCashSoll")?.value || 0);
+  const i = Number($("treasCashIst")?.value || 0);
+  const diff = i - s;
+  const box = $("treasCashDiff");
+  if (!box) return;
+
+  const offen = Math.max(0, s - i);
+  box.innerText = `Differenz (Ist - Soll): ${diff}€ | Offen: ${offen}€`;
+
+  box.classList.remove("money-good", "money-warn", "money-bad");
+  if (offen === 0 && s > 0) box.classList.add("money-good");
+  else if (offen > 0 && offen <= 20) box.classList.add("money-warn");
+  else if (offen > 20) box.classList.add("money-bad");
+}
+
+function resetTreasuryReportForm() {
+  EDIT_TREAS_REPORT_ID = null;
+
+  const setVal = (id, v) => { const el = $(id); if (el) el.value = v || ""; };
+
+  setVal("treasMonth", "");
+  setVal("treasBudgetPerPerson", "30");
+
+  setVal("treasIncomeSponsor", "");
+  setVal("treasIncomeRides", "");
+  setVal("treasIncomeOther", "");
+
+  setVal("treasCostClub", "");
+  setVal("treasCostOther", "");
+  setVal("treasCostNote", "");
+
+  setVal("treasCashSoll", "");
+  setVal("treasCashIst", "");
+  setVal("treasClubNote", "");
+
+  updateTreasCashDiff();
+}
+
+async function loadTreasuryReports() {
+  const list = $("treasReportList");
+  if (!list) return;
+
+  list.innerHTML = `<div class="card">Lade...</div>`;
+  TREASURY_REPORTS_CACHE = [];
+
+  try {
+    const snaps = await getDocs(query(collection(db, "treasury_reports"), orderBy("month", "desc"), limit(36)));
+    snaps.forEach(d => TREASURY_REPORTS_CACHE.push({ id: d.id, ...d.data() }));
+  } catch (e) {
+    list.innerHTML = `<div class="card">Fehler beim Laden: ${e.message}</div>`;
+    return;
+  }
+
+  renderTreasuryReports();
+  updateTreasCashDiff();
+}
+
+function renderTreasuryReports() {
+  const list = $("treasReportList");
+  if (!list) return;
+
+  if (TREASURY_REPORTS_CACHE.length === 0) {
+    list.innerHTML = `<div class="card">Noch keine Monats-Akten.</div>`;
+    return;
+  }
+
+  list.innerHTML = "";
+
+  TREASURY_REPORTS_CACHE.forEach(r => {
+    const s = Number(r.cashSoll || 0);
+    const i = Number(r.cashIst || 0);
+    const offen = Math.max(0, s - i);
+
+    let cls = "money-warn";
+    if (offen === 0 && s > 0) cls = "money-good";
+    if (offen > 20) cls = "money-bad";
+
+    const canEdit = isTreasurerOnly();
+
+    list.innerHTML += `
+      <div class="card ${cls}">
+        <b>${r.month || "-"}</b><br>
+        Budget/Person: ${Number(r.budgetPerPerson || 0)}€<br><br>
+
+        <b>Einnahmen:</b> Sponsor ${Number(r.incomeSponsor || 0)}€ | Fahrten ${Number(r.incomeRides || 0)}€ | Sonst ${Number(r.incomeOther || 0)}€<br>
+        <b>Ausgaben:</b> Club ${Number(r.costClub || 0)}€ | Andere ${Number(r.costOther || 0)}€<br>
+        <small>${(r.costNote || "").replace(/\n/g, "<br>")}</small><br><br>
+
+        <b>Clubkasse Soll/Ist:</b> ${s}€ / ${i}€ (offen: ${offen}€)<br>
+        <small>${(r.note || "").replace(/\n/g, "<br>")}</small><br><br>
+
+        <button type="button" onclick="editTreasuryReport('${r.id}')">Ansehen</button>
+        ${canEdit ? `<button type="button" class="danger" onclick="deleteTreasuryReport('${r.id}')">Löschen</button>` : ""}
+      </div>
+    `;
+  });
+}
+
+async function saveTreasuryReport() {
+  if (!isTreasurerOnly()) return alert("Nur der Treasurer darf erstellen/bearbeiten/löschen.");
+
+  const month = $("treasMonth")?.value || "";
+  if (!month) return alert("Monat fehlt");
+
+  const payload = {
+    month,
+    budgetPerPerson: Number($("treasBudgetPerPerson")?.value || 0),
+
+    incomeSponsor: Number($("treasIncomeSponsor")?.value || 0),
+    incomeRides: Number($("treasIncomeRides")?.value || 0),
+    incomeOther: Number($("treasIncomeOther")?.value || 0),
+
+    costClub: Number($("treasCostClub")?.value || 0),
+    costOther: Number($("treasCostOther")?.value || 0),
+    costNote: $("treasCostNote")?.value || "",
+
+    cashSoll: Number($("treasCashSoll")?.value || 0),
+    cashIst: Number($("treasCashIst")?.value || 0),
+    note: $("treasClubNote")?.value || "",
+
+    updatedBy: CURRENT_UID,
+    updatedAt: Date.now()
+  };
+
+  try {
+    if (EDIT_TREAS_REPORT_ID) {
+      await updateDoc(doc(db, "treasury_reports", EDIT_TREAS_REPORT_ID), payload);
+    } else {
+      await addDoc(collection(db, "treasury_reports"), {
+        ...payload,
+        createdBy: CURRENT_UID,
+        time: Date.now()
+      });
+    }
+  } catch (e) {
+    alert("Fehler beim Speichern: " + e.message);
+    return;
+  }
+
+  resetTreasuryReportForm();
+  loadTreasuryReports();
+  loadTreasuryDashboard();
+}
+
+window.editTreasuryReport = async (id) => {
+  const snap = await getDoc(doc(db, "treasury_reports", id));
+  if (!snap.exists()) return alert("Nicht gefunden");
+
+  const r = snap.data() || {};
+  EDIT_TREAS_REPORT_ID = id;
+
+  const setVal = (id2, v) => { const el = $(id2); if (el) el.value = (v ?? ""); };
+
+  setVal("treasMonth", r.month);
+  setVal("treasBudgetPerPerson", r.budgetPerPerson ?? 30);
+
+  setVal("treasIncomeSponsor", r.incomeSponsor ?? 0);
+  setVal("treasIncomeRides", r.incomeRides ?? 0);
+  setVal("treasIncomeOther", r.incomeOther ?? 0);
+
+  setVal("treasCostClub", r.costClub ?? 0);
+  setVal("treasCostOther", r.costOther ?? 0);
+  setVal("treasCostNote", r.costNote ?? "");
+
+  setVal("treasCashSoll", r.cashSoll ?? 0);
+  setVal("treasCashIst", r.cashIst ?? 0);
+  setVal("treasClubNote", r.note ?? "");
+
+  updateTreasCashDiff();
+
+  window.treasShow("treasClub");
+};
+
+window.deleteTreasuryReport = async (id) => {
+  if (!isTreasurerOnly()) return alert("Nur der Treasurer darf löschen.");
+  if (!confirm("Monats-Akte wirklich löschen?")) return;
+
+  await deleteDoc(doc(db, "treasury_reports", id));
+  loadTreasuryReports();
+  loadTreasuryDashboard();
+};
+
+/* ===================================================== */
+/* TREASURY: MEMBER AKTEN */
+/* ===================================================== */
+
+const TM_MONTHS = ["jan","feb","mar","apr","may","jun","jul","aug","sep","oct","nov","dec"];
+
+function getModalMonths() {
+  const out = {};
+  TM_MONTHS.forEach(k => { out[k] = !!$(`tm_${k}`)?.checked; });
+  return out;
+}
+
+function setModalMonths(m) {
+  const mm = m || {};
+  TM_MONTHS.forEach(k => { const el = $(`tm_${k}`); if (el) el.checked = !!mm[k]; });
+}
+
+function updateMemberRest() {
+  const s = Number($("tmSollTotal")?.value || 0);
+  const i = Number($("tmIstTotal")?.value || 0);
+  const offen = Math.max(0, s - i);
+  const box = $("tmRestInfo");
+  if (!box) return;
+
+  box.innerText = `Offen: ${offen}€ (Soll ${s}€ / Ist ${i}€)`;
+
+  box.classList.remove("money-good", "money-warn", "money-bad");
+  if (offen === 0 && s > 0) box.classList.add("money-good");
+  else if (offen > 0 && offen <= 20) box.classList.add("money-warn");
+  else if (offen > 20) box.classList.add("money-bad");
+}
+
+function setTreasMemberModalReadOnly(readOnly) {
+  TREAS_MEMBER_MODAL_READONLY = !!readOnly;
+
+  const modal = $("treasMemberModal");
+  if (!modal) return;
+
+  modal.querySelectorAll("input, textarea, select").forEach(el => {
+    // Schließen-Button bleibt anklickbar (ist ein <button>)
+    el.disabled = TREAS_MEMBER_MODAL_READONLY;
+  });
+
+  const save = $("tmSaveBtn");
+  const del = $("tmDeleteBtn");
+  const hint = $("tmReadOnlyHint");
+
+  if (save) save.style.display = TREAS_MEMBER_MODAL_READONLY ? "none" : "block";
+  if (del) del.style.display = TREAS_MEMBER_MODAL_READONLY ? "none" : "block";
+
+  if (hint) {
+    hint.innerText = TREAS_MEMBER_MODAL_READONLY
+      ? "Nur Ansicht: Bearbeiten/Löschen kann nur der Treasurer."
+      : "";
+  }
+}
+
+function resetTreasuryMemberModal() {
+  EDIT_TREAS_MEMBER_ID = null;
+
+  const setVal = (id, v) => { const el = $(id); if (el) el.value = v || ""; };
+  setVal("tmName", "");
+  setVal("tmRank", "");
+  setVal("tmJoinDate", "");
+  setVal("tmClubMonthly", "30");
+  setVal("tmOtherMonthly", "0");
+  setVal("tmNote", "");
+  setVal("tmFineAmount", "");
+  setVal("tmFineReason", "");
+  setVal("tmLateNote", "");
+  setVal("tmGeneralNote", "");
+  setVal("tmSollTotal", "");
+  setVal("tmIstTotal", "");
+
+  setModalMonths({});
+  updateMemberRest();
+}
+
+async function loadTreasuryMembers() {
+  const list = $("treasMemberList");
+  if (!list) return;
+
+  list.innerHTML = `<div class="card">Lade...</div>`;
+  TREASURY_MEMBERS_CACHE = [];
+
+  try {
+    const snaps = await getDocs(query(collection(db, "treasury_members"), orderBy("name", "asc"), limit(400)));
+    snaps.forEach(d => TREASURY_MEMBERS_CACHE.push({ id: d.id, ...d.data() }));
+  } catch (e) {
+    list.innerHTML = `<div class="card">Fehler beim Laden: ${e.message}</div>`;
+    return;
+  }
+
+  renderTreasuryMembers();
+}
+
+function renderTreasuryMembers() {
+  const list = $("treasMemberList");
+  if (!list) return;
+
+  const search = ($("treasMemberSearch")?.value || "").trim().toLowerCase();
+  let items = [...TREASURY_MEMBERS_CACHE];
+
+  if (search) {
+    items = items.filter(m => {
+      const blob = [
+        m.name, m.rank, m.note, m.generalNote, m.lateNote, m.fineReason
+      ].join(" ").toLowerCase();
+      return blob.includes(search);
+    });
+  }
+
+  if (items.length === 0) {
+    list.innerHTML = `<div class="card">Keine passenden Akten.</div>`;
+    return;
+  }
+
+  list.innerHTML = "";
+
+  items.forEach(m => {
+    const s = Number(m.sollTotal || 0);
+    const i = Number(m.istTotal || 0);
+    const offen = Math.max(0, s - i);
+
+    let cls = "money-warn";
+    if (offen === 0 && s > 0) cls = "money-good";
+    if (offen > 20) cls = "money-bad";
+
+    list.innerHTML += `
+      <div class="card ${cls}" onclick="openTreasuryMemberModal('${m.id}')">
+        <b>${m.name || "-"}</b><br>
+        Rang: ${m.rank || "-"}<br>
+        Eintritt: ${m.joinDate || "-"}<br>
+        Soll/Ist: ${s}€ / ${i}€ (offen: ${offen}€)
+      </div>
+    `;
+  });
+}
+
+window.openTreasuryMemberModal = async (id) => {
+  const modal = $("treasMemberModal");
+  if (!modal) return;
+
+  resetTreasuryMemberModal();
+
+  const title = $("tmTitle");
+  if (title) title.innerText = id ? "👤 Member-Akte ansehen" : "➕ Neue Member-Akte";
+
+  // ReadOnly: wenn nicht Treasurer, dann nur ansehen
+  setTreasMemberModalReadOnly(!isTreasurerOnly());
+
+  if (id) {
+    const snap = await getDoc(doc(db, "treasury_members", id));
+    if (!snap.exists()) return alert("Nicht gefunden");
+
+    const m = snap.data() || {};
+    EDIT_TREAS_MEMBER_ID = id;
+
+    const setVal = (id2, v) => { const el = $(id2); if (el) el.value = (v ?? ""); };
+
+    setVal("tmName", m.name || "");
+    setVal("tmRank", m.rank || "");
+    setVal("tmJoinDate", m.joinDate || "");
+    setVal("tmClubMonthly", m.clubMonthly ?? 30);
+    setVal("tmOtherMonthly", m.otherMonthly ?? 0);
+    setVal("tmNote", m.note || "");
+
+    setModalMonths(m.monthsPaid || {});
+
+    setVal("tmFineAmount", m.fineAmount ?? 0);
+    setVal("tmFineReason", m.fineReason || "");
+    setVal("tmLateNote", m.lateNote || "");
+    setVal("tmGeneralNote", m.generalNote || "");
+
+    setVal("tmSollTotal", m.sollTotal ?? 0);
+    setVal("tmIstTotal", m.istTotal ?? 0);
+
+    if (title) title.innerText = `👤 ${m.name || "Member"} – Akte`;
+  }
+
+  updateMemberRest();
+  modal.classList.remove("hidden");
+};
+
+window.closeTreasuryMemberModal = () => {
+  const modal = $("treasMemberModal");
+  if (modal) modal.classList.add("hidden");
+};
+
+async function saveTreasuryMember() {
+  if (!isTreasurerOnly()) return alert("Nur der Treasurer darf speichern.");
+
+  const name = $("tmName")?.value?.trim() || "";
+  if (!name) return alert("Name fehlt");
+
+  const payload = {
+    name,
+    rank: $("tmRank")?.value || "",
+    joinDate: $("tmJoinDate")?.value || "",
+
+    clubMonthly: Number($("tmClubMonthly")?.value || 0),
+    otherMonthly: Number($("tmOtherMonthly")?.value || 0),
+
+    note: $("tmNote")?.value || "",
+
+    monthsPaid: getModalMonths(),
+
+    fineAmount: Number($("tmFineAmount")?.value || 0),
+    fineReason: $("tmFineReason")?.value || "",
+
+    lateNote: $("tmLateNote")?.value || "",
+    generalNote: $("tmGeneralNote")?.value || "",
+
+    sollTotal: Number($("tmSollTotal")?.value || 0),
+    istTotal: Number($("tmIstTotal")?.value || 0),
+
+    updatedBy: CURRENT_UID,
+    updatedAt: Date.now()
+  };
+
+  try {
+    if (EDIT_TREAS_MEMBER_ID) {
+      await updateDoc(doc(db, "treasury_members", EDIT_TREAS_MEMBER_ID), payload);
+    } else {
+      await addDoc(collection(db, "treasury_members"), {
+        ...payload,
+        createdBy: CURRENT_UID,
+        time: Date.now()
+      });
+    }
+  } catch (e) {
+    alert("Fehler beim Speichern: " + e.message);
+    return;
+  }
+
+  closeTreasuryMemberModal();
+  loadTreasuryMembers();
+  loadTreasuryDashboard();
+}
+
+async function deleteTreasuryMember() {
+  if (!isTreasurerOnly()) return alert("Nur der Treasurer darf löschen.");
+  if (!EDIT_TREAS_MEMBER_ID) return;
+
+  if (!confirm("Member-Akte wirklich löschen?")) return;
+
+  await deleteDoc(doc(db, "treasury_members", EDIT_TREAS_MEMBER_ID));
+  closeTreasuryMemberModal();
+  loadTreasuryMembers();
+  loadTreasuryDashboard();
 }
