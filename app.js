@@ -40,21 +40,22 @@ function escapeAttr(s) {
 }
 
 /* ===================================================== */
-/* TREASURY HELPERS (DATE / EXEMPT / PAID) */
+/* TREASURY HELPERS (DATE / EXEMPT) */
 /* ===================================================== */
 
-function isValidISODate(v) {
+function treas_isValidISODate(v) {
   const s = String(v || "").trim();
   return /^\d{4}-\d{2}-\d{2}$/.test(s);
 }
 
-function normISODate(v) {
+// akzeptiert nur YYYY-MM-DD, alles andere => ""
+function treas_normISODate(v) {
   const s = String(v || "").trim();
-  return isValidISODate(s) ? s : "";
+  return treas_isValidISODate(s) ? s : "";
 }
 
 // Hangaround + Supporter zahlen nichts
-function isDuesExempt(member) {
+function treas_isDuesExempt(member) {
   const st = String(member?.status || member?.rank || "").toLowerCase().trim();
   return st === "hangaround" || st === "supporter";
 }
@@ -2526,11 +2527,11 @@ function calcMonthStatsFromCache(monthStr) {
     const baseDue = club + other;
 
     // ✅ FIX: Eintrittsdatum prüfen (nur echtes YYYY-MM-DD zählt)
-    const joinISO = normISODate(m.joinDate || m.entryDate || m.join || "");
+    const joinISO = treas_normISODate(m.joinDate || m.entryDate || m.join || "");
 
     // ✅ FIX: Hangaround/Supporter zahlen nichts
-    const exempt = isDuesExempt(m);
-
+    const exempt = treas_isDuesExempt(m);
+    
     // ✅ FIX: Nur zahlen, wenn:
     // - Monat gewählt ist (key vorhanden)
     // - nicht exempt (kein Hangaround/Supporter)
