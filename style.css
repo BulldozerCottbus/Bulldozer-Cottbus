@@ -124,6 +124,23 @@ button:active {
 }
 
 /* ===================================================== */
+/* RIDES (NEU: Priorities sichtbar) */
+/* ===================================================== */
+
+.priority1 {
+  border-left: 4px solid #777;
+}
+
+.priority2 {
+  border-left: 4px solid orange;
+}
+
+.priority3 {
+  border-left: 4px solid red;
+  background: #2a0000;
+}
+
+/* ===================================================== */
 /* NOTES */
 /* ===================================================== */
 
@@ -274,8 +291,25 @@ button:active {
   word-break: normal !important;
 }
 
+/* ✅ Basis-Style für pickitem (auch außerhalb .picklist z.B. VoteBox) */
+.pickitem,
+.pick-item{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid #2d2d2d;
+  background: #202020;
+
+  margin: 0;
+  overflow-wrap: normal !important;
+  word-break: normal !important;
+}
+
 .picklist .pick-item,
-.picklist .pickitem,         /* falls du es irgendwo so geschrieben hast */
+.picklist .pickitem,
 .picklist .card {            /* fallback falls JS aktuell cards rendert */
   display:flex;
   align-items:center;
