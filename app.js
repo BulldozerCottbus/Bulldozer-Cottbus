@@ -40,54 +40,6 @@ function escapeAttr(s) {
 }
 
 /* ===================================================== */
-/* TREASURY HELPERS (DATE / EXEMPT) */
-/* ===================================================== */
-
-function isValidISODate(v) {
-  const s = String(v || "").trim();
-  return /^\d{4}-\d{2}-\d{2}$/.test(s);
-}
-
-// akzeptiert nur YYYY-MM-DD, alles andere => ""
-function normISODate(v) {
-  const s = String(v || "").trim();
-  return isValidISODate(s) ? s : "";
-}
-
-// Hangaround + Supporter zahlen nichts
-function isDuesExempt(member) {
-  const st = String(member?.status || member?.rank || "").toLowerCase().trim();
-  return st === "hangaround" || st === "supporter";
-}
-
-// Monate von Eintrittsmonat bis reportMonth (YYYY-MM) inkl.
-// Beispiel: start 2026-01-16, report 2026-02 => 2 Monate (Jan+Feb)
-function monthsOwedFromJoin(joinISO, reportMonth) {
-  if (!isValidISODate(joinISO)) return 0;
-  const rm = String(reportMonth || "").trim();
-  if (!/^\d{4}-\d{2}$/.test(rm)) return 0;
-
-  const [jy, jm] = joinISO.split("-").slice(0, 2).map(Number);
-  const [ry, rmo] = rm.split("-").map(Number);
-
-  if (!jy || !jm || !ry || !rmo) return 0;
-
-  const diff = (ry - jy) * 12 + (rmo - jm);
-  return diff >= 0 ? (diff + 1) : 0;
-}
-
-function escapeHTML(s) {
-  return String(s ?? "")
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
-function nl2br(s) {
-  return escapeHTML(s).replace(/\n/g, "<br>");
-}
-
-/* ===================================================== */
 /* TREASURY HELPERS (DATE / EXEMPT / PAID) */
 /* ===================================================== */
 
