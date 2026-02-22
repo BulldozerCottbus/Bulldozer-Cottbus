@@ -5,6 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Chapter App</title>
   <link rel="stylesheet" href="style.css">
+
+  <!-- ✅ PWA / App (Bulldozer-Cottbus) -->
+  <link rel="manifest" href="/Bulldozer-Cottbus/manifest.webmanifest">
+  <meta name="theme-color" content="#0f0f0f">
+
+  <!-- ✅ iPhone Homescreen -->
+  <link rel="apple-touch-icon" sizes="180x180" href="/Bulldozer-Cottbus/icons/apple-touch-icon-180.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Bulldozer">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 </head>
 
 <body>
@@ -777,6 +787,14 @@
 </div>
 
 <script type="module" src="app.js"></script>
+
+<!-- ✅ Service Worker Registrierung (PWA) -->
+<script>
+  const BASE = "/Bulldozer-Cottbus/";
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register(BASE + "sw.js", { scope: BASE });
+  }
+</script>
 
 </body>
 </html>
