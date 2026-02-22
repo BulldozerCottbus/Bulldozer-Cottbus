@@ -45,27 +45,29 @@
 <div class="container hidden" id="homeScreen">
   <div class="card">
 
-    <button id="debugButton" type="button" onclick="openDebugModal()">BETA 1.0.0</button>
+    <button id="debugButton" type="button" onclick="window.openDebugModal()">BETA 1.0.0</button>
 
-    <button onclick="showScreen('infos')">📢 Infos</button>
-    <button onclick="showScreen('rides')">🏍 Ausfahrten</button>
-    <button onclick="showScreen('notes')">📝 Notizen</button>
-    <button onclick="showScreen('tasks')">📋 Aufgaben</button>
-    <button id="rpBtn" type="button" onclick="openRPModal()">🛡️ R.P</button>
+    <button onclick="window.showScreen('infos')">📢 Infos</button>
+    <button onclick="window.showScreen('rides')">🏍 Ausfahrten</button>
+    <button onclick="window.showScreen('notes')">📝 Notizen</button>
+    <button onclick="window.showScreen('tasks')">📋 Aufgaben</button>
+
+    <!-- ✅ R.P Button (WICHTIG: window.* wegen type="module") -->
+    <button id="rpBtn" type="button" onclick="window.openRPModal()">🛡️ R.P</button>
 
     <!-- ✅ Wichtig: Secretary muss über showSecretaryPanel laufen -->
-    <button onclick="showSecretaryPanel()">📒 Secretary</button>
-    <button onclick="showTreasuryPanel()">💰 Treasurer</button>
+    <button onclick="window.showSecretaryPanel()">📒 Secretary</button>
+    <button onclick="window.showTreasuryPanel()">💰 Treasurer</button>
 
-    <button onclick="showScreen('calc')">🧮 Rechner</button>
-    <button onclick="showScreen('files')">📁 Dateien</button>
-    <button onclick="logout()">🚪 Logout</button>
+    <button onclick="window.showScreen('calc')">🧮 Rechner</button>
+    <button onclick="window.showScreen('files')">📁 Dateien</button>
+    <button onclick="window.logout()">🚪 Logout</button>
   </div>
 </div>
 
-  <!-- ✅ DEBUG / CHANGELOG MODAL -->
+<!-- ✅ DEBUG / CHANGELOG MODAL -->
 <div id="debugModal" class="modal hidden">
-  <div class="modal-backdrop" onclick="closeDebugModal()"></div>
+  <div class="modal-backdrop" onclick="window.closeDebugModal()"></div>
 
   <div class="modal-card card">
     <h3>📌 Updates / Bug fixes</h3>
@@ -90,45 +92,13 @@
       <button id="addChangelogBtn" type="button">💾 Eintrag speichern</button>
     </div>
 
-    <button type="button" class="gray" onclick="closeDebugModal()">Schließen</button>
+    <button type="button" class="gray" onclick="window.closeDebugModal()">Schließen</button>
   </div>
 </div>
-  
-<!-- ✅ INFOS -->
-<div class="container hidden" id="infos">
-  <div class="card">
-    <h3>Infos</h3>
 
-    <!-- optional: nur Führung sieht den Button, wird per JS eingeblendet -->
-    <button id="postInfoBtn" type="button">➕ Info posten</button>
-
-<!-- ✅ Info Modal -->
-<div id="infoModal" class="modal hidden">
-  <div class="modal-backdrop" onclick="closeInfoModal()"></div>
-
-  <div class="modal-card card">
-    <h3 id="infoModalTitle">Info posten</h3>
-
-    <textarea id="infoModalText" placeholder="Deine Info..."></textarea>
-
-    <label class="field-label" for="infoModalExpiry">Sichtbarkeit</label>
-    <select id="infoModalExpiry">
-      <option value="24h">Nach 24 Stunden automatisch löschen</option>
-      <option value="keep">Bleibt bis man sie löscht</option>
-    </select>
-
-    <div class="row">
-      <button type="button" id="infoModalSaveBtn">💾 Speichern</button>
-      <button type="button" class="gray" onclick="closeInfoModal()">Abbrechen</button>
-    </div>
-
-    <button type="button" class="danger hidden" id="infoModalDeleteBtn">🗑️ Löschen</button>
-  </div>
-</div>
-    
-    <!-- ✅ R.P MODAL -->
+<!-- ✅ R.P MODAL (WICHTIG: MUSS GLOBAL SEIN, NICHT IM #infos SCREEN!) -->
 <div id="rpModal" class="modal hidden">
-  <div class="modal-backdrop" onclick="closeRPModal()"></div>
+  <div class="modal-backdrop" onclick="window.closeRPModal()"></div>
 
   <div class="modal-card card rp-card">
     <div class="rp-head">
@@ -146,24 +116,56 @@
     </div>
 
     <div class="rp-grid">
-      <button type="button" onclick="rpOpen('dash')">📊 Übersicht</button>
-      <button type="button" onclick="rpOpen('earn')">✅ Verdienste</button>
-      <button type="button" onclick="rpOpen('rewards')">🎖️ Privilegien</button>
-      <button type="button" onclick="rpOpen('ledger')">📜 Verlauf</button>
-      <button type="button" onclick="rpOpen('rules')">📘 Regeln</button>
-      <button type="button" onclick="rpOpen('requests')">📝 Anträge</button>
+      <button type="button" onclick="window.rpOpen('dash')">📊 Übersicht</button>
+      <button type="button" onclick="window.rpOpen('earn')">✅ Verdienste</button>
+      <button type="button" onclick="window.rpOpen('rewards')">🎖️ Privilegien</button>
+      <button type="button" onclick="window.rpOpen('ledger')">📜 Verlauf</button>
+      <button type="button" onclick="window.rpOpen('rules')">📘 Regeln</button>
+      <button type="button" onclick="window.rpOpen('requests')">📝 Anträge</button>
     </div>
 
     <div id="rpContent" class="card" style="margin-top:10px;">
       Lade...
     </div>
 
-    <button type="button" class="gray" onclick="closeRPModal()">Schließen</button>
+    <button type="button" class="gray" onclick="window.closeRPModal()">Schließen</button>
   </div>
 </div>
 
+<!-- ✅ INFOS -->
+<div class="container hidden" id="infos">
+  <div class="card">
+    <h3>Infos</h3>
+
+    <!-- optional: nur Führung sieht den Button, wird per JS eingeblendet -->
+    <button id="postInfoBtn" type="button">➕ Info posten</button>
+
+    <!-- ✅ Info Modal -->
+    <div id="infoModal" class="modal hidden">
+      <div class="modal-backdrop" onclick="window.closeInfoModal()"></div>
+
+      <div class="modal-card card">
+        <h3 id="infoModalTitle">Info posten</h3>
+
+        <textarea id="infoModalText" placeholder="Deine Info..."></textarea>
+
+        <label class="field-label" for="infoModalExpiry">Sichtbarkeit</label>
+        <select id="infoModalExpiry">
+          <option value="24h">Nach 24 Stunden automatisch löschen</option>
+          <option value="keep">Bleibt bis man sie löscht</option>
+        </select>
+
+        <div class="row">
+          <button type="button" id="infoModalSaveBtn">💾 Speichern</button>
+          <button type="button" class="gray" onclick="window.closeInfoModal()">Abbrechen</button>
+        </div>
+
+        <button type="button" class="danger hidden" id="infoModalDeleteBtn">🗑️ Löschen</button>
+      </div>
+    </div>
+
     <!-- ✅ Warn Info Button + Box -->
-    <button type="button" onclick="toggleWarnInfo()">⚠️ Warn Info</button>
+    <button type="button" onclick="window.toggleWarnInfo()">⚠️ Warn Info</button>
 
     <div id="warnInfoBox" class="card hidden" style="margin-top:10px;">
       <h3>📜 Rang-, Warn-, Sperren- & Bereinigungsregeln</h3>
@@ -242,8 +244,8 @@
       </ul>
     </div>
 
-    <!-- ✅ NEU: Club Regeln Button + Box (RICHTIGE STELLE: vor "Aktuelle Infos") -->
-    <button type="button" onclick="toggleClubRules()">📘 Club Regeln</button>
+    <!-- ✅ Club Regeln Button + Box -->
+    <button type="button" onclick="window.toggleClubRules()">📘 Club Regeln</button>
 
     <div id="clubRulesBox" class="card hidden" style="margin-top:10px;">
       <h3>📘 Bulldozer Regelwerk</h3>
@@ -340,14 +342,13 @@
     <h3>Aktuelle Infos</h3>
     <div id="infosList"></div>
 
-    <button onclick="backHome()">⬅ Zurück</button>
+    <button onclick="window.backHome()">⬅ Zurück</button>
   </div>
 </div>
 
 <!-- ✅ EINZIGER NOTIZEN SCREEN -->
 <div class="container hidden" id="notes">
   <div class="card">
-
     <textarea id="noteText" placeholder="Notiz"></textarea>
 
     <select id="noteType">
@@ -366,7 +367,7 @@
     <h3>Meine Notizen</h3>
     <div id="myNotes"></div>
 
-    <button onclick="backHome()">⬅ Zurück</button>
+    <button onclick="window.backHome()">⬅ Zurück</button>
   </div>
 </div>
 
@@ -386,7 +387,7 @@
 
     <button id="createRideBtn" class="hidden">Speichern</button>
 
-    <button onclick="backHome()">⬅ Zurück</button>
+    <button onclick="window.backHome()">⬅ Zurück</button>
   </div>
 </div>
 
@@ -396,12 +397,12 @@
     <h3>Hilfe</h3>
 
     <textarea id="helpText" placeholder="Hilfe Anfrage..."></textarea>
-    <button type="button" onclick="createHelp()">Senden</button>
+    <button type="button" onclick="window.createHelp()">Senden</button>
 
     <h3>Anfragen</h3>
     <div id="helpList"></div>
 
-    <button onclick="backHome()">⬅ Zurück</button>
+    <button onclick="window.backHome()">⬅ Zurück</button>
   </div>
 </div>
 
@@ -421,25 +422,22 @@
     <h3>Offene Aufgaben</h3>
     <div id="taskList"></div>
 
-    <button onclick="backHome()">⬅ Zurück</button>
+    <button onclick="window.backHome()">⬅ Zurück</button>
   </div>
 </div>
 
 <!-- ✅ SECRETARY SCREEN -->
 <div class="container hidden" id="secretaryScreen">
   <div class="card">
-
-    <!-- ✅ Neue Button-Leiste (6 Tabs) -->
     <div class="card sec-tabs">
-      <button type="button" onclick="secShow('secDashboard')">📊 Dashboard</button>
-      <button type="button" onclick="secShow('secMember')">👁️ Member Akten</button>
-      <button type="button" onclick="secShow('secMeetings')">🗓️ Meetings</button>
-      <button type="button" onclick="secShow('secLetters')">✉️ Schriftverkehr</button>
-      <button type="button" onclick="secShow('secBylaws')">📘 Statuten</button>
-      <button type="button" onclick="secShow('secArchive')">🗄️ Archiv</button>
+      <button type="button" onclick="window.secShow('secDashboard')">📊 Dashboard</button>
+      <button type="button" onclick="window.secShow('secMember')">👁️ Member Akten</button>
+      <button type="button" onclick="window.secShow('secMeetings')">🗓️ Meetings</button>
+      <button type="button" onclick="window.secShow('secLetters')">✉️ Schriftverkehr</button>
+      <button type="button" onclick="window.secShow('secBylaws')">📘 Statuten</button>
+      <button type="button" onclick="window.secShow('secArchive')">🗄️ Archiv</button>
     </div>
 
-    <!-- ✅ TAB: Dashboard -->
     <div id="secDashboard" class="hidden">
       <h3>📊 Secretary Dashboard</h3>
       <div class="card">
@@ -452,11 +450,8 @@
       <button type="button" id="secDashRefreshBtn">🔄 Aktualisieren</button>
     </div>
 
-    <!-- ✅ TAB: Member Akten -->
     <div id="secMember" class="hidden">
       <h3>Member Beobachtung</h3>
-
-      <!-- ✅ Suche / Filter -->
       <input id="secSearch" placeholder="🔎 Suche (Name, Status, Warn...)">
       <select id="secFilterStatus">
         <option value="">Alle Status</option>
@@ -472,7 +467,6 @@
       <label class="field-label" for="secJoinDate">Mitglied seit</label>
       <input id="secJoinDate" type="date">
 
-      <!-- ✅ NUR NOCH EIN STATUS-DROPDOWN (StartRank fliegt raus) -->
       <label class="field-label" for="secStatus">Status</label>
       <select id="secStatus">
         <option value="supporter">Supporter</option>
@@ -487,7 +481,6 @@
         Führerschein vorhanden
       </label>
 
-      <!-- ✅ NUR 1× DATUM -->
       <label class="field-label" for="secLicenseDate">Führerschein geprüft am (optional)</label>
       <input id="secLicenseDate" type="date">
 
@@ -527,11 +520,9 @@
       <button type="button" id="addTimelineEntry">Eintrag speichern</button>
     </div>
 
-    <!-- ✅ TAB: Meetings -->
     <div id="secMeetings" class="hidden">
       <h3>Besprechungsverlauf</h3>
 
-      <!-- ✅ Suche / Filter -->
       <input id="meetSearch" placeholder="🔎 Suche (Titel, Agenda, Personen...)">
       <select id="meetFilterStatus">
         <option value="">Alle</option>
@@ -550,7 +541,6 @@
       <input id="voteOptions" placeholder="Optionen (z.B. Ja/Nein oder A,B,C)">
       <input id="voteResult" placeholder="Ergebnis (z.B. 7 Ja / 2 Nein / 1 Enthaltung)">
 
-      <!-- ✅ Votes erfassen -->
       <button type="button" id="buildVoteBoxBtn">🗳️ Stimmen erfassen (aus Teilnehmern)</button>
       <div id="voteBox"></div>
 
@@ -574,13 +564,11 @@
         <div id="meetAbsentUnexcusedBox" class="picklist"></div>
       </div>
 
-      <!-- optionaler Text (wird automatisch gefüllt) -->
       <input id="meetAttendees" placeholder="Auto: Teilnehmer (Text)" readonly>
 
       <h4>Follow-ups / Aufgaben</h4>
       <textarea id="meetFollowups" placeholder="Was ist als nächstes zu tun? Wer macht was?"></textarea>
 
-      <!-- ✅ Action-Items -->
       <h4>✅ Action-Items (werden zu Tasks)</h4>
       <div id="meetActionsList"></div>
       <button type="button" id="addMeetingActionBtn">+ Action hinzufügen</button>
@@ -596,7 +584,6 @@
       <div id="meetingList"></div>
     </div>
 
-    <!-- ✅ TAB: Schriftverkehr -->
     <div id="secLetters" class="hidden">
       <h3>✉️ Schriftverkehr</h3>
 
@@ -632,7 +619,6 @@
       <div id="lettersList"></div>
     </div>
 
-    <!-- ✅ TAB: Statuten / Bylaws -->
     <div id="secBylaws" class="hidden">
       <h3>📘 Statuten / Bylaws</h3>
 
@@ -651,7 +637,6 @@
       <div id="bylawsList"></div>
     </div>
 
-    <!-- ✅ TAB: Archiv -->
     <div id="secArchive" class="hidden">
       <h3>🗄️ Archiv</h3>
 
@@ -692,22 +677,20 @@
       <div id="archiveList"></div>
     </div>
 
-    <button type="button" onclick="backHome()">⬅ Zurück</button>
+    <button type="button" onclick="window.backHome()">⬅ Zurück</button>
   </div>
 </div>
 
-  <!-- ✅ TREASURY SCREEN -->
+<!-- ✅ TREASURY SCREEN -->
 <div class="container hidden" id="treasuryScreen">
   <div class="card">
 
-    <!-- ✅ Tabs (3 Stück) -->
     <div class="card sec-tabs">
-      <button type="button" onclick="treasShow('treasDashboard')">📊 Dashboard</button>
-      <button type="button" onclick="treasShow('treasClub')">💼 Clubkasse</button>
-      <button type="button" onclick="treasShow('treasMembers')">👤 Member Kasse</button>
+      <button type="button" onclick="window.treasShow('treasDashboard')">📊 Dashboard</button>
+      <button type="button" onclick="window.treasShow('treasClub')">💼 Clubkasse</button>
+      <button type="button" onclick="window.treasShow('treasMembers')">👤 Member Kasse</button>
     </div>
 
-    <!-- ✅ TAB: Dashboard -->
     <div id="treasDashboard" class="hidden">
       <h3>📊 Treasurer Dashboard</h3>
 
@@ -730,7 +713,6 @@
       </div>
     </div>
 
-    <!-- ✅ TAB: Clubkasse -->
     <div id="treasClub" class="hidden">
       <h3>💼 Clubkasse (Monats-Akte)</h3>
 
@@ -783,7 +765,6 @@
       <div id="treasReportList"></div>
     </div>
 
-    <!-- ✅ TAB: Member Kasse -->
     <div id="treasMembers" class="hidden">
       <h3>👤 Member Kasse (Einzel-Akten)</h3>
 
@@ -795,7 +776,7 @@
       <div id="treasMemberList"></div>
     </div>
 
-    <button type="button" onclick="backHome()">⬅ Zurück</button>
+    <button type="button" onclick="window.backHome()">⬅ Zurück</button>
   </div>
 </div>
 
@@ -856,7 +837,7 @@
     <div class="row">
       <button type="button" id="tmSaveBtn">💾 Speichern</button>
       <button type="button" id="tmDeleteBtn" class="danger">🗑️ Löschen</button>
-      <button type="button" onclick="closeTreasuryMemberModal()" class="gray">✖ Schließen</button>
+      <button type="button" onclick="window.closeTreasuryMemberModal()" class="gray">✖ Schließen</button>
     </div>
 
     <div class="readonly-hint" id="tmReadOnlyHint"></div>
@@ -869,7 +850,7 @@
     <input id="calcDisplay" placeholder="Rechnung">
     <button id="calcBtn">Berechnen</button>
     <button id="saveCalcBtn">Speichern</button>
-    <button onclick="backHome()">⬅ Zurück</button>
+    <button onclick="window.backHome()">⬅ Zurück</button>
   </div>
 </div>
 
@@ -879,7 +860,7 @@
     <h3>Dateien</h3>
     <div id="filesNotes"></div>
     <div id="filesCalcs"></div>
-    <button onclick="backHome()">⬅ Zurück</button>
+    <button onclick="window.backHome()">⬅ Zurück</button>
   </div>
 </div>
 
