@@ -302,7 +302,6 @@ function canViewAllNotes() {
       createRideBtn.classList.add("hidden");
     }
   }
-}
 
 /* ===================================================== */
 /* SESSION */
@@ -377,6 +376,12 @@ function bindUI() {
   if (infoDel) infoDel.onclick = () => {
     if (EDIT_INFO_ID) window.deleteInfo(EDIT_INFO_ID);
   };
+    // Debug / Changelog
+  const dbg = $("debugButton");
+  if (dbg) dbg.onclick = () => window.openDebugModal();
+
+  const addLog = $("addChangelogBtn");
+  if (addLog) addLog.onclick = () => addChangelogEntry();
 
   // Rides
   const createRideBtn = $("createRideBtn");
@@ -3299,3 +3304,117 @@ async function deleteTreasuryMember() {
   await onTreasuryMonthChanged();
   loadTreasuryDashboard();
 }
+
+/* ===================================================== */
+/* DEBUG / CHANGELOG (Updates / Bug Fixes) */
+/* ===================================================== */
+
+function canEditChangelog() {
+  return hasOfficerRights(); // President / Vice / Sergeant / Admin
+}
+
+window.openDebugModal = async () => {
+  const modal = $("debugModal");
+  const adminBox = $("changelogAdminBox");
+  if (!modal) return;
+
+  // Admin Bereich nur für Officer
+  if (adminBox) {
+    if (canEditChangelog()) adminBox.classList.remove("hidden");
+    else adminBox.classList.add("hidden");
+  }
+
+  modal.classList.remove("hidden");
+  await loadChangelog();
+};
+
+window.closeDebugModal = () => {
+  const modal = $("debugModal");
+  if (modal) modal.classList.add("hidden");
+};
+
+async function loadChangelog() {
+  const list = $("changelogList");
+  if (!list) return;
+
+  list.innerHTML = "Lade...";
+
+  try {
+    const snaps = await getDocs(
+      query(collection(db, "changelog"), orderBy("time", "desc"), limit(50))
+    );
+
+    if (snaps.empty) {
+      list.innerHTML = `<div class="card">Noch keine Updates eingetragen.</div>`;
+      return;
+    }
+
+    let html = "";
+    snaps.forEach(ds => {
+      const d = ds.data() || {};
+      const type = String(d.type || "info");
+      const cls = type === "bugfix" ? "chlog-bugfix" : (type === "feature" ? "chlog-feature" : "chlog-info");
+
+      const when = d.time ? new Date(d.time).toLocaleString() : "";
+      const by = d.createdBy ? userNameByUid(d.createdBy) : "-";
+
+      const delBtn = canEditChangelog()
+        ? `<button class="smallbtn danger" type="button" onclick="deleteChangelogEntry('${ds.id}')">Löschen</button>`
+        : "";
+
+      html += `
+        <div class="chlog-item ${cls}">
+          <div class="chlog-meta">
+            <b>${escapeHtml(d.title || "-")}</b> • ${escapeHtml(type.toUpperCase())} • ${escapeHtml(when)} • von: ${escapeHtml(by)}
+          </div>
+          <div>${escapeHtml(d.text || "").replace(/\n/g, "<br>")}</div>
+          ${delBtn ? `<div style="margin-top:10px;">${delBtn}</div>` : ""}
+        </div>
+      `;
+    });
+
+    list.innerHTML = html;
+
+  } catch (e) {
+    list.innerHTML = `<div class="card">Fehler: ${escapeHtml(e.message)}</div>`;
+  }
+}
+
+async function addChangelogEntry() {
+  if (!canEditChangelog()) return alert("Keine Berechtigung");
+
+  const type = $("changelogType")?.value || "bugfix";
+  const title = ($("changelogTitle")?.value || "").trim();
+  const text = ($("changelogText")?.value || "").trim();
+
+  if (!title || !text) return alert("Titel und Text sind Pflicht");
+
+  try {
+    await addDoc(collection(db, "changelog"), {
+      type,
+      title,
+      text,
+      createdBy: CURRENT_UID,
+      time: Date.now()
+    });
+
+    if ($("changelogTitle")) $("changelogTitle").value = "";
+    if ($("changelogText")) $("changelogText").value = "";
+
+    await loadChangelog();
+  } catch (e) {
+    alert("Speichern fehlgeschlagen: " + e.message);
+  }
+}
+
+window.deleteChangelogEntry = async (id) => {
+  if (!canEditChangelog()) return alert("Keine Berechtigung");
+  if (!confirm("Eintrag wirklich löschen?")) return;
+
+  try {
+    await deleteDoc(doc(db, "changelog", id));
+    await loadChangelog();
+  } catch (e) {
+    alert("Löschen fehlgeschlagen: " + e.message);
+  }
+};
