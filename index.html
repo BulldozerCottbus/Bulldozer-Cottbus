@@ -38,7 +38,7 @@
 <div class="container hidden" id="homeScreen">
   <div class="card">
 
-    <button id="debugButton">BETA 1.0.0</button>
+    <button id="debugButton" type="button">BETA 1.0.0</button>
 
     <button onclick="showScreen('infos')">📢 Infos</button>
     <button onclick="showScreen('rides')">🏍 Ausfahrten</button>
@@ -56,6 +56,37 @@
   </div>
 </div>
 
+  <!-- ✅ DEBUG / CHANGELOG MODAL -->
+<div id="debugModal" class="modal hidden">
+  <div class="modal-backdrop" onclick="closeDebugModal()"></div>
+
+  <div class="modal-card card">
+    <h3>📌 Updates / Bug fixes</h3>
+
+    <div id="changelogList" class="card" style="margin-top:10px;">
+      Lade...
+    </div>
+
+    <!-- ✅ Nur für President/Vice/Sergeant/Admin sichtbar -->
+    <div id="changelogAdminBox" class="card hidden" style="margin-top:10px;">
+      <h4>➕ Neuer Eintrag</h4>
+
+      <select id="changelogType">
+        <option value="bugfix">Bug fixes</option>
+        <option value="feature">Feature</option>
+        <option value="info">Info</option>
+      </select>
+
+      <input id="changelogTitle" placeholder="Titel (z.B. Bug fixes – Secretary)">
+      <textarea id="changelogText" placeholder="Was wurde geändert / gefixt?"></textarea>
+
+      <button id="addChangelogBtn" type="button">💾 Eintrag speichern</button>
+    </div>
+
+    <button type="button" class="gray" onclick="closeDebugModal()">Schließen</button>
+  </div>
+</div>
+  
 <!-- ✅ INFOS -->
 <div class="container hidden" id="infos">
   <div class="card">
