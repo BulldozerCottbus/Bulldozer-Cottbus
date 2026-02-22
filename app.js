@@ -3303,7 +3303,7 @@ async function deleteTreasuryMember() {
 /* ===================================================== */
 
 function canEditChangelog() {
-  return hasOfficerRights(); // President / Vice / Sergeant / Admin
+  return isAdmin(); // ✅ NUR Admin
 }
 
 window.openDebugModal = async () => {
