@@ -41,17 +41,28 @@ header {
   top: 0;
   left: 0;
   width: 100%;
+
   background: black;
-  padding: 12px;
+
+  /* ✅ iPhone Dynamic Island / Notch Safe Area */
+  padding-top: calc(12px + env(safe-area-inset-top));
+  padding-left: calc(12px + env(safe-area-inset-left));
+  padding-right: calc(12px + env(safe-area-inset-right));
+  padding-bottom: 12px;
+
   text-align: center;
   z-index: 1000;
+
+  /* optional, macht's stabiler bei iOS */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
 }
 
 .container {
   width: 100%;
   max-width: 500px;
   margin: 0 auto;
-  padding: 80px 15px;
+  padding: calc(80px + env(safe-area-inset-top)) 15px;
   overflow-x: hidden; /* extra safety */
 }
 
