@@ -301,6 +301,7 @@ function canViewAllNotes() {
     } else {
       createRideBtn.classList.add("hidden");
     }
+  }
     
 /* ===================================================== */
 /* SESSION */
