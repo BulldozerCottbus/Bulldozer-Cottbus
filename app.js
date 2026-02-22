@@ -63,7 +63,7 @@ function treas_isDuesExempt(member) {
 
 // Monate von Eintrittsmonat bis reportMonth (YYYY-MM) inkl.
 function monthsOwedFromJoin(joinISO, reportMonth) {
-  if (!isValidISODate(joinISO)) return 0;
+  if (!treas_isValidISODate(joinISO)) return 0;
   const rm = String(reportMonth || "").trim();
   if (!/^\d{4}-\d{2}$/.test(rm)) return 0;
 
@@ -276,32 +276,34 @@ function hasSecretaryRights() {
 }
 
 function hasTreasuryAccess() {
-  // darf den Treasurer Screen öffnen (ansehen)
   return ["president", "vice_president", "sergeant_at_arms", "treasurer", "admin"].includes(CURRENT_RANK);
 }
 
 function isTreasurerOnly() {
-  // NUR Treasurer darf erstellen/bearbeiten/löschen
   return ["treasurer", "admin"].includes(CURRENT_RANK);
 }
 
 function canViewAllNotes() {
-  // wie vorher: Führung + Secretary
   return ["president", "vice_president", "sergeant_at_arms", "secretary", "admin"].includes(CURRENT_RANK);
 }
+
+/* ✅ HIER gehört deine UI-Rechte-Logik rein */
+function applyRankRights(rank) {
+  const postInfoBtn = $("postInfoBtn");       // muss es in HTML als id geben
+  const createRideBtn = $("createRideBtn");   // muss es in HTML als id geben
 
   // ✅ Infos: jeder eingeloggte darf posten (Popup)
   if (postInfoBtn) {
     postInfoBtn.classList.remove("hidden");
   }
 
+  // ✅ Ausfahrten erstellen: nur Boss/Officer/RC/Admin
   if (createRideBtn) {
-    if (["president", "vice_president", "sergeant_at_arms", "road_captain", "admin"].includes(rank)) {
-      createRideBtn.classList.remove("hidden");
-    } else {
-      createRideBtn.classList.add("hidden");
-    }
+    const canCreateRide = ["president", "vice_president", "sergeant_at_arms", "road_captain", "admin"].includes(rank);
+    if (canCreateRide) createRideBtn.classList.remove("hidden");
+    else createRideBtn.classList.add("hidden");
   }
+}
     
 /* ===================================================== */
 /* SESSION */
