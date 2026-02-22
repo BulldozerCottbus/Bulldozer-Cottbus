@@ -340,10 +340,15 @@ onAuthStateChanged(auth, async (user) => {
 
   applyRankRights(CURRENT_RANK);
 
-  // Users cache für Picklists
+// Users cache für Picklists
+try {
   await loadUsersCache();
+} catch (e) {
+  console.warn("loadUsersCache failed:", e);
+}
 
-  // Base loads
+// Base loads
+try {
   await Promise.allSettled([
     loadInfos(),
     loadRides(),
@@ -354,12 +359,19 @@ onAuthStateChanged(auth, async (user) => {
     loadUsersForTasks(),
     loadTasks()
   ]);
+} catch (e) {
+  console.warn("base loads failed:", e);
+}
 
-  // Meetings Picklists vorbereiten (falls Tab geöffnet wird)
+// Meetings Picklists vorbereiten (falls Tab geöffnet wird)
+try {
   prepareMeetingPicklists();
+} catch (e) {
+  console.warn("prepareMeetingPicklists failed:", e);
+}
 
-  // UI bindings
-  bindUI();
+// UI bindings (immer!)
+bindUI();
 });
 
 /* ===================================================== */
