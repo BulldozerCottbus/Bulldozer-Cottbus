@@ -2493,15 +2493,6 @@ function euro(n) {
   return `${x.toFixed(2).replace(".", ",")}€`;
 }
 
-function escapeHtml(s) {
-  return String(s || "")
-    .replace(/&/g,"&amp;")
-    .replace(/</g,"&lt;")
-    .replace(/>/g,"&gt;")
-    .replace(/"/g,"&quot;")
-    .replace(/'/g,"&#039;");
-}
-
 function isTreasurerUIReadOnly() {
   // UI: President/Vice/Sergeant dürfen ansehen, Treasurer darf editieren
   return !isTreasurerOnly();
