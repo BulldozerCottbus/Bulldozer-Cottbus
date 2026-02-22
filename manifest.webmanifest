@@ -1,15 +1,16 @@
 {
-  "name": "Bulldozer",
-  "short_name": "App",
-  "start_url": "/https://bulldozercottbus.github.io/Bulldozer-Cottbus//",
-  "scope": "/https://bulldozercottbus.github.io/Bulldozer-Cottbus//",
+  "name": "Bulldozer Cottbus",
+  "short_name": "Bulldozer",
+  "start_url": "/Bulldozer-Cottbus/",
+  "scope": "/Bulldozer-Cottbus/",
   "display": "standalone",
   "background_color": "#0f0f0f",
   "theme_color": "#0f0f0f",
   "icons": [
-    { "src": "/https://bulldozercottbus.github.io/Bulldozer-Cottbus//icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-    { "src": "/https://bulldozercottbus.github.io/Bulldozer-Cottbus//icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
-    { "src": "/https://bulldozercottbus.github.io/Bulldozer-Cottbus//icons/icon-192-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
-    { "src": "/https://bulldozercottbus.github.io/Bulldozer-Cottbus//icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    { "src": "/Bulldozer-Cottbus/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/Bulldozer-Cottbus/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+
+    { "src": "/Bulldozer-Cottbus/icons/icon-192-maskable.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "/Bulldozer-Cottbus/icons/icon-512-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ]
 }
