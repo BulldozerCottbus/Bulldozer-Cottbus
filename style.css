@@ -382,6 +382,37 @@ button:active {
   margin-top: 6px;
 }
 
+/* ===================================================== */
+/* MODAL (Infos Popup) */
+/* ===================================================== */
+
+.modal{
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 12px;
+}
+
+.modal.hidden{
+  display: none !important;
+}
+
+.modal-backdrop{
+  position: absolute;
+  inset: 0;
+  background: rgba(0,0,0,0.65);
+}
+
+.modal-card{
+  position: relative;
+  width: 100%;
+  max-width: 520px;
+  z-index: 2001;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+}
 .mono{
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   white-space: pre-wrap;
