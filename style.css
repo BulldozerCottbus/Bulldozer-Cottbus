@@ -428,3 +428,56 @@ button:active {
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
   white-space: pre-wrap;
 }
+
+/* ===================================================== */
+/* ✅ R.P MODAL (NEU) */
+/* ===================================================== */
+
+#rpBtn.btn-pop {
+  animation: btnPop 180ms ease-out;
+}
+
+@keyframes btnPop {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+
+.rp-card.pop-in {
+  animation: popIn 200ms ease-out;
+  transform-origin: 50% 20%;
+}
+
+@keyframes popIn {
+  0%   { transform: scale(0.92); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.rp-head{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+
+.rp-logo{
+  width:56px;
+  height:56px;
+  border-radius:14px;
+  border:1px solid #2b2b2b;
+  background:#111;
+}
+
+.rp-grid{
+  margin-top:12px;
+  display:grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap:8px;
+}
+
+.rp-grid button{
+  margin-top:0;
+  padding:12px 10px;
+  font-size:14px;
+  line-height:1.15;
+  white-space:normal;
+}
