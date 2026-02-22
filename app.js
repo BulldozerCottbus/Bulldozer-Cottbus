@@ -1007,33 +1007,115 @@ window.saveCalculation = async () => {
 };
 
 /* ===================================================== */
-/* HELP */
+/* Rocker Points Abschnitt */
 /* ===================================================== */
 
-async function loadHelp() {
-  const helpList = $("helpList");
-  if (!helpList) return;
+// ✅ R.P Modal (global für onclick="")
+window.openRPModal = () => {
+  const btn = document.getElementById("rpBtn");
+  if (btn) {
+    btn.classList.remove("btn-pop");
+    void btn.offsetWidth; // reflow, damit Animation erneut startet
+    btn.classList.add("btn-pop");
+  }
 
-  helpList.innerHTML = "";
-  const snaps = await getDocs(collection(db, "help_requests"));
-  snaps.forEach(d => {
-    const h = d.data() || {};
-    helpList.innerHTML += `<div class="card">${h.text || ""}</div>`;
-  });
-}
+  const modal = document.getElementById("rpModal");
+  if (!modal) return;
 
-window.createHelp = async () => {
-  const helpText = $("helpText");
-  if (!helpText?.value) return;
+  modal.classList.remove("hidden");
 
-  await addDoc(collection(db, "help_requests"), {
-    uid: CURRENT_UID,
-    text: helpText.value,
-    time: Date.now()
-  });
+  const card = modal.querySelector(".rp-card");
+  if (card) {
+    card.classList.remove("pop-in");
+    void card.offsetWidth;
+    card.classList.add("pop-in");
+  }
 
-  helpText.value = "";
-  loadHelp();
+  window.rpOpen("dash");
+};
+
+window.closeRPModal = () => {
+  document.getElementById("rpModal")?.classList.add("hidden");
+};
+
+// ✅ Tab Content
+window.rpOpen = (tab) => {
+  const box = document.getElementById("rpContent");
+  if (!box) return;
+
+  if (tab === "dash") {
+    box.innerHTML = `
+      <h4 style="margin-top:0;">📊 Übersicht</h4>
+      <div class="card">Deine Rocker Points: <b><span id="rpMyPoints">...</span></b></div>
+      <div class="card">Letzte Aktivität: <span id="rpLastActivity">...</span></div>
+      <div class="readonly-hint">Rocker Points = Leistung / Zuverlässigkeit / Support fürs Chapter.</div>
+    `;
+    return;
+  }
+
+  if (tab === "earn") {
+    box.innerHTML = `
+      <h4 style="margin-top:0;">✅ Verdienste</h4>
+      <ul>
+        <li>Meeting anwesend / pünktlich</li>
+        <li>Ausfahrt anwesend</li>
+        <li>Chapter-Dienst (Aufbau/Abbau/Organisation)</li>
+        <li>Road Support / Pannenhilfe</li>
+        <li>Mentoring (Prospect begleiten)</li>
+      </ul>
+    `;
+    return;
+  }
+
+  if (tab === "rewards") {
+    box.innerHTML = `
+      <h4 style="margin-top:0;">🎖️ Privilegien</h4>
+      <ul>
+        <li>Anträge priorisieren (Rang/Patch/Verantwortung)</li>
+        <li>Verantwortungsbereiche freischalten (z.B. Orga / Road Support)</li>
+        <li>Interne Benefits (z.B. Merch/Clubkasse nach Absprache)</li>
+      </ul>
+    `;
+    return;
+  }
+
+  if (tab === "ledger") {
+    box.innerHTML = `
+      <h4 style="margin-top:0;">📜 Verlauf</h4>
+      <div class="readonly-hint">Später: Datum • +/- Punkte • Grund • wer vergeben hat.</div>
+      <div id="rpLedgerList">Lade...</div>
+    `;
+    return;
+  }
+
+  if (tab === "rules") {
+    box.innerHTML = `
+      <h4 style="margin-top:0;">📘 Regeln</h4>
+      <div class="card">
+        <b>Beispiel (später editierbar):</b><br>
+        • Meeting anwesend: +2<br>
+        • Meeting pünktlich: +1<br>
+        • Ausfahrt: +3<br>
+        • Chapter-Dienst: +1 bis +5<br>
+        • Unentschuldigt fehlen: -3<br>
+      </div>
+      <div class="readonly-hint">Wichtig: klare Regeln = kein Stress.</div>
+    `;
+    return;
+  }
+
+  if (tab === "requests") {
+    box.innerHTML = `
+      <h4 style="margin-top:0;">📝 Anträge</h4>
+      <ul>
+        <li>Verantwortung übernehmen (Orga/Road Support)</li>
+        <li>Ausfahrt-Vorschlag einreichen</li>
+        <li>Meeting-Thema / Abstimmung vorschlagen</li>
+      </ul>
+      <div class="readonly-hint">Später als Formular + Speicherung in Firestore.</div>
+    `;
+    return;
+  }
 };
 
 /* ===================================================== */
