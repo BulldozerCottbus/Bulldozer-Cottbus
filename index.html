@@ -62,8 +62,31 @@
     <h3>Infos</h3>
 
     <!-- optional: nur Führung sieht den Button, wird per JS eingeblendet -->
-    <textarea id="newInfoText" placeholder="Neue Info..."></textarea>
-    <button id="postInfoBtn" class="hidden">Info posten</button>
+    <button id="postInfoBtn" type="button">➕ Info posten</button>
+
+<!-- ✅ Info Modal -->
+<div id="infoModal" class="modal hidden">
+  <div class="modal-backdrop" onclick="closeInfoModal()"></div>
+
+  <div class="modal-card card">
+    <h3 id="infoModalTitle">Info posten</h3>
+
+    <textarea id="infoModalText" placeholder="Deine Info..."></textarea>
+
+    <label class="field-label" for="infoModalExpiry">Sichtbarkeit</label>
+    <select id="infoModalExpiry">
+      <option value="24h">Nach 24 Stunden automatisch löschen</option>
+      <option value="keep">Bleibt bis man sie löscht</option>
+    </select>
+
+    <div class="row">
+      <button type="button" id="infoModalSaveBtn">💾 Speichern</button>
+      <button type="button" class="gray" onclick="closeInfoModal()">Abbrechen</button>
+    </div>
+
+    <button type="button" class="danger hidden" id="infoModalDeleteBtn">🗑️ Löschen</button>
+  </div>
+</div>
 
     <!-- ✅ Warn Info Button + Box -->
     <button type="button" onclick="toggleWarnInfo()">⚠️ Warn Info</button>
