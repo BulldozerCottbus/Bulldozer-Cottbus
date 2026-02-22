@@ -353,7 +353,6 @@ try {
     loadInfos(),
     loadRides(),
     loadFiles(),
-    loadHelp(),
     loadUsersForNotes(),
     loadMyNotes(),
     loadUsersForTasks(),
