@@ -17,7 +17,8 @@ import {
   deleteDoc,
   updateDoc,
   orderBy,
-  limit
+  limit,
+  deleteField
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* ===================================================== */
@@ -163,6 +164,11 @@ function calcPaidAmountFromMember(member, perMonthTotal, reportMonth) {
   return 0;
 }
 
+function escapeHtml(s) {
+  return String(s || "").replace(/[&<>"']/g, (m) => ({
+    "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"
+  }[m]));
+}
 /* ===================================================== */
 /* GLOBAL STATE */
 /* ===================================================== */
@@ -202,6 +208,9 @@ let EDIT_TREAS_REPORT_ID = null;
 let TREASURY_MEMBERS_CACHE = [];
 let EDIT_TREAS_MEMBER_ID = null;
 let TREAS_MEMBER_MODAL_READONLY = false;
+
+/* INFO */
+let EDIT_INFO_ID = null;
 
 /* ===================================================== */
 /* AUTH / LOGIN */
@@ -281,16 +290,9 @@ function canViewAllNotes() {
   return ["president", "vice_president", "sergeant_at_arms", "secretary", "admin"].includes(CURRENT_RANK);
 }
 
-function applyRankRights(rank) {
-  const postInfoBtn = $("postInfoBtn");
-  const createRideBtn = $("createRideBtn");
-
+  // ✅ Infos: jeder eingeloggte darf posten (Popup)
   if (postInfoBtn) {
-    if (["president", "vice_president", "sergeant_at_arms", "secretary", "admin"].includes(rank)) {
-      postInfoBtn.classList.remove("hidden");
-    } else {
-      postInfoBtn.classList.add("hidden");
-    }
+    postInfoBtn.classList.remove("hidden");
   }
 
   if (createRideBtn) {
@@ -365,8 +367,16 @@ onAuthStateChanged(auth, async (user) => {
 
 function bindUI() {
   // Infos
-  const postInfoBtn = $("postInfoBtn");
-  if (postInfoBtn) postInfoBtn.onclick = () => window.postInfo();
+    const postInfoBtn = $("postInfoBtn");
+  if (postInfoBtn) postInfoBtn.onclick = () => window.openInfoModal();
+    // Info Modal
+  const infoSave = $("infoModalSaveBtn");
+  if (infoSave) infoSave.onclick = () => saveInfoModal();
+
+  const infoDel = $("infoModalDeleteBtn");
+  if (infoDel) infoDel.onclick = () => {
+    if (EDIT_INFO_ID) window.deleteInfo(EDIT_INFO_ID);
+  };
 
   // Rides
   const createRideBtn = $("createRideBtn");
@@ -510,56 +520,185 @@ function userNameByUid(uid) {
 }
 
 /* ===================================================== */
-/* INFOS */
+/* INFOS (Popup + Ablauf + Edit/Delete Rechte) */
 /* ===================================================== */
+
+window.openInfoModal = async (infoId = null) => {
+  const modal = $("infoModal");
+  const title = $("infoModalTitle");
+  const text = $("infoModalText");
+  const exp = $("infoModalExpiry");
+  const del = $("infoModalDeleteBtn");
+
+  if (!modal || !title || !text || !exp || !del) return;
+
+  EDIT_INFO_ID = infoId || null;
+
+  if (!infoId) {
+    title.innerText = "Info posten";
+    text.value = "";
+    exp.value = "keep";
+    del.classList.add("hidden");
+    modal.classList.remove("hidden");
+    return;
+  }
+
+  // Edit Mode: laden
+  try {
+    const snap = await getDoc(doc(db, "infos", infoId));
+    if (!snap.exists()) return alert("Info nicht gefunden");
+
+    const d = snap.data() || {};
+    title.innerText = "Info bearbeiten";
+    text.value = d.text || "";
+
+    // Ablauf-Auswahl aus expiresAt ableiten
+    const hasExpiry = !!d.expiresAt;
+    exp.value = hasExpiry ? "24h" : "keep";
+
+    // Delete Button nur, wenn ich darf (Owner oder Officer)
+    const can = hasOfficerRights() || d.createdBy === CURRENT_UID;
+    if (can) del.classList.remove("hidden");
+    else del.classList.add("hidden");
+
+    modal.classList.remove("hidden");
+  } catch (e) {
+    alert("Fehler: " + e.message);
+  }
+};
+
+window.closeInfoModal = () => {
+  const modal = $("infoModal");
+  if (modal) modal.classList.add("hidden");
+  EDIT_INFO_ID = null;
+};
+
+async function saveInfoModal() {
+  const text = $("infoModalText")?.value?.trim() || "";
+  const exp = $("infoModalExpiry")?.value || "keep";
+  if (!text) return alert("Text fehlt");
+
+  const expiresAt = exp === "24h" ? (Date.now() + 24 * 60 * 60 * 1000) : null;
+
+  try {
+    if (!EDIT_INFO_ID) {
+      // Create
+      await addDoc(collection(db, "infos"), {
+        text,
+        createdBy: CURRENT_UID,
+        time: Date.now(),
+        expiresAt: expiresAt
+      });
+    } else {
+      // Update (nur Owner/Officer erlaubt – Rules!)
+      const patch = {
+        text,
+        editedAt: Date.now(),
+        editedBy: CURRENT_UID
+      };
+
+      if (expiresAt) {
+        patch.expiresAt = expiresAt;
+      } else {
+        patch.expiresAt = deleteField();
+      }
+
+      await updateDoc(doc(db, "infos", EDIT_INFO_ID), patch);
+    }
+
+    window.closeInfoModal();
+    loadInfos();
+  } catch (e) {
+    // ✅ jetzt siehst du den echten Fehler (z.B. Rechte)
+    alert("Speichern fehlgeschlagen: " + e.message);
+  }
+}
+
+window.editInfo = (id) => window.openInfoModal(id);
+
+window.deleteInfo = async (id) => {
+  try {
+    const snap = await getDoc(doc(db, "infos", id));
+    if (!snap.exists()) return;
+
+    const d = snap.data() || {};
+    const can = hasOfficerRights() || d.createdBy === CURRENT_UID;
+    if (!can) return alert("Keine Berechtigung");
+
+    if (!confirm("Info wirklich löschen?")) return;
+
+    await deleteDoc(doc(db, "infos", id));
+    window.closeInfoModal();
+    loadInfos();
+  } catch (e) {
+    alert("Löschen fehlgeschlagen: " + e.message);
+  }
+};
 
 async function loadInfos() {
   const infosList = $("infosList");
   if (!infosList) return;
 
-  infosList.innerHTML = "";
-  const snaps = await getDocs(collection(db, "infos"));
+  infosList.innerHTML = `<div class="card">Lade...</div>`;
 
-  snaps.forEach(docSnap => {
-    const data = docSnap.data() || {};
-    infosList.innerHTML += `<div class="card">${nl2br(data.text || "")}</div>`;
-  });
+  try {
+    const snaps = await getDocs(
+      query(collection(db, "infos"), orderBy("time", "desc"), limit(200))
+    );
+
+    if (snaps.empty) {
+      infosList.innerHTML = `<div class="card">Noch keine Infos.</div>`;
+      return;
+    }
+
+    const now = Date.now();
+    infosList.innerHTML = "";
+
+    for (const ds of snaps.docs) {
+      const d = ds.data() || {};
+      const id = ds.id;
+
+      // ✅ Ablauf: abgelaufene Infos nicht anzeigen
+      if (d.expiresAt && Number(d.expiresAt) < now) {
+        // Best-effort Cleanup: Officer oder Ersteller räumt auf
+        const canCleanup = hasOfficerRights() || d.createdBy === CURRENT_UID;
+        if (canCleanup) {
+          try { await deleteDoc(doc(db, "infos", id)); } catch {}
+        }
+        continue;
+      }
+
+      const canEdit = hasOfficerRights() || d.createdBy === CURRENT_UID;
+
+      const when = d.time ? new Date(d.time).toLocaleString() : "";
+      const author = d.createdBy ? userNameByUid(d.createdBy) : "-";
+      const expiryTxt = d.expiresAt ? ` | läuft ab: ${new Date(d.expiresAt).toLocaleString()}` : "";
+
+      infosList.innerHTML += `
+        <div class="card">
+          <div style="opacity:.85;font-size:12px;margin-bottom:6px;">
+            von: ${escapeHtml(author)} | ${escapeHtml(when)}${expiryTxt}
+          </div>
+          <div>${escapeHtml(d.text || "")}</div>
+
+          ${canEdit ? `
+            <div class="row" style="margin-top:10px;">
+              <button class="smallbtn gray" type="button" onclick="editInfo('${id}')">Bearbeiten</button>
+              <button class="smallbtn danger" type="button" onclick="deleteInfo('${id}')">Löschen</button>
+            </div>
+          ` : ``}
+        </div>
+      `;
+    }
+
+    if (!infosList.innerHTML.trim()) {
+      infosList.innerHTML = `<div class="card">Keine aktiven Infos (evtl. abgelaufen).</div>`;
+    }
+
+  } catch (e) {
+    infosList.innerHTML = `<div class="card">Fehler beim Laden: ${escapeHtml(e.message)}</div>`;
+  }
 }
-
-window.postInfo = async () => {
-  const newInfoText = $("newInfoText");
-  if (!newInfoText?.value) return;
-
-  await addDoc(collection(db, "infos"), {
-    text: newInfoText.value,
-    time: Date.now(),
-    uid: CURRENT_UID
-  });
-
-  newInfoText.value = "";
-  loadInfos();
-};
-
-/* Warn-Info / Club-Regeln toggles */
-window.toggleWarnInfo = () => {
-  const box = $("warnInfoBox");
-  if (!box) return;
-
-  const rules = $("clubRulesBox");
-  if (rules && !rules.classList.contains("hidden")) rules.classList.add("hidden");
-
-  box.classList.toggle("hidden");
-};
-
-window.toggleClubRules = () => {
-  const box = $("clubRulesBox");
-  if (!box) return;
-
-  const warn = $("warnInfoBox");
-  if (warn && !warn.classList.contains("hidden")) warn.classList.add("hidden");
-
-  box.classList.toggle("hidden");
-};
 
 /* ===================================================== */
 /* RIDES */
