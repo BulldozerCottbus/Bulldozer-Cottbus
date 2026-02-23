@@ -10,6 +10,7 @@ import {
   doc,
   getDoc,
   addDoc,
+  setDoc,
   collection,
   getDocs,
   query,
@@ -303,6 +304,15 @@ function applyRankRights(rank) {
     if (canCreateRide) createRideBtn.classList.remove("hidden");
     else createRideBtn.classList.add("hidden");
   }
+
+    // ✅ Ausfahrten Button: Hangaround/Supporter -> komplett weg
+  const ridesNavBtn = $("ridesNavBtn");
+  if (ridesNavBtn) {
+    const r = String(rank || "").toLowerCase();
+    const blocked = (r === "hangaround" || r === "supporter");
+    if (blocked) ridesNavBtn.classList.add("hidden");
+    else ridesNavBtn.classList.remove("hidden");
+  }
 }
     
 /* ===================================================== */
@@ -396,9 +406,18 @@ function bindUI() {
   const addLog = $("addChangelogBtn");
   if (addLog) addLog.onclick = () => addChangelogEntry();
 
-  // Rides
-  const createRideBtn = $("createRideBtn");
-  if (createRideBtn) createRideBtn.onclick = () => window.createRide();
+    // ✅ Rides Modal
+  const ridesNavBtn = $("ridesNavBtn");
+  if (ridesNavBtn) ridesNavBtn.onclick = () => window.openRidesModal();
+
+  const rt1 = $("ridesTabCompleted");
+  if (rt1) rt1.onclick = () => window.ridesOpen("completed");
+
+  const rt2 = $("ridesTabRsvp");
+  if (rt2) rt2.onclick = () => window.ridesOpen("rsvp");
+
+  const rt3 = $("ridesTabManage");
+  if (rt3) rt3.onclick = () => window.ridesOpen("manage");
 
   // Notes
   const saveNoteBtn = $("saveNoteBtn");
@@ -719,40 +738,432 @@ async function loadInfos() {
 }
 
 /* ===================================================== */
-/* RIDES */
+/* RIDES (NEU) – Modal mit 3 Tabs + Firestore */
 /* ===================================================== */
 
-async function loadRides() {
-  const ridesList = $("ridesList");
-  if (!ridesList) return;
+let RIDES_CACHE = [];
+let RIDES_TAB = "rsvp";
 
-  ridesList.innerHTML = "";
-  const snaps = await getDocs(collection(db, "rides"));
+function rideFmtChapter(r) {
+  const t = String(r.chapterType || "").toUpperCase();
+  if (t === "HAMC") return "HAMC";
+  if (t === "RDMC") return "RDMC";
+  if (t === "OTHER") return "Sonstiges";
+  return t || "-";
+}
 
-  snaps.forEach(docSnap => {
-    const r = docSnap.data() || {};
-    ridesList.innerHTML += `
-      <div class="card priority${r.priority || ""}">
-        (${r.priority || "-"}) ${r.text || ""}
+function rideFmtWhen(r) {
+  const d = r.date || "-";
+  const t = r.time || "-";
+  return `${d} • ${t}`;
+}
+
+function rideFmtWhere(r) {
+  const dest = r.destination || "-";
+  const chap = rideFmtChapter(r);
+  const other = (String(r.chapterType || "").toUpperCase() === "OTHER" && r.otherNote) ? ` (${r.otherNote})` : "";
+  return `${dest} • ${chap}${other}`;
+}
+
+async function loadRidesCache() {
+  RIDES_CACHE = [];
+  try {
+    const snaps = await getDocs(query(collection(db, "rides"), limit(200)));
+    snaps.forEach(ds => {
+      RIDES_CACHE.push({ id: ds.id, ...(ds.data() || {}) });
+    });
+
+    // Sort: aktive zuerst nach Datum aufsteigend, erledigt nach doneAt absteigend
+    RIDES_CACHE.sort((a, b) => {
+      const as = (a.status || "active");
+      const bs = (b.status || "active");
+      if (as !== bs) return as === "active" ? -1 : 1;
+
+      if ((a.status || "active") === "active") {
+        return String(a.date || "").localeCompare(String(b.date || ""));
+      }
+      return (Number(b.doneAt || b.time || 0) - Number(a.doneAt || a.time || 0));
+    });
+  } catch (e) {
+    console.warn("loadRidesCache failed:", e);
+  }
+}
+
+window.openRidesModal = async () => {
+  if (!canOpenRides()) {
+    alert("Kein Zugriff auf Ausfahrten.");
+    return;
+  }
+  const modal = $("ridesModal");
+  if (!modal) return;
+
+  modal.classList.remove("hidden");
+  await loadRidesCache();
+
+  // Default Tab: Anmeldung (damit man aktuelle sieht)
+  await window.ridesOpen("rsvp");
+};
+
+window.closeRidesModal = () => {
+  const modal = $("ridesModal");
+  if (modal) modal.classList.add("hidden");
+};
+
+window.ridesOpen = async (tab) => {
+  RIDES_TAB = tab || "rsvp";
+  const box = $("ridesTabContent");
+  if (!box) return;
+
+  box.innerHTML = "Lade...";
+
+  // Cache aktualisieren (damit Anmeldungen/Status neu sind)
+  await loadRidesCache();
+
+  if (RIDES_TAB === "completed") return renderRidesCompleted();
+  if (RIDES_TAB === "manage") return renderRidesManage();
+  return renderRidesRsvp();
+};
+
+/* ---------- Tab 1: Abgeschlossene ---------- */
+
+async function renderRidesCompleted() {
+  const box = $("ridesTabContent");
+  if (!box) return;
+
+  const done = RIDES_CACHE.filter(r => (r.status || "active") === "done");
+
+  if (!done.length) {
+    box.innerHTML = `<div class="card">Noch keine abgeschlossenen Ausfahrten.</div>`;
+    return;
+  }
+
+  // Optional: zeigen, ob DU angemeldet warst (best effort)
+  const slice = done.slice(0, 50);
+  const myFlags = await Promise.all(slice.map(async (r) => {
+    try {
+      const snap = await getDoc(doc(db, "rides", r.id, "rsvps", CURRENT_UID));
+      if (!snap.exists()) return false;
+      const d = snap.data() || {};
+      return d.status === "going";
+    } catch {
+      return false;
+    }
+  }));
+
+  let html = "";
+  slice.forEach((r, idx) => {
+    const wasIn = myFlags[idx] ? `<div class="small-note">✅ Du warst angemeldet</div>` : "";
+    html += `
+      <div class="card ride-card">
+        <div class="ride-title">${escapeHtml(rideFmtWhere(r))}</div>
+        <div class="ride-meta">📅 ${escapeHtml(rideFmtWhen(r))} • 📍 Treffpunkt: ${escapeHtml(r.meetPoint || "-")}</div>
+        ${r.note ? `<div>${escapeHtml(r.note)}</div>` : ``}
+        ${wasIn}
       </div>
     `;
   });
+
+  box.innerHTML = html;
 }
 
-window.createRide = async () => {
-  const rideText = $("rideText");
-  const ridePriority = $("ridePriority");
-  if (!rideText?.value) return;
+/* ---------- Tab 2: Anmeldung/Abmeldung ---------- */
 
-  await addDoc(collection(db, "rides"), {
-    text: rideText.value,
-    priority: ridePriority ? ridePriority.value : "1",
-    time: Date.now()
+window.rideSetRsvp = async (rideId, going) => {
+  if (!canRideRSVP()) {
+    alert("Anmeldung/Abmeldung ist erst ab Member möglich.");
+    return;
+  }
+
+  try {
+    await setDoc(
+      doc(db, "rides", rideId, "rsvps", CURRENT_UID),
+      {
+        uid: CURRENT_UID,
+        name: userNameByUid(CURRENT_UID),
+        status: going ? "going" : "not_going",
+        updatedAt: Date.now()
+      },
+      { merge: true }
+    );
+
+    await window.ridesOpen("rsvp");
+  } catch (e) {
+    alert("Fehler (RSVP): " + e.message);
+  }
+};
+
+async function renderRidesRsvp() {
+  const box = $("ridesTabContent");
+  if (!box) return;
+
+  const active = RIDES_CACHE.filter(r => (r.status || "active") === "active");
+
+  if (!active.length) {
+    box.innerHTML = `<div class="card">Keine aktuellen Ausfahrten eingetragen.</div>`;
+    return;
+  }
+
+  // Pro Ride meinen Status laden (best effort)
+  const my = await Promise.all(active.map(async (r) => {
+    try {
+      const snap = await getDoc(doc(db, "rides", r.id, "rsvps", CURRENT_UID));
+      if (!snap.exists()) return null;
+      return (snap.data() || {}).status || null;
+    } catch {
+      return null;
+    }
+  }));
+
+  const can = canRideRSVP();
+  const prospectHint = !can && String(CURRENT_RANK || "").toLowerCase() === "prospect"
+    ? `<div class="card">👁️ Prospect kann Ausfahrten sehen – Anmeldung erst ab Member.</div>`
+    : "";
+
+  let html = prospectHint;
+
+  active.forEach((r, idx) => {
+    const st = my[idx];
+    const stTxt = st === "going" ? "✅ Angemeldet" : (st === "not_going" ? "❌ Abgemeldet" : "—");
+
+    html += `
+      <div class="card ride-card">
+        <div class="ride-title">${escapeHtml(rideFmtWhere(r))}</div>
+        <div class="ride-meta">📅 ${escapeHtml(rideFmtWhen(r))} • 📍 Treffpunkt: ${escapeHtml(r.meetPoint || "-")}</div>
+        ${r.note ? `<div>${escapeHtml(r.note)}</div>` : ``}
+        <div class="small-note">Dein Status: <b>${escapeHtml(stTxt)}</b></div>
+
+        ${can ? `
+          <div class="ride-actions">
+            <button type="button" class="smallbtn" onclick="rideSetRsvp('${r.id}', true)">✅ Anmelden</button>
+            <button type="button" class="smallbtn gray" onclick="rideSetRsvp('${r.id}', false)">❌ Abmelden</button>
+          </div>
+        ` : ``}
+      </div>
+    `;
   });
 
-  rideText.value = "";
-  loadRides();
+  box.innerHTML = html;
+}
+
+/* ---------- Tab 3: Aktuelle Fahrten (Erstellen/Verwalten) ---------- */
+
+window.rideCreateFromUI = async () => {
+  if (!canRideManage()) return alert("Nur Road Captain / Admin kann Ausfahrten erstellen.");
+
+  const destination = $("rideDest")?.value?.trim() || "";
+  const date = $("rideDate")?.value || "";
+  const time = $("rideTime")?.value || "";
+  const chapterType = ($("rideChapterType")?.value || "HAMC").toUpperCase();
+  const otherNote = $("rideOtherNote")?.value?.trim() || "";
+  const meetPoint = $("rideMeetPoint")?.value?.trim() || "";
+  const note = $("rideNote")?.value?.trim() || "";
+
+  if (!destination) return alert("Wo geht es hin? fehlt.");
+  if (!date) return alert("Datum fehlt.");
+  if (!time) return alert("Uhrzeit fehlt.");
+  if (!meetPoint) return alert("Treffpunkt fehlt.");
+  if (chapterType === "OTHER" && !otherNote) return alert("Bei „Sonstiges“ bitte Notiz ausfüllen.");
+
+  try {
+    await addDoc(collection(db, "rides"), {
+      destination,
+      date,
+      time,
+      chapterType,
+      otherNote: chapterType === "OTHER" ? otherNote : "",
+      meetPoint,
+      note,
+      status: "active",
+      createdBy: CURRENT_UID,
+      time: Date.now()
+    });
+
+    await window.ridesOpen("manage");
+  } catch (e) {
+    alert("Fehler beim Speichern: " + e.message);
+  }
 };
+
+window.rideMarkDone = async (rideId) => {
+  if (!canRideManage()) return;
+  if (!confirm("Diese Ausfahrt als abgeschlossen markieren?")) return;
+
+  try {
+    await updateDoc(doc(db, "rides", rideId), {
+      status: "done",
+      doneAt: Date.now(),
+      doneBy: CURRENT_UID
+    });
+    await window.ridesOpen("manage");
+  } catch (e) {
+    alert("Fehler: " + e.message);
+  }
+};
+
+window.rideDelete = async (rideId) => {
+  if (String(CURRENT_RANK || "").toLowerCase() !== "admin") {
+    alert("Löschen nur Admin.");
+    return;
+  }
+  if (!confirm("Ausfahrt wirklich löschen?")) return;
+
+  try {
+    await deleteDoc(doc(db, "rides", rideId));
+    await window.ridesOpen("manage");
+  } catch (e) {
+    alert("Fehler: " + e.message);
+  }
+};
+
+window.rideToggleRsvpList = async (rideId) => {
+  const box = $(`rideRsvpBox_${rideId}`);
+  if (!box) return;
+
+  if (box.getAttribute("data-open") === "1") {
+    box.setAttribute("data-open", "0");
+    box.innerHTML = "";
+    return;
+  }
+
+  box.setAttribute("data-open", "1");
+  box.innerHTML = `<div class="card">Lade Anmeldungen...</div>`;
+
+  try {
+    const snaps = await getDocs(query(collection(db, "rides", rideId, "rsvps"), limit(200)));
+    const rows = [];
+    snaps.forEach(d => rows.push(d.data() || {}));
+
+    const going = rows.filter(x => x.status === "going");
+    const notGoing = rows.filter(x => x.status === "not_going");
+
+    const list = (arr) => arr.length
+      ? arr.sort((a,b)=>String(a.name||"").localeCompare(String(b.name||"")))
+          .map(x => `<div class="card">${escapeHtml(x.name || x.uid || "-")}</div>`).join("")
+      : `<div class="card">—</div>`;
+
+    box.innerHTML = `
+      <div class="card money-good"><b>✅ Angemeldet:</b> ${going.length}</div>
+      ${list(going)}
+      <div class="card money-warn" style="margin-top:10px;"><b>❌ Abgemeldet:</b> ${notGoing.length}</div>
+      ${list(notGoing)}
+    `;
+  } catch (e) {
+    box.innerHTML = `<div class="card">Fehler: ${escapeHtml(e.message)}</div>`;
+  }
+};
+
+async function renderRidesManage() {
+  const box = $("ridesTabContent");
+  if (!box) return;
+
+  if (!canRideManage()) {
+    box.innerHTML = `
+      <div class="card">Nur Road Captain / Admin kann „Aktuelle Fahrten“ öffnen.</div>
+      <div class="card">✅ Du kannst aber über „Anmeldung/Abmeldung“ aktuelle Fahrten sehen.</div>
+    `;
+    return;
+  }
+
+  const active = RIDES_CACHE.filter(r => (r.status || "active") === "active");
+
+  box.innerHTML = `
+    <div class="card">
+      <h4 style="margin-top:0;">➕ Neue Ausfahrt erstellen</h4>
+
+      <label class="field-label" for="rideDest">Wo geht es hin?</label>
+      <input id="rideDest" placeholder="z.B. Berlin / Treffen / Ausfahrtziel">
+
+      <label class="field-label" for="rideDate">Datum</label>
+      <input id="rideDate" type="date">
+
+      <label class="field-label" for="rideTime">Uhrzeit</label>
+      <input id="rideTime" type="time">
+
+      <label class="field-label" for="rideChapterType">Chapter</label>
+      <select id="rideChapterType">
+        <option value="HAMC">HAMC</option>
+        <option value="RDMC">RDMC</option>
+        <option value="OTHER">Sonstiges</option>
+      </select>
+
+      <textarea id="rideOtherNote" class="hidden" placeholder="Notiz (nur wenn Sonstiges)"></textarea>
+
+      <label class="field-label" for="rideMeetPoint">Treffpunkt (Notiz)</label>
+      <input id="rideMeetPoint" placeholder="z.B. Tankstelle XY, Adresse...">
+
+      <textarea id="rideNote" placeholder="Optionale Notiz (Hinweise, Regeln, Route...)"></textarea>
+
+      <button type="button" id="rideCreateBtn">💾 Ausfahrt speichern</button>
+      <div class="small-note">Erstellen nur Road Captain/Admin. Anmeldung läuft über Tab „Anmeldung/Abmeldung“.</div>
+    </div>
+
+    <h4>Aktuelle Fahrten</h4>
+    <div id="rideManageList">
+      ${active.length ? "" : `<div class="card">Keine aktiven Ausfahrten.</div>`}
+    </div>
+  `;
+
+  // Form Events
+  const ct = $("rideChapterType");
+  const on = $("rideOtherNote");
+  if (ct && on) {
+    const sync = () => {
+      if (String(ct.value || "").toUpperCase() === "OTHER") on.classList.remove("hidden");
+      else on.classList.add("hidden");
+    };
+    ct.onchange = sync;
+    sync();
+  }
+
+  const createBtn = $("rideCreateBtn");
+  if (createBtn) createBtn.onclick = () => window.rideCreateFromUI();
+
+  // Active list render
+  const list = $("rideManageList");
+  if (!list || !active.length) return;
+
+  let html = "";
+  active.forEach(r => {
+    html += `
+      <div class="card ride-card">
+        <div class="ride-title">${escapeHtml(rideFmtWhere(r))}</div>
+        <div class="ride-meta">📅 ${escapeHtml(rideFmtWhen(r))} • 📍 Treffpunkt: ${escapeHtml(r.meetPoint || "-")}</div>
+        ${r.note ? `<div>${escapeHtml(r.note)}</div>` : ``}
+
+        <div class="ride-actions">
+          <button type="button" class="smallbtn gray" onclick="rideToggleRsvpList('${r.id}')">👁️ Anmeldungen</button>
+          <button type="button" class="smallbtn" onclick="rideMarkDone('${r.id}')">✅ Abschließen</button>
+          ${String(CURRENT_RANK || "").toLowerCase() === "admin"
+            ? `<button type="button" class="smallbtn danger" onclick="rideDelete('${r.id}')">🗑️ Löschen</button>`
+            : ``}
+        </div>
+
+        <div id="rideRsvpBox_${r.id}" data-open="0" style="margin-top:10px;"></div>
+      </div>
+    `;
+  });
+
+  list.innerHTML = html;
+}
+
+/* ===================================================== */
+/* RIDES RIGHTS */
+/* ===================================================== */
+
+function canOpenRides() {
+  // Hangaround/Supp dürfen gar nicht rein
+  return !["hangaround", "supporter"].includes(String(CURRENT_RANK || "").toLowerCase());
+}
+
+function canRideRSVP() {
+  // An/Abmelden erst ab Member (Prospect darf nur sehen)
+  return !["hangaround", "supporter", "prospect"].includes(String(CURRENT_RANK || "").toLowerCase());
+}
+
+function canRideManage() {
+  // Nur Road Chief + Admin
+  return ["road_captain", "admin"].includes(String(CURRENT_RANK || "").toLowerCase());
+}
 
 /* ===================================================== */
 /* NOTES */
