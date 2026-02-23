@@ -506,6 +506,49 @@ button:active {
   margin: 0 0 8px 0;
 }
 
+/* ===================================================== */
+/* ✅ RIDES MODAL (AUSFAHRTEN) */
+/* ===================================================== */
+
+.rides-tabs{
+  grid-template-columns: repeat(3, 1fr);
+}
+
+.ride-card{
+  border: 1px solid #2b2b2b;
+  background: #202020;
+}
+
+.ride-meta{
+  font-size: 12px;
+  opacity: 0.85;
+  margin-bottom: 8px;
+}
+
+.ride-title{
+  font-size: 16px;
+  font-weight: bold;
+  margin-bottom: 6px;
+}
+
+.ride-actions{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-top: 10px;
+}
+
+.ride-actions button{
+  width: auto;
+  flex: 1;
+  margin-top: 0;
+}
+
+.small-note{
+  font-size: 12px;
+  opacity: 0.8;
+  margin-top: 6px;
+}
 .modalCard p {
   margin: 0 0 14px 0;
   opacity: 0.95;
