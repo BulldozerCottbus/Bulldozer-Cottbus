@@ -53,7 +53,7 @@
     <button onclick="window.showScreen('tasks')">📋 Aufgaben</button>
 
     <!-- ✅ R.P Button (WICHTIG: window.* wegen type="module") -->
-    <button id="rpBtn" type="button" onclick="window.openRPModal()">🛡️ R.P</button>
+    <a href="#rp" data-feature="rp">R.P</a>
 
     <!-- ✅ Wichtig: Secretary muss über showSecretaryPanel laufen -->
     <button onclick="window.showSecretaryPanel()">📒 Secretary</button>
@@ -874,5 +874,14 @@
   }
 </script>
 
+  <!-- RP gesperrt Modal -->
+<div id="rpDisabledBackdrop" class="modalBackdrop hidden">
+  <div class="modalCard">
+    <h3>Hinweis</h3>
+    <p>Dieser Bereich ist aktuell nicht zugänglich.</p>
+    <button id="rpDisabledOk" class="btn">OK</button>
+  </div>
+</div>
+  
 </body>
 </html>
