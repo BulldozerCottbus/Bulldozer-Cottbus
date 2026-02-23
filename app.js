@@ -3504,3 +3504,40 @@ window.deleteChangelogEntry = async (id) => {
     alert("Löschen fehlgeschlagen: " + e.message);
   }
 };
+
+// =========================
+// RP Bereich: aktuell gesperrt
+// =========================
+const RP_ENABLED = false;
+
+function openRpDisabledModal() {
+  const backdrop = document.getElementById("rpDisabledBackdrop");
+  if (!backdrop) {
+    alert("Dieser Bereich ist aktuell nicht zugänglich.");
+    return;
+  }
+  backdrop.classList.remove("hidden");
+}
+
+function closeRpDisabledModal() {
+  const backdrop = document.getElementById("rpDisabledBackdrop");
+  if (backdrop) backdrop.classList.add("hidden");
+}
+
+// OK Button + Klick außerhalb schließt
+document.addEventListener("click", (e) => {
+  if (e.target && e.target.id === "rpDisabledOk") closeRpDisabledModal();
+  if (e.target && e.target.id === "rpDisabledBackdrop") closeRpDisabledModal();
+});
+
+// WICHTIG: Capture-Listener blockt auch inline onclick / Navigation
+document.addEventListener("click", (e) => {
+  const rpTrigger = e.target.closest?.('[data-feature="rp"]');
+  if (!rpTrigger) return;
+
+  if (!RP_ENABLED) {
+    e.preventDefault();
+    e.stopPropagation(); // stoppt, bevor onclick / andere Handler feuern
+    openRpDisabledModal();
+  }
+}, true);
