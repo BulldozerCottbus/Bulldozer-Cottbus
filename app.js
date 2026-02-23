@@ -360,14 +360,14 @@ try {
 // Base loads
 try {
   await Promise.allSettled([
-    loadInfos(),
-    loadRides(),
-    loadFiles(),
-    loadUsersForNotes(),
-    loadMyNotes(),
-    loadUsersForTasks(),
-    loadTasks()
-  ]);
+  loadInfos(),
+  loadRidesCache(),
+  loadFiles(),
+  loadUsersForNotes(),
+  loadMyNotes(),
+  loadUsersForTasks(),
+  loadTasks()
+]);
 } catch (e) {
   console.warn("base loads failed:", e);
 }
