@@ -48,7 +48,7 @@
     <button id="debugButton" type="button" onclick="window.openDebugModal()">BETA 1.0.0</button>
 
     <button onclick="window.showScreen('infos')">📢 Infos</button>
-    <button onclick="window.showScreen('rides')">🏍 Ausfahrten</button>
+    <button id="ridesNavBtn" type="button">🏍 Ausfahrten</button>
     <button onclick="window.showScreen('notes')">📝 Notizen</button>
     <button onclick="window.showScreen('tasks')">📋 Aufgaben</button>
 
@@ -880,6 +880,27 @@
     <h3>Hinweis</h3>
     <p>Dieser Bereich ist aktuell nicht zugänglich.</p>
     <button id="rpDisabledOk" class="btn">OK</button>
+  </div>
+</div>
+
+  <!-- ✅ RIDES MODAL (AUSFAHRTEN) -->
+<div id="ridesModal" class="modal hidden">
+  <div class="modal-backdrop" onclick="window.closeRidesModal()"></div>
+
+  <div class="modal-card card">
+    <h3 style="margin-top:0;">🏍 Ausfahrten</h3>
+
+    <div class="card sec-tabs rides-tabs">
+      <button type="button" id="ridesTabCompleted">✅ Abgeschlossene</button>
+      <button type="button" id="ridesTabRsvp">📝 Anmeldung/Abmeldung</button>
+      <button type="button" id="ridesTabManage">➕ Aktuelle Fahrten</button>
+    </div>
+
+    <div id="ridesTabContent" class="card" style="margin-top:10px;">
+      Lade...
+    </div>
+
+    <button type="button" class="gray" onclick="window.closeRidesModal()">Schließen</button>
   </div>
 </div>
   
