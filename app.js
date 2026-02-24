@@ -742,6 +742,8 @@ async function loadInfos() {
 /* ===================================================== */
 
 let RIDES_CACHE = [];
+let EDIT_RIDE_ID = null;
+let EDIT_RIDE_BACKTAB = "completed";
 let RIDES_TAB = "rsvp";
 
 function rideFmtChapter(r) {
@@ -824,6 +826,149 @@ window.ridesOpen = async (tab) => {
   return renderRidesRsvp();
 };
 
+window.rideEdit = async (rideId, backTab = "completed") => {
+  if (!canRideManage()) {
+    alert("Bearbeiten nur Road Captain / Admin.");
+    return;
+  }
+
+  EDIT_RIDE_ID = rideId;
+  EDIT_RIDE_BACKTAB = backTab || "completed";
+
+  const box = $("ridesTabContent");
+  if (!box) return;
+
+  box.innerHTML = `<div class="card">Lade...</div>`;
+
+  try {
+    const snap = await getDoc(doc(db, "rides", rideId));
+    if (!snap.exists()) {
+      alert("Ausfahrt nicht gefunden.");
+      return window.ridesOpen(EDIT_RIDE_BACKTAB);
+    }
+
+    const r = snap.data() || {};
+    const chap = String(r.chapterType || "HAMC").toUpperCase();
+
+    box.innerHTML = `
+      <div class="card">
+        <h4 style="margin-top:0;">✏️ Ausfahrt bearbeiten</h4>
+
+        <label class="field-label">Wo geht es hin?</label>
+        <input id="rideEditDest" value="${escapeAttr(r.destination || "")}" placeholder="Ziel">
+
+        <label class="field-label">Datum</label>
+        <input id="rideEditDate" type="date" value="${escapeAttr(r.date || "")}">
+
+        <label class="field-label">Uhrzeit</label>
+        <input id="rideEditTime" type="time" value="${escapeAttr(r.time || "")}">
+
+        <label class="field-label">Chapter</label>
+        <select id="rideEditChapterType">
+          <option value="HAMC" ${chap === "HAMC" ? "selected" : ""}>HAMC</option>
+          <option value="RDMC" ${chap === "RDMC" ? "selected" : ""}>RDMC</option>
+          <option value="OTHER" ${chap === "OTHER" ? "selected" : ""}>Sonstiges</option>
+        </select>
+
+        <textarea id="rideEditOtherNote" ${chap === "OTHER" ? "" : "class=\"hidden\""}
+          placeholder="Notiz (nur wenn Sonstiges)">${escapeHtml(r.otherNote || "")}</textarea>
+
+        <label class="field-label">Treffpunkt</label>
+        <input id="rideEditMeetPoint" value="${escapeAttr(r.meetPoint || "")}" placeholder="Treffpunkt">
+
+        <textarea id="rideEditNote" placeholder="Optionale Notiz">${escapeHtml(r.note || "")}</textarea>
+
+        <label class="field-label">Status</label>
+        <select id="rideEditStatus">
+          <option value="active" ${(r.status || "active") === "active" ? "selected" : ""}>Aktiv</option>
+          <option value="done" ${(r.status || "active") === "done" ? "selected" : ""}>Abgeschlossen</option>
+        </select>
+
+        <div class="row">
+          <button type="button" id="rideEditSaveBtn">💾 Speichern</button>
+          <button type="button" class="danger" id="rideEditDeleteBtn">🗑️ Löschen</button>
+          <button type="button" class="gray" id="rideEditBackBtn">⬅ Zurück</button>
+        </div>
+      </div>
+    `;
+
+    // Chapter OTHER show/hide
+    const ct = $("rideEditChapterType");
+    const on = $("rideEditOtherNote");
+    if (ct && on) {
+      const sync = () => {
+        if (String(ct.value || "").toUpperCase() === "OTHER") on.classList.remove("hidden");
+        else on.classList.add("hidden");
+      };
+      ct.onchange = sync;
+      sync();
+    }
+
+    const saveBtn = $("rideEditSaveBtn");
+    if (saveBtn) saveBtn.onclick = () => window.rideSaveEdit();
+
+    const delBtn = $("rideEditDeleteBtn");
+    if (delBtn) delBtn.onclick = () => window.rideDelete(EDIT_RIDE_ID);
+
+    const backBtn = $("rideEditBackBtn");
+    if (backBtn) backBtn.onclick = () => window.ridesOpen(EDIT_RIDE_BACKTAB);
+
+  } catch (e) {
+    alert("Fehler: " + e.message);
+    return window.ridesOpen(EDIT_RIDE_BACKTAB);
+  }
+};
+
+window.rideSaveEdit = async () => {
+  if (!canRideManage()) return alert("Nur Road Captain / Admin.");
+
+  if (!EDIT_RIDE_ID) return alert("Keine Ausfahrt gewählt.");
+
+  const destination = $("rideEditDest")?.value?.trim() || "";
+  const date = $("rideEditDate")?.value || "";
+  const time = $("rideEditTime")?.value || "";
+  const chapterType = ($("rideEditChapterType")?.value || "HAMC").toUpperCase();
+  const otherNote = $("rideEditOtherNote")?.value?.trim() || "";
+  const meetPoint = $("rideEditMeetPoint")?.value?.trim() || "";
+  const note = $("rideEditNote")?.value?.trim() || "";
+  const status = $("rideEditStatus")?.value || "active";
+
+  if (!destination) return alert("Wo geht es hin? fehlt.");
+  if (!date) return alert("Datum fehlt.");
+  if (!time) return alert("Uhrzeit fehlt.");
+  if (!meetPoint) return alert("Treffpunkt fehlt.");
+  if (chapterType === "OTHER" && !otherNote) return alert("Bei „Sonstiges“ bitte Notiz ausfüllen.");
+
+  const patch = {
+    destination,
+    date,
+    time,
+    chapterType,
+    otherNote: chapterType === "OTHER" ? otherNote : "",
+    meetPoint,
+    note,
+    status,
+    updatedAt: Date.now(),
+    updatedBy: CURRENT_UID
+  };
+
+  // doneAt / doneBy sauber setzen/entfernen
+  if (status === "done") {
+    patch.doneAt = Date.now();
+    patch.doneBy = CURRENT_UID;
+  } else {
+    patch.doneAt = deleteField();
+    patch.doneBy = deleteField();
+  }
+
+  try {
+    await updateDoc(doc(db, "rides", EDIT_RIDE_ID), patch);
+    await window.ridesOpen(EDIT_RIDE_BACKTAB || "completed");
+  } catch (e) {
+    alert("Fehler beim Speichern: " + e.message);
+  }
+};
+
 /* ---------- Tab 1: Abgeschlossene ---------- */
 
 async function renderRidesCompleted() {
@@ -850,17 +995,23 @@ async function renderRidesCompleted() {
     }
   }));
 
-  let html = "";
-  slice.forEach((r, idx) => {
-    const wasIn = myFlags[idx] ? `<div class="small-note">✅ Du warst angemeldet</div>` : "";
-    html += `
-      <div class="card ride-card">
-        <div class="ride-title">${escapeHtml(rideFmtWhere(r))}</div>
-        <div class="ride-meta">📅 ${escapeHtml(rideFmtWhen(r))} • 📍 Treffpunkt: ${escapeHtml(r.meetPoint || "-")}</div>
-        ${r.note ? `<div>${escapeHtml(r.note)}</div>` : ``}
-        ${wasIn}
+const canMng = canRideManage();
+
+html += `
+  <div class="card ride-card">
+    <div class="ride-title">${escapeHtml(rideFmtWhere(r))}</div>
+    <div class="ride-meta">📅 ${escapeHtml(rideFmtWhen(r))} • 📍 Treffpunkt: ${escapeHtml(r.meetPoint || "-")}</div>
+    ${r.note ? `<div>${escapeHtml(r.note)}</div>` : ``}
+    ${wasIn}
+
+    ${canMng ? `
+      <div class="ride-actions">
+        <button type="button" class="smallbtn gray" onclick="rideEdit('${r.id}', 'completed')">✏️ Bearbeiten</button>
+        <button type="button" class="smallbtn danger" onclick="rideDelete('${r.id}')">🗑️ Löschen</button>
       </div>
-    `;
+    ` : ``}
+  </div>
+`;
   });
 
   box.innerHTML = html;
@@ -1001,15 +1152,15 @@ window.rideMarkDone = async (rideId) => {
 };
 
 window.rideDelete = async (rideId) => {
-  if (String(CURRENT_RANK || "").toLowerCase() !== "admin") {
-    alert("Löschen nur Admin.");
+  if (!canRideManage()) {
+    alert("Löschen nur Road Captain / Admin.");
     return;
   }
   if (!confirm("Ausfahrt wirklich löschen?")) return;
 
   try {
     await deleteDoc(doc(db, "rides", rideId));
-    await window.ridesOpen("manage");
+    await window.ridesOpen(RIDES_TAB || "completed");
   } catch (e) {
     alert("Fehler: " + e.message);
   }
