@@ -1343,36 +1343,50 @@ if (typeof window.rideSetRsvp !== "function") {
 }
 
 /* =====================================================
-   ✅ INFO-BOX TOGGLES (Warn Info + Club Regeln)
+   ✅ INFO-BOX TOGGLES (Warn Info + Club Regeln + Meeting Regeln)
 ===================================================== */
 
-if (typeof window.toggleWarnInfo !== "function") {
-  window.toggleWarnInfo = () => {
-    const warnBox = document.getElementById("warnInfoBox");
-    const clubBox = document.getElementById("clubRulesBox");
+window.toggleWarnInfo = () => {
+  const warnBox = document.getElementById("warnInfoBox");
+  const clubBox = document.getElementById("clubRulesBox");
+  const meetBox = document.getElementById("meetingRulesBox");
 
-    if (!warnBox) return;
+  if (!warnBox) return;
 
-    // optional: immer nur eine Box offen
-    if (clubBox) clubBox.classList.add("hidden");
+  // immer nur eine Box offen
+  if (clubBox) clubBox.classList.add("hidden");
+  if (meetBox) meetBox.classList.add("hidden");
 
-    warnBox.classList.toggle("hidden");
-  };
-}
+  warnBox.classList.toggle("hidden");
+};
 
-if (typeof window.toggleClubRules !== "function") {
-  window.toggleClubRules = () => {
-    const clubBox = document.getElementById("clubRulesBox");
-    const warnBox = document.getElementById("warnInfoBox");
+window.toggleClubRules = () => {
+  const clubBox = document.getElementById("clubRulesBox");
+  const warnBox = document.getElementById("warnInfoBox");
+  const meetBox = document.getElementById("meetingRulesBox");
 
-    if (!clubBox) return;
+  if (!clubBox) return;
 
-    // optional: immer nur eine Box offen
-    if (warnBox) warnBox.classList.add("hidden");
+  // immer nur eine Box offen
+  if (warnBox) warnBox.classList.add("hidden");
+  if (meetBox) meetBox.classList.add("hidden");
 
-    clubBox.classList.toggle("hidden");
-  };
-}
+  clubBox.classList.toggle("hidden");
+};
+
+window.toggleMeetingRules = () => {
+  const meetBox = document.getElementById("meetingRulesBox");
+  const warnBox = document.getElementById("warnInfoBox");
+  const clubBox = document.getElementById("clubRulesBox");
+
+  if (!meetBox) return;
+
+  // immer nur eine Box offen
+  if (warnBox) warnBox.classList.add("hidden");
+  if (clubBox) clubBox.classList.add("hidden");
+
+  meetBox.classList.toggle("hidden");
+};
 
 /* ===================================================== */
 /* NOTES */
