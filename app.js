@@ -1031,7 +1031,7 @@ window.renderRidesCompleted = async () => {
   box.innerHTML = html;
 };
 
-  // ✅ HIER gehört dein Block hin (innerhalb dieser Funktion, nach slice + myFlags)
+// ✅ HIER gehört dein Block hin (innerhalb dieser Funktion, nach slice + myFlags)
   const canMng = canRideManage();
   let html = "";
 
@@ -1065,7 +1065,7 @@ window.renderRidesCompleted = async () => {
   });
 
   box.innerHTML = html;
-}
+};
 
 /* ---------- Tab 3: Aktuelle Fahrten (Erstellen/Verwalten) ---------- */
 
