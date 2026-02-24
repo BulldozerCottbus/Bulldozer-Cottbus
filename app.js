@@ -1307,6 +1307,41 @@ function canRideManage() {
   return ["road_captain", "admin"].includes(String(CURRENT_RANK || "").toLowerCase());
 }
 
+/* =====================================================
+   ✅ Export-Safety (MODULE -> inline onclick Fix)
+   Damit inline onclick IMMER funktioniert
+===================================================== */
+
+if (typeof window.rideSetRsvp !== "function") {
+  window.rideSetRsvp = async (rideId, going) => {
+    // Zugriff prüfen (ab Member)
+    if (!canRideRSVP()) {
+      alert("Anmeldung/Abmeldung ist erst ab Member möglich.");
+      return;
+    }
+
+    try {
+      await setDoc(
+        doc(db, "rides", rideId, "rsvps", CURRENT_UID),
+        {
+          uid: CURRENT_UID,
+          name: userNameByUid(CURRENT_UID),
+          status: going ? "going" : "not_going",
+          updatedAt: Date.now()
+        },
+        { merge: true }
+      );
+
+      // UI neu laden
+      if (typeof window.ridesOpen === "function") {
+        await window.ridesOpen("rsvp");
+      }
+    } catch (e) {
+      alert("Fehler (RSVP): " + e.message);
+    }
+  };
+}
+
 /* ===================================================== */
 /* NOTES */
 /* ===================================================== */
