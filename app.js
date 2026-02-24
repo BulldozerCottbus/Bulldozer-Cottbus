@@ -997,24 +997,36 @@ async function renderRidesCompleted() {
 
 const canMng = canRideManage();
 
-html += `
-  <div class="card ride-card">
-    <div class="ride-title">${escapeHtml(rideFmtWhere(r))}</div>
-    <div class="ride-meta">📅 ${escapeHtml(rideFmtWhen(r))} • 📍 Treffpunkt: ${escapeHtml(r.meetPoint || "-")}</div>
-    ${r.note ? `<div>${escapeHtml(r.note)}</div>` : ``}
-    ${wasIn}
+slice.forEach((r, idx) => {
+  const wasIn = myFlags[idx]
+    ? `<div class="small-note">✅ Du warst angemeldet</div>`
+    : "";
 
-    ${canMng ? `
+  const noteHtml = r.note
+    ? `<div>${escapeHtml(r.note)}</div>`
+    : "";
+
+  const actionsHtml = canMng
+    ? `
       <div class="ride-actions">
         <button type="button" class="smallbtn gray" onclick="rideEdit('${r.id}', 'completed')">✏️ Bearbeiten</button>
         <button type="button" class="smallbtn danger" onclick="rideDelete('${r.id}')">🗑️ Löschen</button>
       </div>
-    ` : ``}
-  </div>
-`;
-  });
+    `
+    : "";
 
-  box.innerHTML = html;
+  html += `
+    <div class="card ride-card">
+      <div class="ride-title">${escapeHtml(rideFmtWhere(r))}</div>
+      <div class="ride-meta">📅 ${escapeHtml(rideFmtWhen(r))} • 📍 Treffpunkt: ${escapeHtml(r.meetPoint || "-")}</div>
+      ${noteHtml}
+      ${wasIn}
+      ${actionsHtml}
+    </div>
+  `;
+});
+
+box.innerHTML = html;
 }
 
 /* ---------- Tab 2: Anmeldung/Abmeldung ---------- */
