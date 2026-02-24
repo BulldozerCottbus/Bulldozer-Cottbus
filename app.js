@@ -1077,8 +1077,8 @@ async function renderRidesRsvp() {
 
         ${can ? `
           <div class="ride-actions">
-            <button type="button" class="smallbtn" onclick="rideSetRsvp('${r.id}', true)">✅ Anmelden</button>
-            <button type="button" class="smallbtn gray" onclick="rideSetRsvp('${r.id}', false)">❌ Abmelden</button>
+            <button type="button" class="smallbtn" onclick="window.rideSetRsvp('${r.id}', true)">✅ Anmelden</button>
+            <button type="button" class="smallbtn gray" onclick="window.rideSetRsvp('${r.id}', false)">❌ Abmelden</button>
           </div>
         ` : ``}
       </div>
@@ -1272,13 +1272,13 @@ async function renderRidesManage() {
         <div class="ride-meta">📅 ${escapeHtml(rideFmtWhen(r))} • 📍 Treffpunkt: ${escapeHtml(r.meetPoint || "-")}</div>
         ${r.note ? `<div>${escapeHtml(r.note)}</div>` : ``}
 
-        <div class="ride-actions">
-          <button type="button" class="smallbtn gray" onclick="rideToggleRsvpList('${r.id}')">👁️ Anmeldungen</button>
-          <button type="button" class="smallbtn" onclick="rideMarkDone('${r.id}')">✅ Abschließen</button>
-          ${String(CURRENT_RANK || "").toLowerCase() === "admin"
-            ? `<button type="button" class="smallbtn danger" onclick="rideDelete('${r.id}')">🗑️ Löschen</button>`
-            : ``}
-        </div>
+     <div class="ride-actions">
+        <button type="button" class="smallbtn gray" onclick="window.rideToggleRsvpList('${r.id}')">👁️ Anmeldungen</button>
+        <button type="button" class="smallbtn" onclick="window.rideMarkDone('${r.id}')">✅ Abschließen</button>
+        ${String(CURRENT_RANK || "").toLowerCase() === "admin"
+        ? `<button type="button" class="smallbtn danger" onclick="window.rideDelete('${r.id}')">🗑️ Löschen</button>`
+    : ``}
+</div>
 
         <div id="rideRsvpBox_${r.id}" data-open="0" style="margin-top:10px;"></div>
       </div>
