@@ -821,9 +821,10 @@ window.ridesOpen = async (tab) => {
   // Cache aktualisieren (damit Anmeldungen/Status neu sind)
   await loadRidesCache();
 
-  if (RIDES_TAB === "completed") return window.renderRidesCompleted();
-  if (RIDES_TAB === "manage") return window.renderRidesManage();
-  return window.renderRidesRsvp();
+  // ✅ WICHTIG: NICHT über window.* aufrufen (module!)
+  if (RIDES_TAB === "completed") return renderRidesCompleted();
+  if (RIDES_TAB === "manage") return renderRidesManage();
+  return renderRidesRsvp();
 };
 
 window.rideEdit = async (rideId, backTab = "completed") => {
@@ -971,7 +972,7 @@ window.rideSaveEdit = async () => {
 
 /* ---------- Tab 1: Abgeschlossene ---------- */
 
-window.renderRidesCompleted = async () => {
+async function renderRidesCompleted() {
   const box = document.getElementById("ridesTabContent");
   if (!box) return;
 
