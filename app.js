@@ -1032,6 +1032,62 @@ async function renderRidesCompleted() {
   box.innerHTML = html;
 };
 
+async function renderRidesRsvp() {
+  const box = $("ridesTabContent");
+  if (!box) return;
+
+  const active = (RIDES_CACHE || []).filter(r => (r.status || "active") === "active");
+
+  if (!active.length) {
+    box.innerHTML = `<div class="card">Keine aktuellen Ausfahrten eingetragen.</div>`;
+    return;
+  }
+
+  // Pro Ride meinen Status laden (best effort)
+  const my = await Promise.all(active.map(async (r) => {
+    try {
+      const snap = await getDoc(doc(db, "rides", r.id, "rsvps", CURRENT_UID));
+      if (!snap.exists()) return null;
+      return (snap.data() || {}).status || null;
+    } catch {
+      return null;
+    }
+  }));
+
+  const can = canRideRSVP();
+  const isProspect = String(CURRENT_RANK || "").toLowerCase() === "prospect";
+
+  let html = "";
+  if (!can && isProspect) {
+    html += `<div class="card">👁️ Prospect kann Ausfahrten sehen – Anmeldung erst ab Member.</div>`;
+  }
+
+  active.forEach((r, idx) => {
+    const st = my[idx];
+    const stTxt = st === "going" ? "✅ Angemeldet" : (st === "not_going" ? "❌ Abgemeldet" : "—");
+
+    const noteHtml = r.note ? `<div>${escapeHtml(r.note)}</div>` : "";
+
+    html += `
+      <div class="card ride-card">
+        <div class="ride-title">${escapeHtml(rideFmtWhere(r))}</div>
+        <div class="ride-meta">📅 ${escapeHtml(rideFmtWhen(r))} • 📍 Treffpunkt: ${escapeHtml(r.meetPoint || "-")}</div>
+        ${noteHtml}
+        <div class="small-note">Dein Status: <b>${escapeHtml(stTxt)}</b></div>
+
+        ${can ? `
+          <div class="ride-actions">
+            <button type="button" class="smallbtn" onclick="rideSetRsvp('${r.id}', true)">✅ Anmelden</button>
+            <button type="button" class="smallbtn gray" onclick="rideSetRsvp('${r.id}', false)">❌ Abmelden</button>
+          </div>
+        ` : ``}
+      </div>
+    `;
+  });
+
+  box.innerHTML = html;
+}
+
 /* ---------- Tab 3: Aktuelle Fahrten (Erstellen/Verwalten) ---------- */
 window.rideCreateFromUI = async () => {
   if (!canRideManage()) return alert("Nur Road Captain / Admin kann Ausfahrten erstellen.");
