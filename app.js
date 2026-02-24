@@ -1342,6 +1342,38 @@ if (typeof window.rideSetRsvp !== "function") {
   };
 }
 
+/* =====================================================
+   ✅ INFO-BOX TOGGLES (Warn Info + Club Regeln)
+===================================================== */
+
+if (typeof window.toggleWarnInfo !== "function") {
+  window.toggleWarnInfo = () => {
+    const warnBox = document.getElementById("warnInfoBox");
+    const clubBox = document.getElementById("clubRulesBox");
+
+    if (!warnBox) return;
+
+    // optional: immer nur eine Box offen
+    if (clubBox) clubBox.classList.add("hidden");
+
+    warnBox.classList.toggle("hidden");
+  };
+}
+
+if (typeof window.toggleClubRules !== "function") {
+  window.toggleClubRules = () => {
+    const clubBox = document.getElementById("clubRulesBox");
+    const warnBox = document.getElementById("warnInfoBox");
+
+    if (!clubBox) return;
+
+    // optional: immer nur eine Box offen
+    if (warnBox) warnBox.classList.add("hidden");
+
+    clubBox.classList.toggle("hidden");
+  };
+}
+
 /* ===================================================== */
 /* NOTES */
 /* ===================================================== */
