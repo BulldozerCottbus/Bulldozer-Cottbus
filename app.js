@@ -1031,44 +1031,7 @@ window.renderRidesCompleted = async () => {
   box.innerHTML = html;
 };
 
-// ✅ HIER gehört dein Block hin (innerhalb dieser Funktion, nach slice + myFlags)
-  const canMng = canRideManage();
-  let html = "";
-
-  slice.forEach((r, idx) => {
-    const wasIn = myFlags[idx]
-      ? `<div class="small-note">✅ Du warst angemeldet</div>`
-      : "";
-
-    const noteHtml = r.note
-      ? `<div>${escapeHtml(r.note)}</div>`
-      : "";
-
-    const actionsHtml = canMng
-      ? `
-        <div class="ride-actions">
-          <button type="button" class="smallbtn gray" onclick="rideEdit('${r.id}', 'completed')">✏️ Bearbeiten</button>
-          <button type="button" class="smallbtn danger" onclick="rideDelete('${r.id}')">🗑️ Löschen</button>
-        </div>
-      `
-      : "";
-
-    html += `
-      <div class="card ride-card">
-        <div class="ride-title">${escapeHtml(rideFmtWhere(r))}</div>
-        <div class="ride-meta">📅 ${escapeHtml(rideFmtWhen(r))} • 📍 Treffpunkt: ${escapeHtml(r.meetPoint || "-")}</div>
-        ${noteHtml}
-        ${wasIn}
-        ${actionsHtml}
-      </div>
-    `;
-  });
-
-  box.innerHTML = html;
-};
-
 /* ---------- Tab 3: Aktuelle Fahrten (Erstellen/Verwalten) ---------- */
-
 window.rideCreateFromUI = async () => {
   if (!canRideManage()) return alert("Nur Road Captain / Admin kann Ausfahrten erstellen.");
 
