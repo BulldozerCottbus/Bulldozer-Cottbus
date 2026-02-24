@@ -346,6 +346,94 @@
   </div>
 </div>
 
+<!-- ✅ Club Regeln Button + Box -->
+<button type="button" onclick="window.toggleClubRules()">📘 Club Regeln</button>
+
+<div id="clubRulesBox" class="card hidden" style="margin-top:10px;">
+  ... DEIN GANZER CLUB-REGELN INHALT ...
+</div>
+
+<!-- ✅ Meeting Regeln Button + Box (NEU) -->
+<button type="button" onclick="window.toggleMeetingRules()">🗓️ Meeting Regeln</button>
+
+<div id="meetingRulesBox" class="card hidden" style="margin-top:10px;">
+  <h3>🗓️ Gesprächsregeln (Meeting)</h3>
+
+  <div class="card" style="margin-top:8px;">
+    <b>Regel 1 – Rededisziplin</b><br>
+    Während eine Person spricht, herrscht uneingeschränkte Ruhe. Unterbrechungen sind nicht zulässig.
+  </div>
+
+  <div class="card" style="margin-top:8px;">
+    <b>Regel 2 – Wortmeldung</b><br>
+    Wer einen Beitrag leisten möchte, meldet sich. Das Wort wird gezielt, kontrolliert und bewusst erteilt.
+  </div>
+
+  <div class="card" style="margin-top:8px;">
+    <b>Regel 3 – Ernsthaftigkeit</b><br>
+    In sachlichen oder ernsten Gesprächen sind Lachen, respektloses Verhalten, alberne Kommentare,
+    akustische Störungen oder sonstiges Fehlverhalten untersagt.
+  </div>
+
+  <div class="card" style="margin-top:8px;">
+    <b>Regel 4 – Redezeit & Wiederholungen</b><br>
+    Die Redezeit ist bewusst zu begrenzen.<br>
+    Wiederholt sich eine Person mehrfach ohne neuen inhaltlichen Mehrwert, gilt das Thema für diese Person als abgeschlossen.
+  </div>
+
+  <div class="card" style="margin-top:8px;">
+    <b>Regel 5 – Themenfokus</b><br>
+    Beginnt Person A ein Thema (Thema X), bleibt die Diskussion bei diesem Thema.<br>
+    Ein Themenwechsel durch andere Teilnehmende ist unzulässig.<br>
+    Thema X wird vollständig behandelt und zu Ende geführt.<br>
+    Bei unnötigen Wiederholungen greift automatisch Regel 4.
+  </div>
+
+  <div class="card" style="margin-top:8px;">
+    <b>Regel 6 – Aufmerksamkeit & Rücksicht</b><br>
+    Jede Person achtet auf jede andere.<br>
+    Wird eine Wortmeldung übersehen, darf ausschließlich durch Zeigen oder dezentes Aufmerksam-Machen darauf hingewiesen werden.<br>
+    Dazwischenreden oder akustische Kommentare sind untersagt.
+  </div>
+
+  <div class="card" style="margin-top:8px;">
+    <b>Regel 7 – Abschluss & Wortübergabe</b><br>
+    Wer spricht, ist verpflichtet, das Wort aktiv, bewusst und klar an die nächste Person zu übergeben.<br>
+    So erhält jede Wortmeldung einen eindeutigen Abschluss.<br>
+    Dabei ist stets Regel 4 zu beachten.
+  </div>
+
+  <div class="card" style="margin-top:8px;">
+    <b>Regel 8 – Abgeschlossene Themen</b><br>
+    Nach Abschluss eines Themas darf dieses innerhalb derselben Sitzung nur erneut aufgegriffen werden,
+    wenn ein ernsthafter und relevanter Punkt vorliegt.<br>
+    Dies bedarf der ausdrücklichen Freigabe durch Präsident oder Vizepräsident.<br>
+    Ohne Freigabe bleibt das Thema für die Sitzung geschlossen.
+  </div>
+
+  <div class="card" style="margin-top:8px;">
+    <b>Regel 9 – Verantwortung & Verständnis</b><br>
+    Alle Teilnehmenden tragen Verantwortung dafür, die wesentlichen Inhalte der Sitzung zu erfassen.<br>
+    Unklarheiten sind unverzüglich per Wortmeldung zu klären.<br>
+    Wer absichtlich nicht nachfragt und später angibt, Inhalte nicht verstanden zu haben, muss mit einem Bußgeld rechnen.
+  </div>
+
+  <div class="card warn-w2" style="margin-top:8px;">
+    <b>Regel 10 – Sanktionen & Sitzungsausschluss</b><br>
+    Wer eine oder mehrere dieser Regeln wiederholt missachtet, nicht ernst nimmt oder bewusst ignoriert,
+    wird nach klarer Ermahnung von der laufenden Sitzung ausgeschlossen.
+  </div>
+
+  <div class="card" style="margin-top:10px;">
+    <b>Präsidentenrecht (jederzeit)</b><br>
+    Der Präsident besitzt jederzeit das uneingeschränkte Recht, das laufende Gespräch sofort zu beenden
+    und das Wort ohne vorherige Wortmeldung an sich zu nehmen.
+  </div>
+</div>
+
+<h3>Aktuelle Infos</h3>
+<div id="infosList"></div>
+  
 <!-- ✅ EINZIGER NOTIZEN SCREEN -->
 <div class="container hidden" id="notes">
   <div class="card">
