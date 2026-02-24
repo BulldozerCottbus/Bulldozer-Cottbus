@@ -972,18 +972,19 @@ window.rideSaveEdit = async () => {
 /* ---------- Tab 1: Abgeschlossene ---------- */
 
 async function renderRidesCompleted() {
-  const box = $("ridesTabContent");
+  const box = document.getElementById("ridesTabContent");
   if (!box) return;
 
-  const done = RIDES_CACHE.filter(r => (r.status || "active") === "done");
+  const done = (RIDES_CACHE || []).filter(r => (r.status || "active") === "done");
 
   if (!done.length) {
     box.innerHTML = `<div class="card">Noch keine abgeschlossenen Ausfahrten.</div>`;
     return;
   }
 
-  // Optional: zeigen, ob DU angemeldet warst (best effort)
   const slice = done.slice(0, 50);
+
+  // Optional: zeigen, ob DU angemeldet warst (best effort)
   const myFlags = await Promise.all(slice.map(async (r) => {
     try {
       const snap = await getDoc(doc(db, "rides", r.id, "rsvps", CURRENT_UID));
@@ -995,112 +996,35 @@ async function renderRidesCompleted() {
     }
   }));
 
-const canMng = canRideManage();
+  // ✅ HIER gehört dein Block hin (innerhalb dieser Funktion, nach slice + myFlags)
+  const canMng = canRideManage();
+  let html = "";
 
-slice.forEach((r, idx) => {
-  const wasIn = myFlags[idx]
-    ? `<div class="small-note">✅ Du warst angemeldet</div>`
-    : "";
+  slice.forEach((r, idx) => {
+    const wasIn = myFlags[idx]
+      ? `<div class="small-note">✅ Du warst angemeldet</div>`
+      : "";
 
-  const noteHtml = r.note
-    ? `<div>${escapeHtml(r.note)}</div>`
-    : "";
+    const noteHtml = r.note
+      ? `<div>${escapeHtml(r.note)}</div>`
+      : "";
 
-  const actionsHtml = canMng
-    ? `
-      <div class="ride-actions">
-        <button type="button" class="smallbtn gray" onclick="rideEdit('${r.id}', 'completed')">✏️ Bearbeiten</button>
-        <button type="button" class="smallbtn danger" onclick="rideDelete('${r.id}')">🗑️ Löschen</button>
-      </div>
-    `
-    : "";
-
-  html += `
-    <div class="card ride-card">
-      <div class="ride-title">${escapeHtml(rideFmtWhere(r))}</div>
-      <div class="ride-meta">📅 ${escapeHtml(rideFmtWhen(r))} • 📍 Treffpunkt: ${escapeHtml(r.meetPoint || "-")}</div>
-      ${noteHtml}
-      ${wasIn}
-      ${actionsHtml}
-    </div>
-  `;
-});
-
-box.innerHTML = html;
-}
-
-/* ---------- Tab 2: Anmeldung/Abmeldung ---------- */
-
-window.rideSetRsvp = async (rideId, going) => {
-  if (!canRideRSVP()) {
-    alert("Anmeldung/Abmeldung ist erst ab Member möglich.");
-    return;
-  }
-
-  try {
-    await setDoc(
-      doc(db, "rides", rideId, "rsvps", CURRENT_UID),
-      {
-        uid: CURRENT_UID,
-        name: userNameByUid(CURRENT_UID),
-        status: going ? "going" : "not_going",
-        updatedAt: Date.now()
-      },
-      { merge: true }
-    );
-
-    await window.ridesOpen("rsvp");
-  } catch (e) {
-    alert("Fehler (RSVP): " + e.message);
-  }
-};
-
-async function renderRidesRsvp() {
-  const box = $("ridesTabContent");
-  if (!box) return;
-
-  const active = RIDES_CACHE.filter(r => (r.status || "active") === "active");
-
-  if (!active.length) {
-    box.innerHTML = `<div class="card">Keine aktuellen Ausfahrten eingetragen.</div>`;
-    return;
-  }
-
-  // Pro Ride meinen Status laden (best effort)
-  const my = await Promise.all(active.map(async (r) => {
-    try {
-      const snap = await getDoc(doc(db, "rides", r.id, "rsvps", CURRENT_UID));
-      if (!snap.exists()) return null;
-      return (snap.data() || {}).status || null;
-    } catch {
-      return null;
-    }
-  }));
-
-  const can = canRideRSVP();
-  const prospectHint = !can && String(CURRENT_RANK || "").toLowerCase() === "prospect"
-    ? `<div class="card">👁️ Prospect kann Ausfahrten sehen – Anmeldung erst ab Member.</div>`
-    : "";
-
-  let html = prospectHint;
-
-  active.forEach((r, idx) => {
-    const st = my[idx];
-    const stTxt = st === "going" ? "✅ Angemeldet" : (st === "not_going" ? "❌ Abgemeldet" : "—");
+    const actionsHtml = canMng
+      ? `
+        <div class="ride-actions">
+          <button type="button" class="smallbtn gray" onclick="rideEdit('${r.id}', 'completed')">✏️ Bearbeiten</button>
+          <button type="button" class="smallbtn danger" onclick="rideDelete('${r.id}')">🗑️ Löschen</button>
+        </div>
+      `
+      : "";
 
     html += `
       <div class="card ride-card">
         <div class="ride-title">${escapeHtml(rideFmtWhere(r))}</div>
         <div class="ride-meta">📅 ${escapeHtml(rideFmtWhen(r))} • 📍 Treffpunkt: ${escapeHtml(r.meetPoint || "-")}</div>
-        ${r.note ? `<div>${escapeHtml(r.note)}</div>` : ``}
-        <div class="small-note">Dein Status: <b>${escapeHtml(stTxt)}</b></div>
-
-        ${can ? `
-          <div class="ride-actions">
-            <button type="button" class="smallbtn" onclick="rideSetRsvp('${r.id}', true)">✅ Anmelden</button>
-            <button type="button" class="smallbtn gray" onclick="rideSetRsvp('${r.id}', false)">❌ Abmelden</button>
-          </div>
-        ` : ``}
+        ${noteHtml}
+        ${wasIn}
+        ${actionsHtml}
       </div>
     `;
   });
