@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Chapter App</title>
-  <link rel="stylesheet" href="style.css?v=20260222_1">
+  <link rel="stylesheet" href="style.css?v=20260225_1">
 
   <!-- ✅ Favicon (aus /icons laden) -->
   <link rel="icon" href="/Bulldozer-Cottbus/icons/favicon.ico" sizes="any">
@@ -32,6 +32,7 @@
   Punkte: <span id="points"></span>
 </header>
 
+<!-- ✅ LOGIN -->
 <div class="container" id="loginScreen">
   <div class="card">
     <h3>Login</h3>
@@ -42,6 +43,7 @@
   </div>
 </div>
 
+<!-- ✅ HOME -->
 <div class="container hidden" id="homeScreen">
   <div class="card">
 
@@ -52,10 +54,10 @@
     <button onclick="window.showScreen('notes')">📝 Notizen</button>
     <button onclick="window.showScreen('tasks')">📋 Aufgaben</button>
 
-    <!-- ✅ R.P Button (WICHTIG: window.* wegen type="module") -->
+    <!-- ✅ R.P Button (blockbar via data-feature="rp") -->
     <button id="rpBtn" type="button" data-feature="rp">R.P</button>
 
-    <!-- ✅ Wichtig: Secretary muss über showSecretaryPanel laufen -->
+    <!-- ✅ Wichtig: Secretary/Treasury Panels -->
     <button onclick="window.showSecretaryPanel()">📒 Secretary</button>
     <button onclick="window.showTreasuryPanel()">💰 Treasurer</button>
 
@@ -76,7 +78,7 @@
       Lade...
     </div>
 
-    <!-- ✅ Nur für President/Vice/Sergeant/Admin sichtbar -->
+    <!-- ✅ Nur Admin sichtbar (so ist es in app.js gelöst) -->
     <div id="changelogAdminBox" class="card hidden" style="margin-top:10px;">
       <h4>➕ Neuer Eintrag</h4>
 
@@ -96,7 +98,7 @@
   </div>
 </div>
 
-<!-- ✅ R.P MODAL (WICHTIG: MUSS GLOBAL SEIN, NICHT IM #infos SCREEN!) -->
+<!-- ✅ R.P MODAL -->
 <div id="rpModal" class="modal hidden">
   <div class="modal-backdrop" onclick="window.closeRPModal()"></div>
 
@@ -137,7 +139,7 @@
   <div class="card">
     <h3>Infos</h3>
 
-    <!-- optional: nur Führung sieht den Button, wird per JS eingeblendet -->
+    <!-- optional: wird per JS Rechte eingeblendet -->
     <button id="postInfoBtn" type="button">➕ Info posten</button>
 
     <!-- ✅ Info Modal -->
@@ -339,6 +341,81 @@
       </ul>
     </div>
 
+    <!-- ✅ Meeting Regeln Button + Box (NEU – korrekt im Infos Screen) -->
+    <button type="button" onclick="window.toggleMeetingRules()">🗓️ Meeting Regeln</button>
+
+    <div id="meetingRulesBox" class="card hidden" style="margin-top:10px;">
+      <h3>🗓️ Gesprächsregeln (Meeting)</h3>
+
+      <div class="card" style="margin-top:8px;">
+        <b>Regel 1 – Rededisziplin</b><br>
+        Während eine Person spricht, herrscht uneingeschränkte Ruhe. Unterbrechungen sind nicht zulässig.
+      </div>
+
+      <div class="card" style="margin-top:8px;">
+        <b>Regel 2 – Wortmeldung</b><br>
+        Wer einen Beitrag leisten möchte, meldet sich. Das Wort wird gezielt, kontrolliert und bewusst erteilt.
+      </div>
+
+      <div class="card" style="margin-top:8px;">
+        <b>Regel 3 – Ernsthaftigkeit</b><br>
+        In sachlichen oder ernsten Gesprächen sind Lachen, respektloses Verhalten, alberne Kommentare,
+        akustische Störungen oder sonstiges Fehlverhalten untersagt.
+      </div>
+
+      <div class="card" style="margin-top:8px;">
+        <b>Regel 4 – Redezeit & Wiederholungen</b><br>
+        Die Redezeit ist bewusst zu begrenzen.<br>
+        Wiederholt sich eine Person mehrfach ohne neuen inhaltlichen Mehrwert, gilt das Thema für diese Person als abgeschlossen.
+      </div>
+
+      <div class="card" style="margin-top:8px;">
+        <b>Regel 5 – Themenfokus</b><br>
+        Beginnt Person A ein Thema (Thema X), bleibt die Diskussion bei diesem Thema.<br>
+        Ein Themenwechsel durch andere Teilnehmende ist unzulässig.<br>
+        Thema X wird vollständig behandelt und zu Ende geführt.<br>
+        Bei unnötigen Wiederholungen greift automatisch Regel 4.
+      </div>
+
+      <div class="card" style="margin-top:8px;">
+        <b>Regel 6 – Aufmerksamkeit & Rücksicht</b><br>
+        Jede Person achtet auf jede andere.<br>
+        Wird eine Wortmeldung übersehen, darf ausschließlich durch Zeigen oder dezentes Aufmerksam-Machen darauf hingewiesen werden.<br>
+        Dazwischenreden oder akustische Kommentare sind untersagt.
+      </div>
+
+      <div class="card" style="margin-top:8px;">
+        <b>Regel 7 – Abschluss & Wortübergabe</b><br>
+        Wer spricht, ist verpflichtet, das Wort aktiv, bewusst und klar an die nächste Person zu übergeben.<br>
+        So erhält jede Wortmeldung einen eindeutigen Abschluss.<br>
+        Dabei ist stets Regel 4 zu beachten.
+      </div>
+
+      <div class="card" style="margin-top:8px;">
+        <b>Regel 8 – Abgeschlossene Themen</b><br>
+        Nach Abschluss eines Themas darf dieses innerhalb derselben Sitzung nur erneut aufgegriffen werden, wenn ein ernsthafter und relevanter Punkt vorliegt.<br>
+        Dies bedarf der ausdrücklichen Freigabe durch Präsident oder Vizepräsident.<br>
+        Ohne Freigabe bleibt das Thema für die Sitzung geschlossen.
+      </div>
+
+      <div class="card" style="margin-top:8px;">
+        <b>Regel 9 – Verantwortung & Verständnis</b><br>
+        Alle Teilnehmenden tragen Verantwortung dafür, die wesentlichen Inhalte der Sitzung zu erfassen.<br>
+        Unklarheiten sind unverzüglich per Wortmeldung zu klären.<br>
+        Wer absichtlich nicht nachfragt und später angibt, Inhalte nicht verstanden zu haben, muss mit einem Bußgeld rechnen.
+      </div>
+
+      <div class="card warn-w2" style="margin-top:8px;">
+        <b>Regel 10 – Sanktionen & Sitzungsausschluss</b><br>
+        Wer eine oder mehrere dieser Regeln wiederholt missachtet, nicht ernst nimmt oder bewusst ignoriert, wird nach klarer Ermahnung von der laufenden Sitzung ausgeschlossen.
+      </div>
+
+      <div class="card" style="margin-top:10px;">
+        <b>Präsidentenrecht (jederzeit)</b><br>
+        Der Präsident besitzt jederzeit das uneingeschränkte Recht, das laufende Gespräch sofort zu beenden und das Wort ohne vorherige Wortmeldung an sich zu nehmen.
+      </div>
+    </div>
+
     <h3>Aktuelle Infos</h3>
     <div id="infosList"></div>
 
@@ -346,95 +423,7 @@
   </div>
 </div>
 
-<!-- ✅ Club Regeln Button + Box -->
-<button type="button" onclick="window.toggleClubRules()">📘 Club Regeln</button>
-
-<div id="clubRulesBox" class="card hidden" style="margin-top:10px;">
-  ... DEIN GANZER CLUB-REGELN INHALT ...
-</div>
-
-<!-- ✅ Meeting Regeln Button + Box (NEU) -->
-<button type="button" onclick="window.toggleMeetingRules()">🗓️ Meeting Regeln</button>
-
-<div id="meetingRulesBox" class="card hidden" style="margin-top:10px;">
-  <h3>🗓️ Gesprächsregeln (Meeting)</h3>
-
-  <div class="card" style="margin-top:8px;">
-    <b>Regel 1 – Rededisziplin</b><br>
-    Während eine Person spricht, herrscht uneingeschränkte Ruhe. Unterbrechungen sind nicht zulässig.
-  </div>
-
-  <div class="card" style="margin-top:8px;">
-    <b>Regel 2 – Wortmeldung</b><br>
-    Wer einen Beitrag leisten möchte, meldet sich. Das Wort wird gezielt, kontrolliert und bewusst erteilt.
-  </div>
-
-  <div class="card" style="margin-top:8px;">
-    <b>Regel 3 – Ernsthaftigkeit</b><br>
-    In sachlichen oder ernsten Gesprächen sind Lachen, respektloses Verhalten, alberne Kommentare,
-    akustische Störungen oder sonstiges Fehlverhalten untersagt.
-  </div>
-
-  <div class="card" style="margin-top:8px;">
-    <b>Regel 4 – Redezeit & Wiederholungen</b><br>
-    Die Redezeit ist bewusst zu begrenzen.<br>
-    Wiederholt sich eine Person mehrfach ohne neuen inhaltlichen Mehrwert, gilt das Thema für diese Person als abgeschlossen.
-  </div>
-
-  <div class="card" style="margin-top:8px;">
-    <b>Regel 5 – Themenfokus</b><br>
-    Beginnt Person A ein Thema (Thema X), bleibt die Diskussion bei diesem Thema.<br>
-    Ein Themenwechsel durch andere Teilnehmende ist unzulässig.<br>
-    Thema X wird vollständig behandelt und zu Ende geführt.<br>
-    Bei unnötigen Wiederholungen greift automatisch Regel 4.
-  </div>
-
-  <div class="card" style="margin-top:8px;">
-    <b>Regel 6 – Aufmerksamkeit & Rücksicht</b><br>
-    Jede Person achtet auf jede andere.<br>
-    Wird eine Wortmeldung übersehen, darf ausschließlich durch Zeigen oder dezentes Aufmerksam-Machen darauf hingewiesen werden.<br>
-    Dazwischenreden oder akustische Kommentare sind untersagt.
-  </div>
-
-  <div class="card" style="margin-top:8px;">
-    <b>Regel 7 – Abschluss & Wortübergabe</b><br>
-    Wer spricht, ist verpflichtet, das Wort aktiv, bewusst und klar an die nächste Person zu übergeben.<br>
-    So erhält jede Wortmeldung einen eindeutigen Abschluss.<br>
-    Dabei ist stets Regel 4 zu beachten.
-  </div>
-
-  <div class="card" style="margin-top:8px;">
-    <b>Regel 8 – Abgeschlossene Themen</b><br>
-    Nach Abschluss eines Themas darf dieses innerhalb derselben Sitzung nur erneut aufgegriffen werden,
-    wenn ein ernsthafter und relevanter Punkt vorliegt.<br>
-    Dies bedarf der ausdrücklichen Freigabe durch Präsident oder Vizepräsident.<br>
-    Ohne Freigabe bleibt das Thema für die Sitzung geschlossen.
-  </div>
-
-  <div class="card" style="margin-top:8px;">
-    <b>Regel 9 – Verantwortung & Verständnis</b><br>
-    Alle Teilnehmenden tragen Verantwortung dafür, die wesentlichen Inhalte der Sitzung zu erfassen.<br>
-    Unklarheiten sind unverzüglich per Wortmeldung zu klären.<br>
-    Wer absichtlich nicht nachfragt und später angibt, Inhalte nicht verstanden zu haben, muss mit einem Bußgeld rechnen.
-  </div>
-
-  <div class="card warn-w2" style="margin-top:8px;">
-    <b>Regel 10 – Sanktionen & Sitzungsausschluss</b><br>
-    Wer eine oder mehrere dieser Regeln wiederholt missachtet, nicht ernst nimmt oder bewusst ignoriert,
-    wird nach klarer Ermahnung von der laufenden Sitzung ausgeschlossen.
-  </div>
-
-  <div class="card" style="margin-top:10px;">
-    <b>Präsidentenrecht (jederzeit)</b><br>
-    Der Präsident besitzt jederzeit das uneingeschränkte Recht, das laufende Gespräch sofort zu beenden
-    und das Wort ohne vorherige Wortmeldung an sich zu nehmen.
-  </div>
-</div>
-
-<h3>Aktuelle Infos</h3>
-<div id="infosList"></div>
-  
-<!-- ✅ EINZIGER NOTIZEN SCREEN -->
+<!-- ✅ NOTIZEN -->
 <div class="container hidden" id="notes">
   <div class="card">
     <textarea id="noteText" placeholder="Notiz"></textarea>
@@ -459,7 +448,7 @@
   </div>
 </div>
 
-<!-- ✅ RIDES -->
+<!-- ✅ (ALT) RIDES SCREEN – kann drin bleiben, wird aber durch Modal ersetzt -->
 <div class="container hidden" id="rides">
   <div class="card">
     <h3>Ausfahrten</h3>
@@ -479,7 +468,7 @@
   </div>
 </div>
 
-<!-- ✅ HELP / HILFE -->
+<!-- ✅ HELP -->
 <div class="container hidden" id="help">
   <div class="card">
     <h3>Hilfe</h3>
@@ -952,17 +941,7 @@
   </div>
 </div>
 
-<script type="module" src="app.js?v=20260222_1"></script>
-
-<!-- ✅ Service Worker Registrierung (PWA) -->
-<script>
-  const BASE = "/Bulldozer-Cottbus/";
-  if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register(BASE + "sw.js", { scope: BASE });
-  }
-</script>
-
-  <!-- RP gesperrt Modal -->
+<!-- ✅ RP gesperrt Modal -->
 <div id="rpDisabledBackdrop" class="modalBackdrop hidden">
   <div class="modalCard">
     <h3>Hinweis</h3>
@@ -971,7 +950,7 @@
   </div>
 </div>
 
-  <!-- ✅ RIDES MODAL (AUSFAHRTEN) -->
+<!-- ✅ RIDES MODAL (AUSFAHRTEN) -->
 <div id="ridesModal" class="modal hidden">
   <div class="modal-backdrop" onclick="window.closeRidesModal()"></div>
 
@@ -991,6 +970,16 @@
     <button type="button" class="gray" onclick="window.closeRidesModal()">Schließen</button>
   </div>
 </div>
-  
+
+<script type="module" src="app.js?v=20260225_1"></script>
+
+<!-- ✅ Service Worker Registrierung (PWA) -->
+<script>
+  const BASE = "/Bulldozer-Cottbus/";
+  if ("serviceWorker" in navigator) {
+    navigator.serviceWorker.register(BASE + "sw.js", { scope: BASE });
+  }
+</script>
+
 </body>
 </html>
