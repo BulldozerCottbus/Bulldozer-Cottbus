@@ -4175,3 +4175,358 @@ document.addEventListener("click", (e) => {
     openRpDisabledModal();
   }
 }, true);
+
+/* ===================================================== */
+/* ✅ CALENDAR */
+/* ===================================================== */
+
+let CALENDAR_CURRENT_MONTH = new Date().toISOString().slice(0, 7);
+let CALENDAR_SELECTED_DAY = null;
+let CALENDAR_CACHE = new Map();
+
+function canManageCalendar() {
+  return ["road_captain", "admin"].includes(String(CURRENT_RANK || "").toLowerCase());
+}
+
+function calMonthLabel(monthStr) {
+  const [y, m] = String(monthStr || "").split("-");
+  const names = ["Januar","Februar","März","April","Mai","Juni","Juli","August","September","Oktober","November","Dezember"];
+  const idx = Number(m) - 1;
+  return idx >= 0 ? `${names[idx]} ${y}` : monthStr;
+}
+
+function calHumanDate(iso) {
+  const d = new Date(`${iso}T00:00:00`);
+  return d.toLocaleDateString("de-DE", { weekday: "long", day: "2-digit", month: "2-digit", year: "numeric" });
+}
+
+function calWeekdayHeaders() {
+  return ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"];
+}
+
+function calStartOffset(year, monthZeroBased) {
+  const jsDay = new Date(year, monthZeroBased, 1).getDay(); // 0=So
+  return jsDay === 0 ? 6 : jsDay - 1; // Mo=0
+}
+
+function calDaysInMonth(year, monthZeroBased) {
+  return new Date(year, monthZeroBased + 1, 0).getDate();
+}
+
+window.showCalendarPanel = async () => {
+  window.showScreen("calendarScreen");
+
+  const monthInput = $("calMonthInput");
+  if (monthInput && !monthInput.value) monthInput.value = CALENDAR_CURRENT_MONTH;
+
+  await loadCalendarMonth(monthInput?.value || CALENDAR_CURRENT_MONTH);
+};
+
+async function loadCalendarMonth(monthStr) {
+  CALENDAR_CURRENT_MONTH = monthStr || new Date().toISOString().slice(0, 7);
+
+  const monthInput = $("calMonthInput");
+  if (monthInput) monthInput.value = CALENDAR_CURRENT_MONTH;
+
+  CALENDAR_CACHE.clear();
+
+  try {
+    const snaps = await getDocs(
+      query(collection(db, "calendar_days"), where("month", "==", CALENDAR_CURRENT_MONTH))
+    );
+
+    snaps.forEach((ds) => {
+      CALENDAR_CACHE.set(ds.id, { id: ds.id, ...(ds.data() || {}) });
+    });
+  } catch (e) {
+    console.warn("loadCalendarMonth failed:", e);
+  }
+
+  renderCalendarGrid(CALENDAR_CURRENT_MONTH);
+}
+
+function renderCalendarGrid(monthStr) {
+  const grid = $("calendarGrid");
+  if (!grid) return;
+
+  const [yearStr, monthStrNum] = String(monthStr).split("-");
+  const year = Number(yearStr);
+  const monthZero = Number(monthStrNum) - 1;
+
+  const totalDays = calDaysInMonth(year, monthZero);
+  const offset = calStartOffset(year, monthZero);
+
+  let html = "";
+
+  calWeekdayHeaders().forEach((w) => {
+    html += `<div class="calendar-weekday">${w}</div>`;
+  });
+
+  for (let i = 0; i < offset; i++) {
+    html += `<div class="calendar-day calendar-blank"></div>`;
+  }
+
+  for (let day = 1; day <= totalDays; day++) {
+    const dayIso = `${year}-${String(monthZero + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+    const entry = CALENDAR_CACHE.get(dayIso);
+
+    let cls = "day-empty";
+    if (entry) cls = entry.status === "done" ? "day-done" : "day-open";
+
+    const preview = entry
+      ? `${escapeHtml(entry.destination || entry.type || "Eintrag")}<br>${escapeHtml(entry.time || "")}`
+      : `Kein Eintrag`;
+
+    html += `
+      <div class="calendar-day ${cls}" onclick="window.openCalendarDay('${dayIso}')">
+        <div class="calendar-day-num">${day}</div>
+        <div class="calendar-day-text">${preview}</div>
+      </div>
+    `;
+  }
+
+  grid.innerHTML = html;
+}
+
+window.openCalendarDay = async (dayIso) => {
+  CALENDAR_SELECTED_DAY = dayIso;
+
+  const modal = $("calendarDayModal");
+  if (!modal) return;
+
+  $("calDayModalTitle").innerText = `📅 ${calHumanDate(dayIso)}`;
+
+  let entry = CALENDAR_CACHE.get(dayIso) || null;
+  if (!entry) {
+    try {
+      const snap = await getDoc(doc(db, "calendar_days", dayIso));
+      if (snap.exists()) {
+        entry = { id: snap.id, ...(snap.data() || {}) };
+        CALENDAR_CACHE.set(dayIso, entry);
+      }
+    } catch (e) {
+      console.warn("openCalendarDay getDoc failed:", e);
+    }
+  }
+
+  fillCalendarDayModal(entry);
+  modal.classList.remove("hidden");
+  await loadCalendarRsvps(dayIso, !!entry);
+};
+
+window.closeCalendarDayModal = () => {
+  const modal = $("calendarDayModal");
+  if (modal) modal.classList.add("hidden");
+};
+
+function fillCalendarDayModal(entry) {
+  const manager = canManageCalendar();
+  const hasEntry = !!entry;
+
+  setText("calReadDestination", entry?.destination || "-");
+  setText("calReadTime", entry?.time || "-");
+  setText("calReadMeetPoint", entry?.meetPoint || "-");
+  setText("calReadCost", entry?.cost != null && entry?.cost !== "" ? `${Number(entry.cost).toFixed(2)}€` : "-");
+  setText("calReadType", entry?.type || "-");
+  setText("calReadStatus", entry?.status === "done" ? "Abgeschlossen" : (hasEntry ? "Aktiv" : "Kein Eintrag"));
+  setText("calReadNote", entry?.note || "-");
+
+  const dest = $("calDestination");
+  const time = $("calTime");
+  const cost = $("calCost");
+  const meet = $("calMeetPoint");
+  const type = $("calType");
+  const note = $("calNote");
+
+  if (dest) dest.value = entry?.destination || "";
+  if (time) time.value = entry?.time || "";
+  if (cost) cost.value = entry?.cost ?? "";
+  if (meet) meet.value = entry?.meetPoint || "";
+  if (type) type.value = entry?.type || "ausfahrt";
+  if (note) note.value = entry?.note || "";
+
+  [dest, time, cost, meet, type, note].forEach((el) => {
+    if (el) el.disabled = !manager;
+  });
+
+  const saveBtn = $("calSaveBtn");
+  const doneBtn = $("calDoneBtn");
+  const reopenBtn = $("calReopenBtn");
+  const hint = $("calManageHint");
+
+  if (saveBtn) saveBtn.style.display = manager ? "block" : "none";
+  if (doneBtn) doneBtn.style.display = manager && hasEntry && entry?.status !== "done" ? "block" : "none";
+  if (reopenBtn) reopenBtn.style.display = manager && hasEntry && entry?.status === "done" ? "block" : "none";
+
+  if (hint) {
+    hint.innerText = manager
+      ? "Du kannst diesen Tag bearbeiten und abschließen."
+      : "Nur Road Captain / Admin kann den Tag bearbeiten. Du kannst unten bestätigen oder ablehnen.";
+  }
+
+  const rsvpBox = $("calRsvpBox");
+  if (rsvpBox) rsvpBox.style.display = hasEntry ? "block" : "none";
+}
+
+window.saveCalendarDay = async () => {
+  if (!canManageCalendar()) return alert("Nur Road Captain / Admin darf den Tag bearbeiten.");
+  if (!CALENDAR_SELECTED_DAY) return;
+
+  const destination = $("calDestination")?.value?.trim() || "";
+  const time = $("calTime")?.value || "";
+  const cost = Number($("calCost")?.value || 0);
+  const meetPoint = $("calMeetPoint")?.value?.trim() || "";
+  const type = $("calType")?.value || "ausfahrt";
+  const note = $("calNote")?.value?.trim() || "";
+
+  if (!destination) return alert("Bitte 'Ausfahrt nach' eintragen.");
+
+  const payload = {
+    date: CALENDAR_SELECTED_DAY,
+    month: CALENDAR_SELECTED_DAY.slice(0, 7),
+    destination,
+    time,
+    cost,
+    meetPoint,
+    type,
+    note,
+    status: (CALENDAR_CACHE.get(CALENDAR_SELECTED_DAY)?.status || "open"),
+    updatedBy: CURRENT_UID,
+    updatedAt: Date.now()
+  };
+
+  try {
+    const existing = await getDoc(doc(db, "calendar_days", CALENDAR_SELECTED_DAY));
+    if (existing.exists()) {
+      await updateDoc(doc(db, "calendar_days", CALENDAR_SELECTED_DAY), payload);
+    } else {
+      await setDoc(doc(db, "calendar_days", CALENDAR_SELECTED_DAY), {
+        ...payload,
+        createdBy: CURRENT_UID,
+        time: Date.now()
+      });
+    }
+
+    await loadCalendarMonth(CALENDAR_CURRENT_MONTH);
+    const snap = await getDoc(doc(db, "calendar_days", CALENDAR_SELECTED_DAY));
+    fillCalendarDayModal({ id: snap.id, ...(snap.data() || {}) });
+    await loadCalendarRsvps(CALENDAR_SELECTED_DAY, true);
+  } catch (e) {
+    alert("Speichern fehlgeschlagen: " + e.message);
+  }
+};
+
+window.markCalendarDayDone = async () => {
+  if (!canManageCalendar()) return alert("Keine Berechtigung.");
+  if (!CALENDAR_SELECTED_DAY) return;
+
+  try {
+    await updateDoc(doc(db, "calendar_days", CALENDAR_SELECTED_DAY), {
+      status: "done",
+      doneBy: CURRENT_UID,
+      doneAt: Date.now(),
+      updatedAt: Date.now()
+    });
+
+    await loadCalendarMonth(CALENDAR_CURRENT_MONTH);
+    const snap = await getDoc(doc(db, "calendar_days", CALENDAR_SELECTED_DAY));
+    fillCalendarDayModal({ id: snap.id, ...(snap.data() || {}) });
+  } catch (e) {
+    alert("Abschließen fehlgeschlagen: " + e.message);
+  }
+};
+
+window.reopenCalendarDay = async () => {
+  if (!canManageCalendar()) return alert("Keine Berechtigung.");
+  if (!CALENDAR_SELECTED_DAY) return;
+
+  try {
+    await updateDoc(doc(db, "calendar_days", CALENDAR_SELECTED_DAY), {
+      status: "open",
+      updatedAt: Date.now()
+    });
+
+    await loadCalendarMonth(CALENDAR_CURRENT_MONTH);
+    const snap = await getDoc(doc(db, "calendar_days", CALENDAR_SELECTED_DAY));
+    fillCalendarDayModal({ id: snap.id, ...(snap.data() || {}) });
+  } catch (e) {
+    alert("Wieder öffnen fehlgeschlagen: " + e.message);
+  }
+};
+
+window.setCalendarRsvp = async (status) => {
+  if (!CALENDAR_SELECTED_DAY) return;
+
+  const entry = CALENDAR_CACHE.get(CALENDAR_SELECTED_DAY);
+  if (!entry) return alert("Für diesen Tag ist noch nichts eingetragen.");
+
+  try {
+    await setDoc(
+      doc(db, "calendar_days", CALENDAR_SELECTED_DAY, "rsvps", CURRENT_UID),
+      {
+        uid: CURRENT_UID,
+        name: userNameByUid(CURRENT_UID),
+        status,
+        updatedAt: Date.now()
+      },
+      { merge: true }
+    );
+
+    await loadCalendarRsvps(CALENDAR_SELECTED_DAY, true);
+  } catch (e) {
+    alert("Bestätigung/Ablehnung fehlgeschlagen: " + e.message);
+  }
+};
+
+async function loadCalendarRsvps(dayIso, hasEntry) {
+  const myBox = $("calMyRsvpStatus");
+  const list = $("calRsvpList");
+
+  if (!hasEntry) {
+    if (myBox) myBox.innerText = "Kein Eintrag vorhanden.";
+    if (list) list.innerHTML = `<div class="card">Noch keine Rückmeldungen.</div>`;
+    return;
+  }
+
+  try {
+    const mySnap = await getDoc(doc(db, "calendar_days", dayIso, "rsvps", CURRENT_UID));
+    if (mySnap.exists()) {
+      const d = mySnap.data() || {};
+      const txt = d.status === "confirmed" ? "✅ Bestätigt" : "❌ Abgelehnt";
+      const when = d.updatedAt ? new Date(d.updatedAt).toLocaleString("de-DE") : "-";
+      if (myBox) myBox.innerText = `Dein Status: ${txt} (${when})`;
+    } else {
+      if (myBox) myBox.innerText = "Kein Status gesetzt.";
+    }
+  } catch {
+    if (myBox) myBox.innerText = "Dein Status konnte nicht geladen werden.";
+  }
+
+  try {
+    const snaps = await getDocs(collection(db, "calendar_days", dayIso, "rsvps"));
+    const rows = [];
+    snaps.forEach((ds) => rows.push(ds.data() || {}));
+    rows.sort((a, b) => Number(b.updatedAt || 0) - Number(a.updatedAt || 0));
+
+    if (!rows.length) {
+      if (list) list.innerHTML = `<div class="card">Noch keine Rückmeldungen.</div>`;
+      return;
+    }
+
+    if (list) {
+      list.innerHTML = rows.map((r) => {
+        const st = r.status === "confirmed" ? "✅ Bestätigt" : "❌ Abgelehnt";
+        const when = r.updatedAt ? new Date(r.updatedAt).toLocaleString("de-DE") : "-";
+        return `
+          <div class="card">
+            <b>${escapeHtml(r.name || r.uid || "-")}</b><br>
+            ${st}<br>
+            <small>${escapeHtml(when)}</small>
+          </div>
+        `;
+      }).join("");
+    }
+  } catch (e) {
+    if (list) list.innerHTML = `<div class="card">Fehler beim Laden: ${escapeHtml(e.message)}</div>`;
+  }
+}
