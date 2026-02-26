@@ -50,6 +50,7 @@
     <button id="debugButton" type="button" onclick="window.openDebugModal()">BETA 1.0.0</button>
 
     <button onclick="window.showScreen('infos')">📢 Infos</button>
+    <button id="calendarNavBtn" type="button">📅 Kalender</button>
     <button id="ridesNavBtn" type="button">🏍 Ausfahrten</button>
     <button onclick="window.showScreen('notes')">📝 Notizen</button>
     <button onclick="window.showScreen('tasks')">📋 Aufgaben</button>
@@ -503,6 +504,98 @@
   </div>
 </div>
 
+<!-- ✅ CALENDAR SCREEN -->
+<div class="container hidden" id="calendarScreen">
+  <div class="card">
+    <h3>📅 Kalender</h3>
+
+    <div class="row">
+      <button type="button" id="calPrevMonthBtn" class="gray">⬅ Monat zurück</button>
+      <input id="calMonthInput" type="month">
+      <button type="button" id="calNextMonthBtn" class="gray">Monat vor ➡</button>
+    </div>
+
+    <div class="card">
+      <div class="calendar-legend">
+        <span class="legend-item"><span class="legend-box day-empty"></span> Frei</span>
+        <span class="legend-item"><span class="legend-box day-open"></span> Eingetragen</span>
+        <span class="legend-item"><span class="legend-box day-done"></span> Abgeschlossen</span>
+      </div>
+    </div>
+
+    <div id="calendarGrid" class="calendar-grid"></div>
+
+    <button type="button" onclick="window.backHome()">⬅ Zurück</button>
+  </div>
+</div>
+
+<!-- ✅ CALENDAR DAY MODAL -->
+<div id="calendarDayModal" class="modal hidden">
+  <div class="modal-backdrop" onclick="window.closeCalendarDayModal()"></div>
+
+  <div class="modal-card card">
+    <h3 id="calDayModalTitle">📅 Tag</h3>
+
+    <div id="calDayReadBox" class="card">
+      <div><b>Ausfahrt nach:</b> <span id="calReadDestination">-</span></div>
+      <div><b>Uhrzeit:</b> <span id="calReadTime">-</span></div>
+      <div><b>Treffpunkt:</b> <span id="calReadMeetPoint">-</span></div>
+      <div><b>Kosten:</b> <span id="calReadCost">-</span></div>
+      <div><b>Typ:</b> <span id="calReadType">-</span></div>
+      <div><b>Status:</b> <span id="calReadStatus">-</span></div>
+      <div style="margin-top:8px;"><b>Notiz:</b></div>
+      <div id="calReadNote" class="small-note">-</div>
+    </div>
+
+    <div id="calEditBox" class="card">
+      <h4>✏️ Bearbeiten / Eintragen</h4>
+
+      <input id="calDestination" placeholder="Ausfahrt nach">
+      <div class="row">
+        <input id="calTime" type="time">
+        <input id="calCost" type="number" step="0.01" placeholder="Kosten €">
+      </div>
+
+      <input id="calMeetPoint" placeholder="Treffpunkt">
+
+      <select id="calType">
+        <option value="ausfahrt">Ausfahrt</option>
+        <option value="treffen">Treffen</option>
+        <option value="tour">Tour</option>
+        <option value="sonstiges">Sonstiges</option>
+      </select>
+
+      <textarea id="calNote" placeholder="Notiz / Hinweise / was wichtig ist..."></textarea>
+
+      <div class="readonly-hint" id="calManageHint"></div>
+
+      <div class="row">
+        <button type="button" id="calSaveBtn">💾 Speichern</button>
+        <button type="button" id="calDoneBtn">✅ Abschließen</button>
+        <button type="button" id="calReopenBtn" class="gray">↩ Wieder öffnen</button>
+      </div>
+    </div>
+
+    <div id="calRsvpBox" class="card">
+      <h4>📝 Bestätigung / Ablehnung</h4>
+
+      <div class="row">
+        <button type="button" id="calConfirmBtn">✅ Bestätigen</button>
+        <button type="button" id="calDeclineBtn" class="gray">❌ Ablehnen</button>
+      </div>
+
+      <div id="calMyRsvpStatus" class="small-note">Kein Status gesetzt.</div>
+
+      <div id="calRsvpListWrap" style="margin-top:10px;">
+        <h4>👥 Rückmeldungen</h4>
+        <div id="calRsvpList"></div>
+      </div>
+    </div>
+
+    <button type="button" class="gray" onclick="window.closeCalendarDayModal()">Schließen</button>
+  </div>
+</div>
+  
 <!-- ✅ SECRETARY SCREEN -->
 <div class="container hidden" id="secretaryScreen">
   <div class="card">
