@@ -537,6 +537,42 @@ function bindUI() {
 
   const tmDel = $("tmDeleteBtn");
   if (tmDel) tmDel.onclick = () => deleteTreasuryMember();
+
+  // Calendar
+  const calendarNavBtn = $("calendarNavBtn");
+  if (calendarNavBtn) calendarNavBtn.onclick = () => window.showCalendarPanel();
+
+  const calMonthInput = $("calMonthInput");
+  if (calMonthInput) calMonthInput.onchange = () => loadCalendarMonth(calMonthInput.value);
+
+  const calPrevMonthBtn = $("calPrevMonthBtn");
+  if (calPrevMonthBtn) calPrevMonthBtn.onclick = () => {
+    const [y, m] = CALENDAR_CURRENT_MONTH.split("-").map(Number);
+    const d = new Date(y, m - 2, 1);
+    loadCalendarMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  };
+
+  const calNextMonthBtn = $("calNextMonthBtn");
+  if (calNextMonthBtn) calNextMonthBtn.onclick = () => {
+    const [y, m] = CALENDAR_CURRENT_MONTH.split("-").map(Number);
+    const d = new Date(y, m, 1);
+    loadCalendarMonth(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  };
+
+  const calSaveBtn = $("calSaveBtn");
+  if (calSaveBtn) calSaveBtn.onclick = () => window.saveCalendarDay();
+
+  const calDoneBtn = $("calDoneBtn");
+  if (calDoneBtn) calDoneBtn.onclick = () => window.markCalendarDayDone();
+
+  const calReopenBtn = $("calReopenBtn");
+  if (calReopenBtn) calReopenBtn.onclick = () => window.reopenCalendarDay();
+
+  const calConfirmBtn = $("calConfirmBtn");
+  if (calConfirmBtn) calConfirmBtn.onclick = () => window.setCalendarRsvp("confirmed");
+
+  const calDeclineBtn = $("calDeclineBtn");
+  if (calDeclineBtn) calDeclineBtn.onclick = () => window.setCalendarRsvp("declined");
 }
 
 /* ===================================================== */
