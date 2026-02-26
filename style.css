@@ -522,7 +522,16 @@ a[data-feature="rp"]:active { transform: scale(0.99); }
 /* ===================================================== */
 
 .rides-tabs{
-  grid-template-columns: repeat(3, 1fr);
+  display: grid;
+  grid-template-columns: 1fr !important;
+  gap: 10px;
+}
+
+.rides-tabs button{
+  width: 100% !important;
+  margin-top: 0;
+  white-space: normal;
+  word-break: break-word;
 }
 
 .ride-card{
@@ -543,9 +552,9 @@ a[data-feature="rp"]:active { transform: scale(0.99); }
 }
 
 .ride-actions{
-  display:flex;
-  gap:8px;
-  flex-wrap:wrap;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
   margin-top: 10px;
 }
 
