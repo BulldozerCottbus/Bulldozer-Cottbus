@@ -3319,11 +3319,6 @@ function isTreasurerUIReadOnly() {
   return !isTreasurerOnly();
 }
 
-function isTreasurerUIReadOnly() {
-  // UI: President/Vice/Sergeant dürfen ansehen, Treasurer darf editieren
-  return !isTreasurerOnly();
-}
-
 function setTreasuryTabReadOnly(tabId, readOnly) {
   const root = $(tabId);
   if (!root) return;
