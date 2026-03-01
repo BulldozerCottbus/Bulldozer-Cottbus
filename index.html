@@ -878,6 +878,110 @@
   </div>
 </div>
 
+<!-- ✅ TREASURY SCREEN -->
+<div class="container hidden" id="treasuryScreen">
+  <div class="card">
+
+    <div class="card sec-tabs">
+      <button type="button" onclick="window.treasShow('treasDashboard')">📊 Dashboard</button>
+      <button type="button" onclick="window.treasShow('treasClub')">💰 Clubkasse</button>
+      <button type="button" onclick="window.treasShow('treasMembers')">👤 Member-Akten</button>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="treasDashboard" class="hidden">
+      <h3>💰 Treasurer Dashboard</h3>
+
+      <div class="readonly-hint" id="treasReadHint"></div>
+
+      <div class="card">
+        <div id="treasDashLatest">Letzter Monat: ...</div>
+        <div id="treasDashSollIst">Clubkasse Soll/Ist: ...</div>
+        <div id="treasDashMembers">Member-Akten: ...</div>
+        <div id="treasDashOpenCount">Offene Zahler (Monat): ...</div>
+      </div>
+
+      <h4>📄 Church Bericht</h4>
+      <textarea id="treasChurchText" class="mono" readonly placeholder="Hier erscheint der Bericht..."></textarea>
+
+      <div class="row">
+        <button type="button" id="treasChurchBtn">Bericht erzeugen</button>
+        <button type="button" class="gray" id="treasChurchCopyBtn">Kopieren</button>
+      </div>
+
+      <button type="button" id="treasDashRefreshBtn">🔄 Aktualisieren</button>
+    </div>
+
+    <!-- CLUBKASSE -->
+    <div id="treasClub" class="hidden">
+      <h3>🏦 Clubkasse (Monats-Akte)</h3>
+      <div class="readonly-hint" id="treasClubReadOnlyHint"></div>
+
+      <label class="field-label" for="treasMonth">Monat</label>
+      <input id="treasMonth" type="month">
+
+      <label class="checkline" for="treasAutoSollIst">
+        <input type="checkbox" id="treasAutoSollIst" checked>
+        Auto Soll/Ist aus Member-Akten (inkl. Netto Einnahmen/Ausgaben)
+      </label>
+
+      <div class="readonly-hint" id="treasAutoInfo"></div>
+
+      <label class="field-label" for="treasBudgetPerPerson">Budget pro Person (Info)</label>
+      <input id="treasBudgetPerPerson" type="number" value="30">
+
+      <h4>➕ Einnahmen</h4>
+      <div class="row">
+        <input id="treasIncomeSponsor" type="number" step="0.01" placeholder="Sponsor €">
+        <input id="treasIncomeRides" type="number" step="0.01" placeholder="Fahrten €">
+        <input id="treasIncomeOther" type="number" step="0.01" placeholder="Sonst €">
+      </div>
+
+      <h4>➖ Ausgaben</h4>
+      <div class="row">
+        <input id="treasCostClub" type="number" step="0.01" placeholder="Club €">
+        <input id="treasCostOther" type="number" step="0.01" placeholder="Andere €">
+      </div>
+      <textarea id="treasCostNote" placeholder="Notiz Ausgaben..."></textarea>
+
+      <!-- ✅ NEU: Netto -->
+      <div id="treasNetInfo" class="card money-warn">Netto (Einnahmen - Ausgaben): -</div>
+
+      <h4>Clubkasse</h4>
+      <div class="row">
+        <input id="treasCashSoll" type="number" step="0.01" placeholder="Soll €">
+        <input id="treasCashIst" type="number" step="0.01" placeholder="Ist €">
+      </div>
+
+      <div id="treasCashDiff" class="card">Differenz: -</div>
+      <textarea id="treasClubNote" placeholder="Notiz Monat..."></textarea>
+
+      <div class="row">
+        <button type="button" id="saveTreasReportBtn">💾 Speichern</button>
+        <button type="button" class="gray" id="resetTreasReportBtn">🧹 Neu</button>
+      </div>
+
+      <h4>Offene Zahler (Auto)</h4>
+      <div id="treasOpenContribList">Wähle einen Monat…</div>
+
+      <h4>Monats-Akten</h4>
+      <div id="treasReportList"></div>
+    </div>
+
+    <!-- MEMBERS -->
+    <div id="treasMembers" class="hidden">
+      <h3>👤 Member-Akten</h3>
+      <div class="readonly-hint" id="treasMembersReadOnlyHint"></div>
+
+      <button type="button" id="treasAddMemberBtn">➕ Neue Member-Akte</button>
+      <input id="treasMemberSearch" placeholder="🔎 Suche (Name, Rang, Notiz...)">
+      <div id="treasMemberList"></div>
+    </div>
+
+    <button type="button" class="gray" onclick="window.backHome()">⬅ Zurück</button>
+  </div>
+</div>
+
 <!-- ✅ TREASURY MEMBER MODAL -->
 <div id="treasMemberModal" class="modal hidden">
   <div class="modal-card">
