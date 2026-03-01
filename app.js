@@ -3502,7 +3502,7 @@ async function ensureTreasuryMembersLoaded() {
 }
 
 function calcMonthStatsFromCache(monthStr) {
-  const key = monthKeyFromInput(monthStr);        // z.B. "januar" / "februar" etc. (dein System)
+  const key = monthKeyFromInput(monthStr);
   const members = TREASURY_MEMBERS_CACHE || [];
 
   let sollTotal = 0;
@@ -3511,49 +3511,37 @@ function calcMonthStatsFromCache(monthStr) {
   const openMembers = [];
   const paidMembers = [];
 
-  const monthYM = String(monthStr || "").trim(); // erwartet "YYYY-MM"
+  const monthYM = String(monthStr || "").trim(); // "YYYY-MM"
 
-  members.forEach(m => {
+  members.forEach((m) => {
     const club = Number(m.clubMonthly || 0);
     const other = Number(m.otherMonthly || 0);
     const baseDue = club + other;
 
-    // ✅ FIX: Eintrittsdatum prüfen (nur echtes YYYY-MM-DD zählt)
     const joinISO = treas_normISODate(m.joinDate || m.entryDate || m.join || "");
-
-    // ✅ FIX: Hangaround/Supporter zahlen nichts
     const exempt = treas_isDuesExempt(m);
-    
-    // ✅ FIX: Nur zahlen, wenn:
-    // - Monat gewählt ist (key vorhanden)
-    // - nicht exempt (kein Hangaround/Supporter)
-    // - Eintrittsdatum vorhanden (gültig)
-    // - und der ausgewählte Monat >= Eintrittsmonat ist
+
     let due = 0;
     if (key && !exempt && joinISO && /^\d{4}-\d{2}$/.test(monthYM)) {
       const joinYM = joinISO.slice(0, 7); // "YYYY-MM"
       if (monthYM >= joinYM) due = baseDue;
     }
 
-    // ✅ wenn kein Monat gewählt wird, nur Summen anzeigen (wie vorher)
-    // paid wird nur ausgewertet, wenn key da ist
     const paid = key ? !!(m.monthsPaid && m.monthsPaid[key]) : false;
 
-    // ✅ Totals nur für Leute, die in dem Monat überhaupt zahlen müssen
     sollTotal += due;
 
     if (paid) {
       istTotal += due;
       if (due > 0) paidMembers.push({ m, due });
     } else {
-      // ✅ WICHTIG: Wer 0 zahlen muss, darf NICHT in "offen" landen
       if (due > 0) openMembers.push({ m, due });
+    }
   });
 
-  // Fines als Extra-Info (nicht automatisch in Monatssoll gerechnet)
   const fines = members
-    .filter(m => Number(m.fineAmount || 0) > 0)
-    .map(m => ({ m, fine: Number(m.fineAmount || 0) }));
+    .filter((m) => Number(m.fineAmount || 0) > 0)
+    .map((m) => ({ m, fine: Number(m.fineAmount || 0) }));
 
   return { key, sollTotal, istTotal, openMembers, paidMembers, fines };
 }
@@ -3564,39 +3552,24 @@ async function onTreasuryMonthChanged() {
     const list = $("treasOpenContribList");
     if (list) list.innerHTML = "Wähle einen Monat…";
     TREAS_LAST_STATS = null;
-    updateTreasNetUI(); // setzt Netto/Diff sauber zurück
+    updateTreasNetUI();
     return;
   }
 
   await ensureTreasuryMembersLoaded();
 
   const stats = calcMonthStatsFromCache(monthStr);
-  TREAS_LAST_STATS = stats; // ✅ WICHTIG: sonst kann Netto nie in Soll/Ist rein
+  TREAS_LAST_STATS = stats;
 
   const info = $("treasAutoInfo");
   if (info) {
     info.innerText = `Auto: Soll/Ist aus Member-Akten für ${monthLabelFromInput(monthStr)} (Häkchen = bezahlt).`;
   }
 
-  // ✅ setzt Netto-UI + (wenn Auto aktiv) Cash Soll/Ist inkl. Netto
+  // ✅ setzt Netto + (wenn Auto aktiv) Cash Soll/Ist inkl. Netto
   updateTreasNetUI();
 
   // Offen-Liste
-  renderOpenContribList(monthStr, stats);
-}
-
-  // Auto Soll/Ist setzen, wenn aktiviert
-  const auto = !!$("treasAutoSollIst")?.checked;
-  if (auto) {
-    const sEl = $("treasCashSoll");
-    const iEl = $("treasCashIst");
-    if (sEl) sEl.value = String(Math.round(stats.sollTotal * 100) / 100);
-    if (iEl) iEl.value = String(Math.round(stats.istTotal * 100) / 100);
-  }
-
-  updateTreasCashDiff();
-
-  // Offen-Liste rendern
   renderOpenContribList(monthStr, stats);
 }
 
@@ -3610,19 +3583,21 @@ function renderOpenContribList(monthStr, stats) {
   }
 
   const lines = stats.openMembers
-    .sort((a,b) => (a.m.name || "").localeCompare(b.m.name || ""))
-    .map(({m, due}) => {
+    .sort((a, b) => (a.m.name || "").localeCompare(b.m.name || ""))
+    .map(({ m, due }) => {
       const fine = Number(m.fineAmount || 0);
       const fineTxt = fine > 0 ? ` | Strafe: ${euro(fine)} (${escapeHtml(m.fineReason || "-")})` : "";
       const lateTxt = m.lateNote ? ` | Verspätung: ${escapeHtml(m.lateNote)}` : "";
       const noteTxt = m.note ? ` | Notiz: ${escapeHtml(m.note)}` : "";
+
       return `<div class="card money-warn">
         <b>${escapeHtml(m.name || "-")}</b> – offen: <b>${euro(due)}</b>
         <br><small>Rang: ${escapeHtml(m.rank || "-")} | Eintritt: ${escapeHtml(m.joinDate || "-")}${fineTxt}${lateTxt}${noteTxt}</small>
       </div>`;
-    }).join("");
+    })
+    .join("");
 
-  const totalOpen = stats.openMembers.reduce((s,x) => s + Number(x.due || 0), 0);
+  const totalOpen = stats.openMembers.reduce((s, x) => s + Number(x.due || 0), 0);
 
   box.innerHTML = `
     <div class="card money-bad">
