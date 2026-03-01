@@ -3548,7 +3548,6 @@ function calcMonthStatsFromCache(monthStr) {
     } else {
       // ✅ WICHTIG: Wer 0 zahlen muss, darf NICHT in "offen" landen
       if (due > 0) openMembers.push({ m, due });
-    }
   });
 
   // Fines als Extra-Info (nicht automatisch in Monatssoll gerechnet)
@@ -3594,6 +3593,7 @@ async function onTreasuryMonthChanged() {
     if (sEl) sEl.value = String(Math.round(stats.sollTotal * 100) / 100);
     if (iEl) iEl.value = String(Math.round(stats.istTotal * 100) / 100);
   }
+
   updateTreasCashDiff();
 
   // Offen-Liste rendern
