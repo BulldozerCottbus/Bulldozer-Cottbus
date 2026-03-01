@@ -543,8 +543,24 @@
       <div><b>Kosten:</b> <span id="calReadCost">-</span></div>
       <div><b>Typ:</b> <span id="calReadType">-</span></div>
       <div><b>Status:</b> <span id="calReadStatus">-</span></div>
+
       <div style="margin-top:8px;"><b>Notiz:</b></div>
       <div id="calReadNote" class="small-note">-</div>
+
+      <!-- ✅ NEU: Pflicht / Max Teilnehmer / Route-Link -->
+      <div style="margin-top:8px;"><b>Pflicht:</b> <span id="calReadRequired">-</span></div>
+      <div><b>Max Teilnehmer:</b> <span id="calReadMax">-</span></div>
+      <div><b>Route/Link:</b> <span id="calReadLink">-</span></div>
+
+      <!-- ✅ NEU: Meta Infos -->
+      <div style="margin-top:8px;"><b>Erstellt von:</b> <span id="calReadCreated">-</span></div>
+      <div><b>Zuletzt geändert:</b> <span id="calReadUpdated">-</span></div>
+      <div><b>Abgeschlossen:</b> <span id="calReadDone">-</span></div>
+
+      <!-- ✅ NEU: Maps Button -->
+      <button id="calMapsBtn" type="button" class="gray" style="margin-top:10px; display:none;">
+        📍 In Maps öffnen
+      </button>
     </div>
 
     <div id="calEditBox" class="card">
@@ -557,6 +573,17 @@
       </div>
 
       <input id="calMeetPoint" placeholder="Treffpunkt">
+
+      <!-- ✅ NEU: Pflicht + Max Teilnehmer + Route/Link -->
+      <label class="checkline" for="calRequired">
+        <input type="checkbox" id="calRequired">
+        Pflichttermin
+      </label>
+
+      <div class="row">
+        <input id="calMaxParticipants" type="number" placeholder="Max Teilnehmer (optional)">
+        <input id="calRouteLink" placeholder="Route/Link (optional)">
+      </div>
 
       <select id="calType">
         <option value="ausfahrt">Ausfahrt</option>
