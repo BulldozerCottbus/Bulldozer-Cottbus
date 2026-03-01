@@ -4436,13 +4436,12 @@ function fillCalendarDayModal(entry) {
 
   const rsvpBox = $("calRsvpBox");
   if (rsvpBox) rsvpBox.style.display = hasEntry ? "block" : "none";
-}
 
-  // ✅ NEU: Maps-Button (Treffpunkt → Google Maps Suche)
+  // ✅ FIX: Maps-Button MUSS in der Funktion sein (sonst "entry is not defined")
   const mapsBtn = $("calMapsBtn");
   if (mapsBtn) {
-    const q = (entry?.meetPoint || "").trim();
-    if (q) {
+    const q = String(entry?.meetPoint || "").trim();
+    if (hasEntry && q) {
       mapsBtn.style.display = "block";
       mapsBtn.onclick = () => {
         const url = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q);
@@ -4453,6 +4452,7 @@ function fillCalendarDayModal(entry) {
       mapsBtn.onclick = null;
     }
   }
+}
 
 window.saveCalendarDay = async () => {
   if (!canManageCalendar()) return alert("Nur Road Captain / Admin darf den Tag bearbeiten.");
