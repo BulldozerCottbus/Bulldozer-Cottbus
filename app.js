@@ -3256,6 +3256,69 @@ function euro(n) {
   return `${x.toFixed(2).replace(".", ",")}€`;
 }
 
+// ✅ NEW: Netto (Einnahmen - Ausgaben) in Clubkasse reinrechnen
+let TREAS_LAST_STATS = null;
+
+function treasNumInput(id) {
+  const raw = String($(id)?.value ?? "").replace(",", ".").trim();
+  const n = Number(raw || 0);
+  return Number.isFinite(n) ? n : 0;
+}
+
+function treasCalcNet() {
+  const income =
+    treasNumInput("treasIncomeSponsor") +
+    treasNumInput("treasIncomeRides") +
+    treasNumInput("treasIncomeOther");
+
+  const cost =
+    treasNumInput("treasCostClub") +
+    treasNumInput("treasCostOther");
+
+  return { income, cost, net: income - cost };
+}
+
+function applyTreasAutoSollIst() {
+  const auto = !!$("treasAutoSollIst")?.checked;
+  const monthStr = $("treasMonth")?.value || "";
+  if (!auto || !monthStr || !TREAS_LAST_STATS) return;
+
+  const { net } = treasCalcNet();
+
+  const sEl = $("treasCashSoll");
+  const iEl = $("treasCashIst");
+
+  if (sEl) sEl.value = String(Math.round((TREAS_LAST_STATS.sollTotal + net) * 100) / 100);
+  if (iEl) iEl.value = String(Math.round((TREAS_LAST_STATS.istTotal + net) * 100) / 100);
+}
+
+function updateTreasNetUI() {
+  const box = $("treasNetInfo");
+  const { income, cost, net } = treasCalcNet();
+
+  if (box) {
+    box.innerText = `Netto (Einnahmen - Ausgaben): ${euro(net)}  |  Einnahmen: ${euro(income)}  |  Ausgaben: ${euro(cost)}`;
+
+    box.classList.remove("money-good", "money-warn", "money-bad");
+    if (net > 0) box.classList.add("money-good");
+    else if (net < 0) box.classList.add("money-bad");
+    else box.classList.add("money-warn");
+  }
+
+  // Auto: Cash Soll/Ist neu setzen, danach Diff aktualisieren
+  applyTreasAutoSollIst();
+
+  // ✅ WICHTIG: verhindert "schwarzer Screen", falls Funktion bei dir (noch) anders heißt / fehlt
+  if (typeof updateTreasCashDiff === "function") {
+    updateTreasCashDiff();
+  }
+}
+
+function isTreasurerUIReadOnly() {
+  // UI: President/Vice/Sergeant dürfen ansehen, Treasurer darf editieren
+  return !isTreasurerOnly();
+}
+
 function isTreasurerUIReadOnly() {
   // UI: President/Vice/Sergeant dürfen ansehen, Treasurer darf editieren
   return !isTreasurerOnly();
