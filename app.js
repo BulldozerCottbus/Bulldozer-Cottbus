@@ -521,6 +521,19 @@ function bindUI() {
   if (cashSoll) cashSoll.oninput = () => updateTreasCashDiff();
   if (cashIst) cashIst.oninput = () => updateTreasCashDiff();
 
+  // ✅ NEU: Netto live berechnen sobald man Einnahmen/Ausgaben tippt
+  const netInputs = [
+    "treasIncomeSponsor",
+    "treasIncomeRides",
+    "treasIncomeOther",
+    "treasCostClub",
+    "treasCostOther"
+  ];
+  netInputs.forEach((id) => {
+    const el = $(id);
+    if (el) el.oninput = () => updateTreasNetUI();
+  });
+
   const churchBtn = $("treasChurchBtn");
   if (churchBtn) churchBtn.onclick = () => generateChurchReportFromSelectedMonth();
 
@@ -3409,31 +3422,53 @@ async function loadTreasuryDashboard() {
     if (snaps.empty) {
       latest.innerText = "Letzter Monat: keine Akten";
       sollIst.innerText = "Clubkasse Soll/Ist (gesamt): -";
-    } else {
-      let totalSoll = 0;
-      let totalIst = 0;
-      let totalOffen = 0;
-      let count = 0;
+} else {
+  let totalSoll = 0;
+  let totalIst = 0;
+  let totalOffen = 0;
 
-      let latestMonth = "-";
+  // ✅ NEU: zusätzlich Einnahmen/Ausgaben summieren
+  let totalIncome = 0;
+  let totalCost = 0;
 
-      snaps.forEach((ds) => {
-        const d = ds.data() || {};
-        count++;
+  let count = 0;
+  let latestMonth = "-";
 
-        if (count === 1) latestMonth = d.month || "-";
+  snaps.forEach((ds) => {
+    const d = ds.data() || {};
+    count++;
 
-        const s = Number(d.cashSoll || 0);
-        const i = Number(d.cashIst || 0);
+    if (count === 1) latestMonth = d.month || "-";
 
-        totalSoll += s;
-        totalIst += i;
-        totalOffen += Math.max(0, s - i);
-      });
+    const s = Number(d.cashSoll || 0);
+    const i = Number(d.cashIst || 0);
 
-      latest.innerText = `Letzter Monat: ${latestMonth} (${count} Akte(n))`;
-      sollIst.innerText = `Clubkasse Soll/Ist (gesamt, alle Akten): ${euro(totalSoll)} / ${euro(totalIst)} (offen: ${euro(totalOffen)})`;
-    }
+    totalSoll += s;
+    totalIst += i;
+    totalOffen += Math.max(0, s - i);
+
+    // ✅ NEU: Einnahmen/Ausgaben aus der Monats-Akte
+    const inc =
+      Number(d.incomeSponsor || 0) +
+      Number(d.incomeRides || 0) +
+      Number(d.incomeOther || 0);
+
+    const cst =
+      Number(d.costClub || 0) +
+      Number(d.costOther || 0);
+
+    totalIncome += inc;
+    totalCost += cst;
+  });
+
+  latest.innerText = `Letzter Monat: ${latestMonth} (${count} Akte(n))`;
+
+  const net = totalIncome - totalCost;
+  sollIst.innerText =
+    `Clubkasse Soll/Ist (gesamt, alle Akten): ${euro(totalSoll)} / ${euro(totalIst)} (offen: ${euro(totalOffen)})\n` +
+    `Einnahmen/Ausgaben (gesamt): +${euro(totalIncome)} / -${euro(totalCost)} (Netto: ${euro(net)})`;
+}
+    
   } catch {
     latest.innerText = "Letzter Monat: (Fehler/Rechte)";
     sollIst.innerText = "Clubkasse Soll/Ist (gesamt): (Fehler/Rechte)";
@@ -3530,17 +3565,27 @@ async function onTreasuryMonthChanged() {
   if (!monthStr) {
     const list = $("treasOpenContribList");
     if (list) list.innerHTML = "Wähle einen Monat…";
+    TREAS_LAST_STATS = null;
+    updateTreasNetUI(); // setzt Netto/Diff sauber zurück
     return;
   }
 
   await ensureTreasuryMembersLoaded();
 
   const stats = calcMonthStatsFromCache(monthStr);
+  TREAS_LAST_STATS = stats; // ✅ WICHTIG: sonst kann Netto nie in Soll/Ist rein
 
   const info = $("treasAutoInfo");
   if (info) {
     info.innerText = `Auto: Soll/Ist aus Member-Akten für ${monthLabelFromInput(monthStr)} (Häkchen = bezahlt).`;
   }
+
+  // ✅ setzt Netto-UI + (wenn Auto aktiv) Cash Soll/Ist inkl. Netto
+  updateTreasNetUI();
+
+  // Offen-Liste
+  renderOpenContribList(monthStr, stats);
+}
 
   // Auto Soll/Ist setzen, wenn aktiviert
   const auto = !!$("treasAutoSollIst")?.checked;
@@ -3705,11 +3750,18 @@ async function saveTreasuryReport() {
   if (auto) {
     await ensureTreasuryMembersLoaded();
     const stats = calcMonthStatsFromCache(month);
+    TREAS_LAST_STATS = stats;
+
+    const { net } = treasCalcNet(); // ✅ Einnahmen - Ausgaben
+
     const sEl = $("treasCashSoll");
     const iEl = $("treasCashIst");
-    if (sEl) sEl.value = String(Math.round(stats.sollTotal * 100) / 100);
-    if (iEl) iEl.value = String(Math.round(stats.istTotal * 100) / 100);
+
+    if (sEl) sEl.value = String(Math.round((stats.sollTotal + net) * 100) / 100);
+    if (iEl) iEl.value = String(Math.round((stats.istTotal + net) * 100) / 100);
+
     updateTreasCashDiff();
+    updateTreasNetUI();
   }
 
   const payload = {
