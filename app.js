@@ -4310,7 +4310,7 @@ function renderCalendarGrid(monthStr) {
     if (entry) cls = entry.status === "done" ? "day-done" : "day-open";
 
     const preview = entry
-      ? `${escapeHtml(entry.destination || entry.type || "Eintrag")}<br>${escapeHtml(entry.time || "")}`
+      ? `${entry.required ? "⚠️ " : ""}${escapeHtml(entry.destination || entry.type || "Eintrag")}<br>${escapeHtml(entry.time || "")}`
       : `Kein Eintrag`;
 
     html += `
@@ -4366,6 +4366,33 @@ function fillCalendarDayModal(entry) {
   setText("calReadType", entry?.type || "-");
   setText("calReadStatus", entry?.status === "done" ? "Abgeschlossen" : (hasEntry ? "Aktiv" : "Kein Eintrag"));
   setText("calReadNote", entry?.note || "-");
+    // ✅ NEU: Pflicht / Max / Link + Meta
+  setText("calReadRequired", entry?.required ? "✅ Ja" : "—");
+  setText("calReadMax", entry?.maxParticipants ? String(entry.maxParticipants) : "—");
+
+  // Link als klickbarer Anchor (nur http/https)
+  const linkBox = document.getElementById("calReadLink");
+  if (linkBox) {
+    const raw = String(entry?.routeLink || "").trim();
+    if (raw && /^https?:\/\//i.test(raw)) {
+      const safe = escapeAttr(raw);
+      linkBox.innerHTML = `<a href="${safe}" target="_blank" rel="noopener">Link öffnen</a>`;
+    } else {
+      linkBox.innerText = "—";
+    }
+  }
+
+  const createdBy = entry?.createdBy ? userNameByUid(entry.createdBy) : "—";
+  const createdAt = entry?.time ? new Date(entry.time).toLocaleString("de-DE") : "";
+  setText("calReadCreated", createdAt ? `${createdBy} (${createdAt})` : createdBy);
+
+  const upd = entry?.updatedAt ? new Date(entry.updatedAt).toLocaleString("de-DE") : "—";
+  setText("calReadUpdated", upd);
+
+  const doneTxt = entry?.status === "done"
+    ? `${entry?.doneAt ? new Date(entry.doneAt).toLocaleString("de-DE") : ""} ${entry?.doneBy ? "• " + userNameByUid(entry.doneBy) : ""}`.trim()
+    : "—";
+  setText("calReadDone", doneTxt || "—");
 
   const dest = $("calDestination");
   const time = $("calTime");
@@ -4373,6 +4400,10 @@ function fillCalendarDayModal(entry) {
   const meet = $("calMeetPoint");
   const type = $("calType");
   const note = $("calNote");
+    // ✅ NEU: zusätzliche Edit-Felder
+  const req = $("calRequired");
+  const maxP = $("calMaxParticipants");
+  const link = $("calRouteLink");
 
   if (dest) dest.value = entry?.destination || "";
   if (time) time.value = entry?.time || "";
@@ -4380,8 +4411,11 @@ function fillCalendarDayModal(entry) {
   if (meet) meet.value = entry?.meetPoint || "";
   if (type) type.value = entry?.type || "ausfahrt";
   if (note) note.value = entry?.note || "";
+  if (req) req.checked = !!entry?.required;
+  if (maxP) maxP.value = entry?.maxParticipants ? String(entry.maxParticipants) : "";
+  if (link) link.value = entry?.routeLink || "";
 
-  [dest, time, cost, meet, type, note].forEach((el) => {
+  [dest, time, cost, meet, type, note, req, maxP, link].forEach((el) => {
     if (el) el.disabled = !manager;
   });
 
@@ -4404,6 +4438,22 @@ function fillCalendarDayModal(entry) {
   if (rsvpBox) rsvpBox.style.display = hasEntry ? "block" : "none";
 }
 
+  // ✅ NEU: Maps-Button (Treffpunkt → Google Maps Suche)
+  const mapsBtn = $("calMapsBtn");
+  if (mapsBtn) {
+    const q = (entry?.meetPoint || "").trim();
+    if (q) {
+      mapsBtn.style.display = "block";
+      mapsBtn.onclick = () => {
+        const url = "https://www.google.com/maps/search/?api=1&query=" + encodeURIComponent(q);
+        window.open(url, "_blank");
+      };
+    } else {
+      mapsBtn.style.display = "none";
+      mapsBtn.onclick = null;
+    }
+  }
+
 window.saveCalendarDay = async () => {
   if (!canManageCalendar()) return alert("Nur Road Captain / Admin darf den Tag bearbeiten.");
   if (!CALENDAR_SELECTED_DAY) return;
@@ -4414,6 +4464,9 @@ window.saveCalendarDay = async () => {
   const meetPoint = $("calMeetPoint")?.value?.trim() || "";
   const type = $("calType")?.value || "ausfahrt";
   const note = $("calNote")?.value?.trim() || "";
+  const required = !!$("calRequired")?.checked;
+  const maxParticipants = Number($("calMaxParticipants")?.value || 0);
+  const routeLink = ($("calRouteLink")?.value || "").trim();
 
   if (!destination) return alert("Bitte 'Ausfahrt nach' eintragen.");
 
@@ -4426,6 +4479,12 @@ window.saveCalendarDay = async () => {
     meetPoint,
     type,
     note,
+
+    // ✅ NEU
+    required,
+    maxParticipants: maxParticipants > 0 ? maxParticipants : 0,
+    routeLink,
+
     status: (CALENDAR_CACHE.get(CALENDAR_SELECTED_DAY)?.status || "open"),
     updatedBy: CURRENT_UID,
     updatedAt: Date.now()
