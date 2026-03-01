@@ -678,3 +678,8 @@ a[data-feature="rp"]:active { transform: scale(0.99); }
     font-size:10px;
   }
 }
+
+#calReadLink a{
+  color: orange;
+  text-decoration: underline;
+}
