@@ -3413,66 +3413,65 @@ async function loadTreasuryDashboard() {
   mem.innerText = "Member-Akten: ...";
   open.innerText = "Offene Zahler (Monat): ...";
 
-  // ✅ Dashboard: ALLE Monats-Akten zusammenrechnen (Soll/Ist + offen)
-  try {
-    const snaps = await getDocs(
-      query(collection(db, "treasury_reports"), orderBy("month", "desc"), limit(500))
-    );
+// ✅ Dashboard: ALLE Monats-Akten zusammenrechnen (Soll/Ist + offen + Einnahmen/Ausgaben)
+try {
+  const snaps = await getDocs(
+    query(collection(db, "treasury_reports"), orderBy("month", "desc"), limit(500))
+  );
 
-    if (snaps.empty) {
-      latest.innerText = "Letzter Monat: keine Akten";
-      sollIst.innerText = "Clubkasse Soll/Ist (gesamt): -";
-} else {
-  let totalSoll = 0;
-  let totalIst = 0;
-  let totalOffen = 0;
+  if (snaps.empty) {
+    latest.innerText = "Letzter Monat: keine Akten";
+    sollIst.innerText = "Clubkasse Soll/Ist (gesamt): -";
+  } else {
+    let totalSoll = 0;
+    let totalIst = 0;
+    let totalOffen = 0;
 
-  // ✅ NEU: zusätzlich Einnahmen/Ausgaben summieren
-  let totalIncome = 0;
-  let totalCost = 0;
+    // ✅ NEU
+    let totalIncome = 0;
+    let totalCost = 0;
 
-  let count = 0;
-  let latestMonth = "-";
+    let count = 0;
+    let latestMonth = "-";
 
-  snaps.forEach((ds) => {
-    const d = ds.data() || {};
-    count++;
+    snaps.forEach((ds) => {
+      const d = ds.data() || {};
+      count++;
 
-    if (count === 1) latestMonth = d.month || "-";
+      if (count === 1) latestMonth = d.month || "-";
 
-    const s = Number(d.cashSoll || 0);
-    const i = Number(d.cashIst || 0);
+      const s = Number(d.cashSoll || 0);
+      const i = Number(d.cashIst || 0);
 
-    totalSoll += s;
-    totalIst += i;
-    totalOffen += Math.max(0, s - i);
+      totalSoll += s;
+      totalIst += i;
+      totalOffen += Math.max(0, s - i);
 
-    // ✅ NEU: Einnahmen/Ausgaben aus der Monats-Akte
-    const inc =
-      Number(d.incomeSponsor || 0) +
-      Number(d.incomeRides || 0) +
-      Number(d.incomeOther || 0);
+      // ✅ NEU: Einnahmen/Ausgaben summieren
+      const inc =
+        Number(d.incomeSponsor || 0) +
+        Number(d.incomeRides || 0) +
+        Number(d.incomeOther || 0);
 
-    const cst =
-      Number(d.costClub || 0) +
-      Number(d.costOther || 0);
+      const cst =
+        Number(d.costClub || 0) +
+        Number(d.costOther || 0);
 
-    totalIncome += inc;
-    totalCost += cst;
-  });
+      totalIncome += inc;
+      totalCost += cst;
+    });
 
-  latest.innerText = `Letzter Monat: ${latestMonth} (${count} Akte(n))`;
+    latest.innerText = `Letzter Monat: ${latestMonth} (${count} Akte(n))`;
 
-  const net = totalIncome - totalCost;
-  sollIst.innerText =
-    `Clubkasse Soll/Ist (gesamt, alle Akten): ${euro(totalSoll)} / ${euro(totalIst)} (offen: ${euro(totalOffen)})\n` +
-    `Einnahmen/Ausgaben (gesamt): +${euro(totalIncome)} / -${euro(totalCost)} (Netto: ${euro(net)})`;
-}
-    
-  } catch {
-    latest.innerText = "Letzter Monat: (Fehler/Rechte)";
-    sollIst.innerText = "Clubkasse Soll/Ist (gesamt): (Fehler/Rechte)";
+    const net = totalIncome - totalCost;
+    sollIst.innerText =
+      `Clubkasse Soll/Ist (gesamt, alle Akten): ${euro(totalSoll)} / ${euro(totalIst)} (offen: ${euro(totalOffen)})\n` +
+      `Einnahmen/Ausgaben (gesamt): +${euro(totalIncome)} / -${euro(totalCost)} (Netto: ${euro(net)})`;
   }
+} catch {
+  latest.innerText = "Letzter Monat: (Fehler/Rechte)";
+  sollIst.innerText = "Clubkasse Soll/Ist (gesamt): (Fehler/Rechte)";
+}
 
   // count members
   try {
