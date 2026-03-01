@@ -878,108 +878,11 @@
   </div>
 </div>
 
-<!-- ✅ TREASURY SCREEN -->
-<div class="container hidden" id="treasuryScreen">
-  <div class="card">
-
-    <div class="card sec-tabs">
-      <button type="button" onclick="window.treasShow('treasDashboard')">📊 Dashboard</button>
-      <button type="button" onclick="window.treasShow('treasClub')">💼 Clubkasse</button>
-      <button type="button" onclick="window.treasShow('treasMembers')">👤 Member Kasse</button>
-    </div>
-
-    <div id="treasDashboard" class="hidden">
-      <h3>📊 Treasurer Dashboard</h3>
-
-      <div class="card">
-        <div id="treasDashLatest">Letzter Monat: ...</div>
-        <div id="treasDashSollIst">Clubkasse Soll/Ist: ...</div>
-        <div id="treasDashMembers">Member-Akten: ...</div>
-        <div id="treasDashOpenCount">Offene Zahler (Monat): ...</div>
-      </div>
-
-      <button type="button" id="treasDashRefreshBtn">🔄 Aktualisieren</button>
-      <div class="readonly-hint" id="treasReadHint"></div>
-
-      <div class="card">
-        <h4>📄 Church / Treffen – Finanzbericht</h4>
-        <div class="readonly-hint">Wähle im Tab „Clubkasse“ einen Monat → dann kannst du hier den Bericht generieren.</div>
-        <button type="button" id="treasChurchBtn">📄 Bericht erzeugen (aus Monat)</button>
-        <button type="button" id="treasChurchCopyBtn" class="gray">📋 Kopieren</button>
-        <textarea id="treasChurchText" class="mono" placeholder="Bericht erscheint hier..." readonly></textarea>
-      </div>
-    </div>
-
-    <div id="treasClub" class="hidden">
-      <h3>💼 Clubkasse (Monats-Akte)</h3>
-
-      <label class="field-label" for="treasMonth">Monat</label>
-      <input id="treasMonth" type="month">
-
-      <label class="checkline" for="treasAutoSollIst">
-        <input type="checkbox" id="treasAutoSollIst" checked>
-        Auto Soll/Ist aus Member-Häkchen berechnen
-      </label>
-      <div class="readonly-hint" id="treasAutoInfo"></div>
-
-      <label class="field-label" for="treasBudgetPerPerson">Monatsbudget pro Person (€) (Info)</label>
-      <input id="treasBudgetPerPerson" type="number" placeholder="z.B. 30" value="30">
-
-      <h4>Einnahmen</h4>
-      <div class="row">
-        <input id="treasIncomeSponsor" type="number" placeholder="Sponsor €">
-        <input id="treasIncomeRides" type="number" placeholder="Plus Fahrten Geld €">
-      </div>
-      <input id="treasIncomeOther" type="number" placeholder="Andere Einnahmen €">
-
-      <h4>Ausgaben</h4>
-      <div class="row">
-        <input id="treasCostClub" type="number" placeholder="Clubkasse Ausgaben €">
-        <input id="treasCostOther" type="number" placeholder="Andere Kosten (Strom etc.) €">
-      </div>
-      <textarea id="treasCostNote" placeholder="Notiz zu Ausgaben (Strom, Party, Miete, ...)" ></textarea>
-
-      <h4>Clubkasse Soll / Ist</h4>
-      <div class="row">
-        <input id="treasCashSoll" type="number" placeholder="Soll € (auto)">
-        <input id="treasCashIst" type="number" placeholder="Ist € (auto)">
-      </div>
-      <div id="treasCashDiff" class="card">Differenz: -</div>
-
-      <div class="card">
-        <h4>📌 Offen-Liste (Auto)</h4>
-        <div id="treasOpenContribList">Wähle einen Monat…</div>
-      </div>
-
-      <textarea id="treasClubNote" placeholder="Allgemeine Notiz zum Monat"></textarea>
-
-      <button type="button" id="saveTreasReportBtn">💾 Monats-Akte speichern</button>
-      <button type="button" id="resetTreasReportBtn" class="gray">🧹 Neu</button>
-
-      <div class="readonly-hint" id="treasClubReadOnlyHint"></div>
-
-      <h3>Akten</h3>
-      <div id="treasReportList"></div>
-    </div>
-
-    <div id="treasMembers" class="hidden">
-      <h3>👤 Member Kasse (Einzel-Akten)</h3>
-
-      <input id="treasMemberSearch" placeholder="🔎 Suche (Name, Rang, Notiz...)">
-      <button type="button" id="treasAddMemberBtn">➕ Person hinzufügen</button>
-
-      <div class="readonly-hint" id="treasMembersReadOnlyHint"></div>
-
-      <div id="treasMemberList"></div>
-    </div>
-
-    <button type="button" onclick="window.backHome()">⬅ Zurück</button>
-  </div>
-</div>
-
 <!-- ✅ TREASURY MEMBER MODAL -->
 <div id="treasMemberModal" class="modal hidden">
-  <div class="modal-card">
+  <div class="modal-backdrop" onclick="window.closeTreasuryMemberModal()"></div>
+
+  <div class="modal-card card">
     <h3 id="tmTitle">👤 Member-Akte</h3>
 
     <input id="tmName" placeholder="1) Name">
