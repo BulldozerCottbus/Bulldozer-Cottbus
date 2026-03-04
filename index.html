@@ -416,7 +416,88 @@
         Der Präsident besitzt jederzeit das uneingeschränkte Recht, das laufende Gespräch sofort zu beenden und das Wort ohne vorherige Wortmeldung an sich zu nehmen.
       </div>
     </div>
+    
+<!-- ✅ MEMBER INFO BUTTON (unter Meeting Regeln) -->
+<button id="memberInfoBtn" type="button">👥 Member Info</button>
 
+<!-- ✅ MEMBER INFO LIST MODAL -->
+<div id="memberInfoModal" class="modal hidden">
+  <div class="modal-backdrop" onclick="window.closeMemberInfoModal()"></div>
+
+  <div class="modal-card card">
+    <h3 style="margin-top:0;">👥 Member Info</h3>
+
+    <input id="memberInfoSearch" placeholder="🔎 Suche (Name/Rang)">
+
+    <div class="row">
+      <button id="memberAddOpenBtn" type="button" class="gray">➕ Member hinzufügen</button>
+      <button type="button" class="gray" onclick="window.closeMemberInfoModal()">Schließen</button>
+    </div>
+
+    <div id="memberInfoList">Lade...</div>
+  </div>
+</div>
+
+<!-- ✅ MEMBER DETAIL MODAL -->
+<div id="memberDetailModal" class="modal hidden">
+  <div class="modal-backdrop" onclick="window.closeMemberDetailModal()"></div>
+
+  <div class="modal-card card">
+    <h3 id="memberDetailTitle" style="margin-top:0;">Member</h3>
+
+    <div class="card">
+      <div><b>Name:</b> <span id="mdName">-</span></div>
+      <div><b>Rang:</b> <span id="mdRank">-</span></div>
+      <div><b>Beitrittsdatum:</b> <span id="mdJoin">-</span></div>
+    </div>
+
+    <div class="card">
+      <h4 style="margin-top:0;">🧾 Member Info (freigegeben)</h4>
+      <div id="mdInfo" class="small-note">-</div>
+      <div id="mdApprovedMeta" class="small-note"></div>
+    </div>
+
+    <!-- ✅ Nur wenn du selbst dieser Member bist -->
+    <div class="card hidden" id="mdMyRequestBox">
+      <h4 style="margin-top:0;">✍️ Meine Info anfragen</h4>
+      <textarea id="mdMyInfoText" placeholder="Schreib deine Info hier rein..."></textarea>
+      <button id="mdSendRequestBtn" type="button">📨 Anfrage senden</button>
+      <div class="small-note" id="mdMyRequestHint"></div>
+    </div>
+
+    <!-- ✅ Nur Sergeant-at-Arms/Admin -->
+    <div class="card hidden" id="mdApproveBox">
+      <h4 style="margin-top:0;">✅ Freigaben (pending)</h4>
+      <div id="mdPendingList">Lade...</div>
+    </div>
+
+    <div class="row">
+      <button id="mdDeleteMemberBtn" type="button" class="danger">🗑️ Member löschen</button>
+      <button type="button" class="gray" onclick="window.closeMemberDetailModal()">Schließen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ MEMBER ADD MODAL -->
+<div id="memberAddModal" class="modal hidden">
+  <div class="modal-backdrop" onclick="window.closeMemberAddModal()"></div>
+
+  <div class="modal-card card">
+    <h3 style="margin-top:0;">➕ Member hinzufügen</h3>
+
+    <label class="field-label">User auswählen</label>
+    <select id="maUserSelect"></select>
+
+    <label class="field-label">Beitrittsdatum</label>
+    <input id="maJoinDate" type="date">
+
+    <button id="maSaveBtn" type="button">💾 Speichern</button>
+    <button type="button" class="gray" onclick="window.closeMemberAddModal()">Abbrechen</button>
+
+    <div class="readonly-hint" id="maHint"></div>
+  </div>
+</div>
+    
     <h3>Aktuelle Infos</h3>
     <div id="infosList"></div>
 
