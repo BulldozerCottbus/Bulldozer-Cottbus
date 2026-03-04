@@ -170,6 +170,7 @@ function escapeHtml(s) {
     "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#039;"
   }[m]));
 }
+
 /* ===================================================== */
 /* GLOBAL STATE */
 /* ===================================================== */
@@ -212,6 +213,10 @@ let TREAS_MEMBER_MODAL_READONLY = false;
 
 /* INFO */
 let EDIT_INFO_ID = null;
+
+/* Member Directory (Member Info Bereich) */
+let MEMBER_DIR_CACHE = [];
+let MEMBER_SELECTED_UID = null;
 
 /* ===================================================== */
 /* AUTH / LOGIN */
@@ -288,24 +293,29 @@ function canViewAllNotes() {
   return ["president", "vice_president", "sergeant_at_arms", "secretary", "admin"].includes(CURRENT_RANK);
 }
 
+/* ✅ NEU: B) Rechte-Helper ergänzen (HIER EINFÜGEN) */
+function isSergeantAtArms() {
+  return ["sergeant_at_arms", "admin"].includes(String(CURRENT_RANK || "").toLowerCase());
+}
+
+function canManageMemberDirectory() {
+  // wer Member anlegen/löschen darf:
+  return hasOfficerRights() || isAdmin();
+}
+
 /* ✅ HIER gehört deine UI-Rechte-Logik rein */
 function applyRankRights(rank) {
-  const postInfoBtn = $("postInfoBtn");       // muss es in HTML als id geben
-  const createRideBtn = $("createRideBtn");   // muss es in HTML als id geben
+  const postInfoBtn = $("postInfoBtn");
+  const createRideBtn = $("createRideBtn");
 
-  // ✅ Infos: jeder eingeloggte darf posten (Popup)
-  if (postInfoBtn) {
-    postInfoBtn.classList.remove("hidden");
-  }
+  if (postInfoBtn) postInfoBtn.classList.remove("hidden");
 
-  // ✅ Ausfahrten erstellen: nur Boss/Officer/RC/Admin
   if (createRideBtn) {
     const canCreateRide = ["president", "vice_president", "sergeant_at_arms", "road_captain", "admin"].includes(rank);
     if (canCreateRide) createRideBtn.classList.remove("hidden");
     else createRideBtn.classList.add("hidden");
   }
 
-    // ✅ Ausfahrten Button: Hangaround/Supporter -> komplett weg
   const ridesNavBtn = $("ridesNavBtn");
   if (ridesNavBtn) {
     const r = String(rank || "").toLowerCase();
@@ -389,9 +399,29 @@ bindUI();
 
 function bindUI() {
   // Infos
-    const postInfoBtn = $("postInfoBtn");
+  const postInfoBtn = $("postInfoBtn");
   if (postInfoBtn) postInfoBtn.onclick = () => window.openInfoModal();
-    // Info Modal
+
+  // ✅ Member Info (NEU)
+  const memberInfoBtn = $("memberInfoBtn");
+  if (memberInfoBtn) memberInfoBtn.onclick = () => window.openMemberInfoModal();
+
+  const memberSearch = $("memberInfoSearch");
+  if (memberSearch) memberSearch.oninput = () => window.renderMemberInfoList();
+
+  const memberAddOpenBtn = $("memberAddOpenBtn");
+  if (memberAddOpenBtn) memberAddOpenBtn.onclick = () => window.openMemberAddModal();
+
+  const maSave = $("maSaveBtn");
+  if (maSave) maSave.onclick = () => window.saveNewMember();
+
+  const mdSend = $("mdSendRequestBtn");
+  if (mdSend) mdSend.onclick = () => window.sendMyMemberInfoRequest();
+
+  const mdDel = $("mdDeleteMemberBtn");
+  if (mdDel) mdDel.onclick = () => window.deleteSelectedMember();
+
+  // Info Modal
   const infoSave = $("infoModalSaveBtn");
   if (infoSave) infoSave.onclick = () => saveInfoModal();
 
@@ -399,14 +429,15 @@ function bindUI() {
   if (infoDel) infoDel.onclick = () => {
     if (EDIT_INFO_ID) window.deleteInfo(EDIT_INFO_ID);
   };
-    // Debug / Changelog
+
+  // Debug / Changelog
   const dbg = $("debugButton");
   if (dbg) dbg.onclick = () => window.openDebugModal();
 
   const addLog = $("addChangelogBtn");
   if (addLog) addLog.onclick = () => addChangelogEntry();
 
-    // ✅ Rides Modal
+  // ✅ Rides Modal
   const ridesNavBtn = $("ridesNavBtn");
   if (ridesNavBtn) ridesNavBtn.onclick = () => window.openRidesModal();
 
@@ -493,7 +524,7 @@ function bindUI() {
 
   const archiveFilter = $("archiveFilter");
   if (archiveFilter) archiveFilter.onchange = () => renderArchive();
-  
+
   // Treasury
   const treasDashRefresh = $("treasDashRefreshBtn");
   if (treasDashRefresh) treasDashRefresh.onclick = () => loadTreasuryDashboard();
@@ -521,7 +552,7 @@ function bindUI() {
   if (cashSoll) cashSoll.oninput = () => updateTreasCashDiff();
   if (cashIst) cashIst.oninput = () => updateTreasCashDiff();
 
-  // ✅ NEU: Netto live berechnen sobald man Einnahmen/Ausgaben tippt
+  // ✅ Netto live berechnen sobald man Einnahmen/Ausgaben tippt
   const netInputs = [
     "treasIncomeSponsor",
     "treasIncomeRides",
@@ -4709,3 +4740,326 @@ async function loadCalendarRsvps(dayIso, hasEntry) {
     if (list) list.innerHTML = `<div class="card">Fehler beim Laden: ${escapeHtml(e.message)}</div>`;
   }
 }
+
+/* ===================================================== */
+/* MEMBER INFO (Directory + Requests) */
+/* ===================================================== */
+
+window.openMemberInfoModal = async () => {
+  const modal = $("memberInfoModal");
+  if (!modal) return;
+
+  // Add Button nur für Officer/Admin
+  const addBtn = $("memberAddOpenBtn");
+  if (addBtn) addBtn.style.display = canManageMemberDirectory() ? "block" : "none";
+
+  modal.classList.remove("hidden");
+
+  await window.loadMemberDirectory();
+  window.renderMemberInfoList();
+};
+
+window.closeMemberInfoModal = () => {
+  $("memberInfoModal")?.classList.add("hidden");
+};
+
+window.loadMemberDirectory = async () => {
+  MEMBER_DIR_CACHE = [];
+  const box = $("memberInfoList");
+  if (box) box.innerHTML = "Lade...";
+
+  try {
+    const snaps = await getDocs(query(collection(db, "member_directory"), orderBy("name", "asc"), limit(500)));
+    snaps.forEach((ds) => {
+      MEMBER_DIR_CACHE.push({ id: ds.id, ...(ds.data() || {}) });
+    });
+  } catch (e) {
+    if (box) box.innerHTML = `<div class="card">Fehler: ${escapeHtml(e.message)}</div>`;
+  }
+};
+
+window.renderMemberInfoList = () => {
+  const box = $("memberInfoList");
+  if (!box) return;
+
+  const q = ($("memberInfoSearch")?.value || "").trim().toLowerCase();
+
+  let items = [...(MEMBER_DIR_CACHE || [])];
+  if (q) {
+    items = items.filter((m) => {
+      const blob = [m.name, m.rank, m.joinDate].join(" ").toLowerCase();
+      return blob.includes(q);
+    });
+  }
+
+  if (!items.length) {
+    box.innerHTML = `<div class="card">Noch keine Member angelegt. ${canManageMemberDirectory() ? "Unten auf „Member hinzufügen“." : ""}</div>`;
+    return;
+  }
+
+  box.innerHTML = items.map((m) => `
+    <div class="card member-card" onclick="window.openMemberDetailModal('${m.id}')">
+      <b>${escapeHtml(m.name || "-")}</b><br>
+      Rang: ${escapeHtml(m.rank || "-")}
+    </div>
+  `).join("");
+};
+
+window.openMemberDetailModal = async (uid) => {
+  MEMBER_SELECTED_UID = uid;
+
+  const modal = $("memberDetailModal");
+  if (!modal) return;
+
+  modal.classList.remove("hidden");
+
+  // Delete Button nur Officer/Admin
+  const delBtn = $("mdDeleteMemberBtn");
+  if (delBtn) delBtn.style.display = canManageMemberDirectory() ? "block" : "none";
+
+  // Daten laden
+  try {
+    const snap = await getDoc(doc(db, "member_directory", uid));
+    if (!snap.exists()) {
+      alert("Member nicht gefunden.");
+      return;
+    }
+    const m = snap.data() || {};
+
+    $("memberDetailTitle").innerText = `👤 ${m.name || "Member"}`;
+    setText("mdName", m.name || "-");
+    setText("mdRank", m.rank || "-");
+    setText("mdJoin", m.joinDate || "-");
+
+    const info = m.approvedInfo || "";
+    $("mdInfo").innerHTML = info ? escapeHtml(info).replace(/\n/g, "<br>") : "—";
+
+    const meta = m.approvedAt
+      ? `Freigegeben: ${new Date(m.approvedAt).toLocaleString("de-DE")} • von: ${userNameByUid(m.approvedBy)}`
+      : "";
+    setText("mdApprovedMeta", meta);
+
+    // ✅ “Meine Anfrage” nur wenn das mein eigenes UID ist
+    const myBox = $("mdMyRequestBox");
+    if (myBox) {
+      if (uid === CURRENT_UID) myBox.classList.remove("hidden");
+      else myBox.classList.add("hidden");
+    }
+    if ($("mdMyRequestHint")) $("mdMyRequestHint").innerText = "Wird erst sichtbar, wenn Sergeant-at-Arms bestätigt ✅";
+
+    // ✅ Approve Box nur Sergeant/Admin
+    const appr = $("mdApproveBox");
+    if (appr) {
+      if (isSergeantAtArms()) appr.classList.remove("hidden");
+      else appr.classList.add("hidden");
+    }
+
+    if (isSergeantAtArms()) {
+      await window.loadPendingMemberRequests(uid);
+    }
+  } catch (e) {
+    alert("Fehler: " + e.message);
+  }
+};
+
+window.closeMemberDetailModal = () => {
+  $("memberDetailModal")?.classList.add("hidden");
+  MEMBER_SELECTED_UID = null;
+};
+
+window.openMemberAddModal = () => {
+  if (!canManageMemberDirectory()) {
+    alert("Keine Berechtigung.");
+    return;
+  }
+
+  const modal = $("memberAddModal");
+  if (!modal) return;
+
+  // Select füllen aus USERS_CACHE (damit UID passt!)
+  const sel = $("maUserSelect");
+  if (sel) {
+    const users = [...USERS_CACHE.entries()]
+      .map(([uid, u]) => ({ uid, ...u }))
+      .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+
+    sel.innerHTML = users.map((u) => `<option value="${u.uid}">${escapeHtml(u.name)} • ${escapeHtml(u.rank)}</option>`).join("");
+  }
+
+  const hint = $("maHint");
+  if (hint) hint.innerText = "Tipp: User auswählen → Speichern. Dann kann der Member später seine Info anfragen.";
+
+  modal.classList.remove("hidden");
+};
+
+window.closeMemberAddModal = () => {
+  $("memberAddModal")?.classList.add("hidden");
+};
+
+window.saveNewMember = async () => {
+  if (!canManageMemberDirectory()) return alert("Keine Berechtigung");
+
+  const uid = $("maUserSelect")?.value || "";
+  const joinDate = $("maJoinDate")?.value || "";
+
+  if (!uid) return alert("Bitte User auswählen.");
+
+  const u = USERS_CACHE.get(uid);
+  if (!u) return alert("User nicht gefunden.");
+
+  try {
+    await setDoc(doc(db, "member_directory", uid), {
+      uid,
+      name: u.name || "Unbekannt",
+      rank: u.rank || "member",
+      joinDate: joinDate || "",
+      approvedInfo: "",
+      approvedAt: null,
+      approvedBy: null,
+      updatedAt: Date.now(),
+      updatedBy: CURRENT_UID
+    }, { merge: true });
+
+    window.closeMemberAddModal();
+    await window.loadMemberDirectory();
+    window.renderMemberInfoList();
+    alert("Member hinzugefügt ✅");
+  } catch (e) {
+    alert("Speichern fehlgeschlagen: " + e.message);
+  }
+};
+
+window.deleteSelectedMember = async () => {
+  if (!canManageMemberDirectory()) return alert("Keine Berechtigung");
+  if (!MEMBER_SELECTED_UID) return;
+
+  if (!confirm("Member wirklich löschen?")) return;
+
+  try {
+    await deleteDoc(doc(db, "member_directory", MEMBER_SELECTED_UID));
+    window.closeMemberDetailModal();
+    await window.loadMemberDirectory();
+    window.renderMemberInfoList();
+  } catch (e) {
+    alert("Löschen fehlgeschlagen: " + e.message);
+  }
+};
+
+// ✅ Member selbst: Anfrage stellen (Text), Sergeant muss bestätigen
+window.sendMyMemberInfoRequest = async () => {
+  if (!MEMBER_SELECTED_UID || MEMBER_SELECTED_UID !== CURRENT_UID) {
+    return alert("Du kannst nur für dich selbst eine Anfrage senden.");
+  }
+
+  const text = ($("mdMyInfoText")?.value || "").trim();
+  if (!text) return alert("Bitte Text schreiben.");
+
+  try {
+    await addDoc(collection(db, "member_info_requests"), {
+      uid: CURRENT_UID,
+      name: userNameByUid(CURRENT_UID),
+      text,
+      status: "pending",
+      createdAt: Date.now()
+    });
+
+    $("mdMyInfoText").value = "";
+    if ($("mdMyRequestHint")) $("mdMyRequestHint").innerText = "Anfrage gesendet ✅ (wartet auf Freigabe)";
+    if (isSergeantAtArms()) await window.loadPendingMemberRequests(CURRENT_UID);
+  } catch (e) {
+    alert("Senden fehlgeschlagen: " + e.message);
+  }
+};
+
+// ✅ Sergeant/Admin: Pending Requests laden + Approve/Reject
+window.loadPendingMemberRequests = async (uid) => {
+  const box = $("mdPendingList");
+  if (!box) return;
+
+  box.innerHTML = "Lade...";
+
+  try {
+    const snaps = await getDocs(query(
+      collection(db, "member_info_requests"),
+      where("uid", "==", uid),
+      where("status", "==", "pending"),
+      limit(25)
+    ));
+
+    const items = [];
+    snaps.forEach((ds) => items.push({ id: ds.id, ...(ds.data() || {}) }));
+    items.sort((a, b) => Number(b.createdAt || 0) - Number(a.createdAt || 0));
+
+    if (!items.length) {
+      box.innerHTML = `<div class="card">Keine offenen Anfragen.</div>`;
+      return;
+    }
+
+    box.innerHTML = items.map((r) => `
+      <div class="card">
+        <b>Anfrage:</b> ${escapeHtml(r.name || r.uid || "-")}<br>
+        <small>${r.createdAt ? new Date(r.createdAt).toLocaleString("de-DE") : ""}</small><br><br>
+        <div class="small-note">${escapeHtml(r.text || "").replace(/\n/g, "<br>")}</div>
+        <div class="row" style="margin-top:10px;">
+          <button type="button" onclick="window.approveMemberInfoRequest('${r.id}', '${uid}')">✅ Freigeben</button>
+          <button type="button" class="gray" onclick="window.rejectMemberInfoRequest('${r.id}')">❌ Ablehnen</button>
+        </div>
+      </div>
+    `).join("");
+  } catch (e) {
+    box.innerHTML = `<div class="card">Fehler: ${escapeHtml(e.message)}</div>`;
+  }
+};
+
+window.approveMemberInfoRequest = async (reqId, uid) => {
+  if (!isSergeantAtArms()) return alert("Nur Sergeant-at-Arms/Admin.");
+
+  try {
+    const snap = await getDoc(doc(db, "member_info_requests", reqId));
+    if (!snap.exists()) return alert("Request nicht gefunden.");
+
+    const r = snap.data() || {};
+    const text = String(r.text || "").trim();
+    if (!text) return alert("Request-Text leer.");
+
+    // ✅ In Directory übernehmen (freigegeben)
+    await updateDoc(doc(db, "member_directory", uid), {
+      approvedInfo: text,
+      approvedAt: Date.now(),
+      approvedBy: CURRENT_UID,
+      updatedAt: Date.now(),
+      updatedBy: CURRENT_UID
+    });
+
+    // ✅ Request als approved markieren
+    await updateDoc(doc(db, "member_info_requests", reqId), {
+      status: "approved",
+      decidedAt: Date.now(),
+      decidedBy: CURRENT_UID
+    });
+
+    // UI refresh
+    await window.openMemberDetailModal(uid);
+    await window.loadMemberDirectory();
+    window.renderMemberInfoList();
+  } catch (e) {
+    alert("Freigabe fehlgeschlagen: " + e.message);
+  }
+};
+
+window.rejectMemberInfoRequest = async (reqId) => {
+  if (!isSergeantAtArms()) return alert("Nur Sergeant-at-Arms/Admin.");
+  if (!confirm("Anfrage ablehnen?")) return;
+
+  try {
+    await updateDoc(doc(db, "member_info_requests", reqId), {
+      status: "rejected",
+      decidedAt: Date.now(),
+      decidedBy: CURRENT_UID
+    });
+
+    if (MEMBER_SELECTED_UID) await window.loadPendingMemberRequests(MEMBER_SELECTED_UID);
+  } catch (e) {
+    alert("Ablehnen fehlgeschlagen: " + e.message);
+  }
+};
