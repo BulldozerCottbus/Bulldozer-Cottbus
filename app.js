@@ -4336,7 +4336,8 @@ let CALENDAR_SELECTED_DAY = null;
 let CALENDAR_CACHE = new Map();
 
 function canManageCalendar() {
-  return ["road_captain", "admin"].includes(String(CURRENT_RANK || "").toLowerCase());
+  return ["road_captain", "president", "vice_president", "sergeant_at_arms", "admin"]
+    .includes(String(CURRENT_RANK || "").toLowerCase());
 }
 
 function calMonthLabel(monthStr) {
