@@ -324,6 +324,211 @@ function applyRankRights(rank) {
     else ridesNavBtn.classList.remove("hidden");
   }
 }
+
+/* ===================================================== */
+/* SETTINGS (LocalStorage) + FLOATING BACK */
+/* ===================================================== */
+
+const SETTINGS_KEY = "bdz_settings_v1";
+
+let APP_SETTINGS = {
+  floatingBackEnabled: true,
+  floatingBackLocked: true,
+  floatingBackPos: null // {x, y} in px (left/top)
+};
+
+function loadSettings() {
+  try {
+    const raw = localStorage.getItem(SETTINGS_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      APP_SETTINGS = { ...APP_SETTINGS, ...parsed };
+    }
+  } catch (e) {}
+}
+
+function saveSettings() {
+  try {
+    localStorage.setItem(SETTINGS_KEY, JSON.stringify(APP_SETTINGS));
+  } catch (e) {}
+}
+
+function openSettingsModal() {
+  const modal = $("settingsModal");
+  if (!modal) return;
+
+  // UI sync
+  const t1 = $("toggleFloatingBack");
+  const t2 = $("toggleLockFloatingBack");
+  if (t1) t1.checked = !!APP_SETTINGS.floatingBackEnabled;
+  if (t2) t2.checked = !!APP_SETTINGS.floatingBackLocked;
+
+  modal.classList.remove("hidden");
+  modal.classList.add("show");
+  modal.setAttribute("aria-hidden", "false");
+}
+
+function closeSettingsModal() {
+  const modal = $("settingsModal");
+  if (!modal) return;
+
+  modal.classList.remove("show");
+  modal.setAttribute("aria-hidden", "true");
+
+  // kleine Delay damit Animation sauber ausläuft
+  setTimeout(() => {
+    modal.classList.add("hidden");
+  }, 180);
+}
+
+/* ✅ Back-Fallback: nutzt deine App-Back Funktion wenn vorhanden */
+function smartBackAction() {
+  // 1) wenn du eine eigene Funktion hast, wird die genutzt
+  if (typeof window.goBack === "function") return window.goBack();
+  if (typeof window.back === "function") return window.back();
+
+  // 2) wenn ein Modal offen ist, erst schließen (optional)
+  // (wenn du ein zentrales Modal-System hast, kannst du das erweitern)
+
+  // 3) Browser fallback
+  window.history.back();
+}
+
+function applyFloatingBackUI() {
+  const btn = $("floatingBackBtn");
+  if (!btn) return;
+
+  // anzeigen/ausblenden
+  if (APP_SETTINGS.floatingBackEnabled) btn.classList.remove("hidden");
+  else btn.classList.add("hidden");
+
+  // lock/unlock styling
+  if (!APP_SETTINGS.floatingBackLocked) btn.classList.add("unlocked");
+  else btn.classList.remove("unlocked");
+
+  // position anwenden
+  if (APP_SETTINGS.floatingBackPos && typeof APP_SETTINGS.floatingBackPos.x === "number") {
+    btn.style.left = APP_SETTINGS.floatingBackPos.x + "px";
+    btn.style.top = APP_SETTINGS.floatingBackPos.y + "px";
+    btn.style.right = "auto";
+    btn.style.bottom = "auto";
+  } else {
+    // Standard unten rechts
+    btn.style.left = "auto";
+    btn.style.top = "auto";
+    btn.style.right = "14px";
+    btn.style.bottom = "calc(14px + env(safe-area-inset-bottom))";
+  }
+}
+
+/* ✅ clamp so dass button nicht aus dem screen wandert */
+function clamp(n, min, max) {
+  return Math.max(min, Math.min(max, n));
+}
+
+function resetFloatingBackPos() {
+  APP_SETTINGS.floatingBackPos = null;
+  saveSettings();
+  applyFloatingBackUI();
+}
+
+/* ✅ Drag handling (Touch + Mouse via Pointer Events) */
+function initFloatingBackDrag() {
+  const btn = $("floatingBackBtn");
+  if (!btn) return;
+
+  let dragging = false;
+  let startX = 0;
+  let startY = 0;
+  let startLeft = 0;
+  let startTop = 0;
+  let moved = 0;
+
+  // click -> back (auch wenn gelockt)
+  btn.addEventListener("click", (e) => {
+    // Wenn wirklich gezogen wurde, click nicht als back auslösen
+    if (moved > 6) return;
+    smartBackAction();
+  });
+
+  btn.addEventListener("pointerdown", (e) => {
+    if (!APP_SETTINGS.floatingBackEnabled) return;
+
+    moved = 0;
+
+    // wenn gelockt: nicht draggen – aber click bleibt möglich
+    if (APP_SETTINGS.floatingBackLocked) return;
+
+    dragging = true;
+    btn.setPointerCapture(e.pointerId);
+
+    const rect = btn.getBoundingClientRect();
+    startX = e.clientX;
+    startY = e.clientY;
+    startLeft = rect.left;
+    startTop = rect.top;
+
+    // während dragging absolute left/top benutzen
+    btn.style.left = rect.left + "px";
+    btn.style.top = rect.top + "px";
+    btn.style.right = "auto";
+    btn.style.bottom = "auto";
+  });
+
+  btn.addEventListener("pointermove", (e) => {
+    if (!dragging) return;
+
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    moved = Math.max(moved, Math.abs(dx) + Math.abs(dy));
+
+    const w = btn.offsetWidth || 48;
+    const h = btn.offsetHeight || 48;
+
+    const maxX = window.innerWidth - w - 6;
+    const maxY = window.innerHeight - h - 6;
+
+    const newLeft = clamp(startLeft + dx, 6, maxX);
+    const newTop = clamp(startTop + dy, 6, maxY);
+
+    btn.style.left = newLeft + "px";
+    btn.style.top = newTop + "px";
+  });
+
+  function endDrag(e) {
+    if (!dragging) return;
+    dragging = false;
+
+    const rect = btn.getBoundingClientRect();
+    APP_SETTINGS.floatingBackPos = { x: Math.round(rect.left), y: Math.round(rect.top) };
+    saveSettings();
+    applyFloatingBackUI();
+  }
+
+  btn.addEventListener("pointerup", endDrag);
+  btn.addEventListener("pointercancel", endDrag);
+
+  window.addEventListener("resize", () => {
+    // wenn position gespeichert ist -> neu clampen
+    if (!APP_SETTINGS.floatingBackPos) return;
+    const w = btn.offsetWidth || 48;
+    const h = btn.offsetHeight || 48;
+    const maxX = window.innerWidth - w - 6;
+    const maxY = window.innerHeight - h - 6;
+    APP_SETTINGS.floatingBackPos.x = clamp(APP_SETTINGS.floatingBackPos.x, 6, maxX);
+    APP_SETTINGS.floatingBackPos.y = clamp(APP_SETTINGS.floatingBackPos.y, 6, maxY);
+    saveSettings();
+    applyFloatingBackUI();
+  });
+}
+
+/* ✅ EINMAL beim App-Start aufrufen */
+function initSettingsAndFloatingBack() {
+  loadSettings();
+  applyFloatingBackUI();
+  initFloatingBackDrag();
+}
     
 /* ===================================================== */
 /* SESSION */
@@ -401,6 +606,33 @@ function bindUI() {
   // Infos
   const postInfoBtn = $("postInfoBtn");
   if (postInfoBtn) postInfoBtn.onclick = () => window.openInfoModal();
+
+  // ✅ Settings
+  const settingsBtn = $("settingsBtn");
+  if (settingsBtn) settingsBtn.onclick = () => openSettingsModal();
+
+  const settingsClose = $("settingsCloseBtn");
+  if (settingsClose) settingsClose.onclick = () => closeSettingsModal();
+
+  const settingsBackdrop = $("settingsBackdrop");
+  if (settingsBackdrop) settingsBackdrop.onclick = () => closeSettingsModal();
+
+  const toggleFloatingBack = $("toggleFloatingBack");
+  if (toggleFloatingBack) toggleFloatingBack.onchange = () => {
+    APP_SETTINGS.floatingBackEnabled = !!toggleFloatingBack.checked;
+    saveSettings();
+    applyFloatingBackUI();
+  };
+
+  const toggleLockFloatingBack = $("toggleLockFloatingBack");
+  if (toggleLockFloatingBack) toggleLockFloatingBack.onchange = () => {
+    APP_SETTINGS.floatingBackLocked = !!toggleLockFloatingBack.checked;
+    saveSettings();
+    applyFloatingBackUI();
+  };
+
+  const resetPosBtn = $("resetFloatingBackPosBtn");
+  if (resetPosBtn) resetPosBtn.onclick = () => resetFloatingBackPos();
 
   // ✅ Member Info (NEU)
   const memberInfoBtn = $("memberInfoBtn");
@@ -617,6 +849,9 @@ function bindUI() {
 
   const calDeclineBtn = $("calDeclineBtn");
   if (calDeclineBtn) calDeclineBtn.onclick = () => window.setCalendarRsvp("declined");
+
+  // ✅ Settings + Floating Back initialisieren
+  initSettingsAndFloatingBack();
 }
 
 /* ===================================================== */
