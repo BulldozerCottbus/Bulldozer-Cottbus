@@ -266,7 +266,7 @@ textarea[readonly] {
 }
 
 /* ===================================================== */
-/* BUTTONS                                                */
+/* BUTTONS – KLARE ROTE SCHRIFT MIT WEISSER OUTLINE      */
 /* ===================================================== */
 
 button,
@@ -275,33 +275,47 @@ a[data-feature="rp"] {
   padding: 14px;
   margin-top: 8px;
   border-radius: 14px;
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   background: rgba(0, 0, 0, 0.18);
   backdrop-filter: blur(7px);
   -webkit-backdrop-filter: blur(7px);
   cursor: pointer;
-  font-weight: 800;
-  letter-spacing: 0.03em;
-  color: var(--red);
   text-align: center;
   text-decoration: none;
-  box-shadow:
-    inset 0 0 0 1px rgba(255, 59, 59, 0.12),
-    0 6px 18px rgba(0, 0, 0, 0.24);
-  -webkit-text-stroke: 0.35px rgba(255, 255, 255, 0.92);
+
+  /* ✅ Schrift */
+  font-family: Arial, sans-serif;
+  font-size: 16px;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  line-height: 1.15;
+
+  /* ✅ Farbe */
+  color: #ff2f2f;
+
+  /* ✅ saubere weiße Outline */
+  -webkit-text-stroke: 0.65px rgba(255, 255, 255, 0.92);
+
+  /* ✅ ganz leichter Schatten statt doppelter Effekt */
   text-shadow:
-    -1px -1px 0 rgba(255, 255, 255, 0.28),
-    1px -1px 0 rgba(255, 255, 255, 0.28),
-    -1px 1px 0 rgba(255, 255, 255, 0.28),
-    1px 1px 0 rgba(255, 255, 255, 0.28),
-    0 0 14px rgba(255, 59, 59, 0.16);
-  transition: transform 0.16s ease, filter 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+    0 0 1px rgba(255, 255, 255, 0.18),
+    0 0 6px rgba(255, 47, 47, 0.10);
+
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 59, 59, 0.10),
+    0 6px 18px rgba(0, 0, 0, 0.24);
+
+  transition:
+    transform 0.16s ease,
+    filter 0.16s ease,
+    border-color 0.16s ease,
+    background 0.16s ease;
 }
 
 button:hover,
 a[data-feature="rp"]:hover {
   filter: brightness(1.08);
-  border-color: rgba(255, 59, 59, 0.68);
+  border-color: rgba(255, 59, 59, 0.62);
   background: rgba(255, 59, 59, 0.08);
 }
 
@@ -315,27 +329,35 @@ button:disabled {
   cursor: not-allowed;
 }
 
+/* Kleine Buttons */
 .smallbtn {
   padding: 10px 12px;
   border-radius: 12px;
-  font-weight: 800;
   font-size: 14px;
+  font-weight: 900;
+  color: #ff2f2f;
+  -webkit-text-stroke: 0.55px rgba(255, 255, 255, 0.9);
+  text-shadow:
+    0 0 1px rgba(255, 255, 255, 0.14),
+    0 0 4px rgba(255, 47, 47, 0.08);
 }
 
+/* Graue Buttons */
 .gray {
-  background: rgba(255, 255, 255, 0.07) !important;
+  background: rgba(255, 255, 255, 0.08) !important;
   color: #ffffff !important;
   -webkit-text-stroke: 0 !important;
   text-shadow: none !important;
   border-color: rgba(255, 255, 255, 0.18) !important;
 }
 
+/* Danger Buttons */
 .danger {
-  background: rgba(107, 11, 11, 0.24) !important;
-  color: #ff6f6f !important;
-  border-color: rgba(255, 70, 70, 0.54) !important;
-  -webkit-text-stroke: 0 !important;
-  text-shadow: none !important;
+  background: rgba(122, 17, 17, 0.30) !important;
+  color: #ff7a7a !important;
+  -webkit-text-stroke: 0.35px rgba(255, 255, 255, 0.75) !important;
+  text-shadow: 0 0 4px rgba(255, 59, 59, 0.10) !important;
+  border-color: rgba(255, 59, 59, 0.5) !important;
 }
 
 /* ===================================================== */
