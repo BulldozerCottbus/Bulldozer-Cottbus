@@ -52,6 +52,7 @@
     <button onclick="window.showScreen('infos')">📢 Infos</button>
     <button id="calendarNavBtn" type="button">📅 Kalender</button>
     <button id="ridesNavBtn" type="button">🏍 Ausfahrten</button>
+    <button id="settingsBtn" class="navBtn">⚙️ Einstellungen</button>
 
     <!-- ✅ Wichtig: Secretary/Treasury Panels -->
     <button onclick="window.showSecretaryPanel()">📒 Secretary</button>
@@ -1171,6 +1172,61 @@
     <button type="button" class="gray" onclick="window.closeRidesModal()">Schließen</button>
   </div>
 </div>
+
+  <!-- ✅ SETTINGS MODAL -->
+<div id="settingsModal" class="modal hidden" aria-hidden="true">
+  <div class="modal-backdrop" id="settingsBackdrop"></div>
+
+  <div class="modal-card card settings-card" role="dialog" aria-modal="true">
+    <div class="row" style="justify-content:space-between;align-items:center;">
+      <h3 style="margin:0;">⚙️ Einstellungen</h3>
+      <button type="button" id="settingsCloseBtn" class="gray" aria-label="Schließen">✕</button>
+    </div>
+
+    <div style="margin-top:12px;">
+      <div class="card" style="margin-top:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+          <div>
+            <div><b>Floating Zurück-Button</b></div>
+            <div class="readonly-hint">Kleines Zurück-Icon bleibt immer sichtbar, auch beim Scrollen.</div>
+          </div>
+          <label class="checkline" style="margin:0;">
+            <input type="checkbox" id="toggleFloatingBack">
+            Aktiv
+          </label>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+          <div>
+            <div><b>Position sperren (Lock)</b></div>
+            <div class="readonly-hint">Wenn aktiv, bleibt der Button fest. Wenn aus, kannst du ihn verschieben.</div>
+          </div>
+          <label class="checkline" style="margin:0;">
+            <input type="checkbox" id="toggleLockFloatingBack">
+            Sperren
+          </label>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:10px;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;">
+          <div>
+            <div><b>Position zurücksetzen</b></div>
+            <div class="readonly-hint">Setzt den Floating-Button wieder nach unten rechts.</div>
+          </div>
+          <button type="button" id="resetFloatingBackPosBtn" class="gray">Zurücksetzen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ✅ FLOATING BACK BUTTON -->
+<button id="floatingBackBtn" class="floating-back hidden" type="button" aria-label="Zurück">
+  ⬅
+</button>
 
 <script type="module" src="app.js?v=20260225_1"></script>
 
