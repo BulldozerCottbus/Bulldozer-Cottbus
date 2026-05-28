@@ -2094,13 +2094,27 @@ window.addPoints = async (targetUid, amount) => {
 
 /* =====================================================
    SECRETARY NEU – MEETING / MEETING INFO
-   Alte Secretary-Ansicht wird dadurch ersetzt.
+   Ansicht: Secretary, President, Vice, Sergeant, Admin
+   Bearbeiten: NUR Secretary
    Collection: secretary_meetings_v2
 ===================================================== */
 
 let SEC_MEETING_CACHE = [];
 let SEC_EDIT_MEETING_ID = null;
 let SEC_BACK_VIEW = "edit";
+
+/* =========================
+   Rechte im Frontend
+========================= */
+
+function canViewSecretaryArea() {
+  const r = String(CURRENT_RANK || "").toLowerCase();
+  return ["secretary", "president", "vice_president", "sergeant_at_arms", "admin"].includes(r);
+}
+
+function canEditSecretaryArea() {
+  return String(CURRENT_RANK || "").toLowerCase() === "secretary";
+}
 
 function secBox() {
   return $("secNewContent");
@@ -2129,7 +2143,7 @@ function secMeetingColl() {
 
 /* ✅ Überschreibt den alten Secretary-Start */
 window.showSecretaryPanel = async () => {
-  if (!hasSecretaryRights()) {
+  if (!canViewSecretaryArea()) {
     alert("Kein Zugriff");
     return;
   }
@@ -2143,8 +2157,12 @@ window.showSecretaryPanel = async () => {
 ===================================================== */
 
 window.secOpenMeetingMenu = async () => {
+  if (!canViewSecretaryArea()) return alert("Kein Zugriff");
+
   const box = secBox();
   if (!box) return;
+
+  const canEdit = canEditSecretaryArea();
 
   box.innerHTML = `
     <div class="card">
@@ -2153,12 +2171,22 @@ window.secOpenMeetingMenu = async () => {
       <div class="secretary-meeting-grid">
         <button type="button" onclick="window.secOpenMeetingEdit()">1. Bearbeitung</button>
         <button type="button" onclick="window.secOpenMeetingDone()">2. Erledigt</button>
-        <button type="button" class="danger" onclick="window.secCreateNoMeeting()">3. No Meeting</button>
+        ${
+          canEdit
+            ? `<button type="button" class="danger" onclick="window.secCreateNoMeeting()">3. No Meeting</button>`
+            : `<button type="button" class="danger" disabled>3. No Meeting – nur Secretary</button>`
+        }
       </div>
 
       <div class="small-note">
         Gelb = in Bearbeitung · Grün = erledigt · Rot = Es gab kein Meeting
       </div>
+
+      ${
+        canEdit
+          ? `<div class="small-note">Du bist Secretary: Du darfst bearbeiten.</div>`
+          : `<div class="small-note">Nur Ansicht: Bearbeiten darf nur der Secretary.</div>`
+      }
     </div>
 
     <div id="secMeetingContent"></div>
@@ -2172,7 +2200,11 @@ async function secLoadMeetings() {
 
   try {
     const snaps = await getDocs(
-      query(collection(db, "secretary_meetings_v2"), orderBy("meetingDate", "desc"), limit(300))
+      query(
+        collection(db, "secretary_meetings_v2"),
+        orderBy("meetingDate", "desc"),
+        limit(300)
+      )
     );
 
     snaps.forEach((ds) => {
@@ -2194,6 +2226,8 @@ async function secLoadMeetings() {
 ===================================================== */
 
 window.secOpenMeetingEdit = async () => {
+  if (!canViewSecretaryArea()) return alert("Kein Zugriff");
+
   SEC_EDIT_MEETING_ID = null;
   SEC_BACK_VIEW = "edit";
 
@@ -2202,25 +2236,38 @@ window.secOpenMeetingEdit = async () => {
 
   await secLoadMeetings();
 
+  const canEdit = canEditSecretaryArea();
+
   const openMeetings = SEC_MEETING_CACHE
     .filter((m) => (m.status || "open") === "open" && m.kind !== "no_meeting")
     .sort((a, b) => String(b.meetingDate || "").localeCompare(String(a.meetingDate || "")));
 
   box.innerHTML = `
-    <div class="card">
-      <h3>🟡 Bearbeitung</h3>
+    ${
+      canEdit
+        ? `
+          <div class="card">
+            <h3>🟡 Bearbeitung</h3>
 
-      <label class="field-label">Datum</label>
-      <input id="secMeetingDate" type="date" value="${secTodayISO()}">
+            <label class="field-label">Datum</label>
+            <input id="secMeetingDate" type="date" value="${secTodayISO()}">
 
-      <label class="field-label">Meeting Nummer</label>
-      <input id="secMeetingNumber" placeholder="z.B. Meeting 1 / 001 / Vorstand 01">
+            <label class="field-label">Meeting Nummer</label>
+            <input id="secMeetingNumber" placeholder="z.B. Meeting 1 / 001 / Vorstand 01">
 
-      <label class="field-label">Info / Notiz optional</label>
-      <textarea id="secMeetingInfo" placeholder="Optional: Was ist vorbereitet, was fehlt, worum geht es?"></textarea>
+            <label class="field-label">Info / Notiz optional</label>
+            <textarea id="secMeetingInfo" placeholder="Optional: Was ist vorbereitet, was fehlt, worum geht es?"></textarea>
 
-      <button type="button" onclick="window.secSaveMeeting()">💾 Meeting speichern</button>
-    </div>
+            <button type="button" onclick="window.secSaveMeeting()">💾 Meeting speichern</button>
+          </div>
+        `
+        : `
+          <div class="card">
+            <h3>🟡 Bearbeitung</h3>
+            <div class="small-note">Nur Ansicht. Neue Meetings darf nur der Secretary anlegen.</div>
+          </div>
+        `
+    }
 
     <h3>Offene Meetings</h3>
     <div id="secOpenMeetingList">
@@ -2234,6 +2281,8 @@ window.secOpenMeetingEdit = async () => {
 };
 
 function secRenderOpenMeetingCard(m) {
+  const canEdit = canEditSecretaryArea();
+
   return `
     <div class="card sec-meeting-card sec-meeting-open">
       <b>${escapeHtml(m.meetingNumber || "Meeting")}</b><br>
@@ -2245,17 +2294,23 @@ function secRenderOpenMeetingCard(m) {
           : `<div class="small-note" style="margin-top:8px;">Keine Info eingetragen.</div>`
       }
 
-      <div class="row" style="margin-top:10px;">
-        <button type="button" class="smallbtn gray" onclick="window.secEditMeeting('${m.id}', 'edit')">Bearbeiten</button>
-        <button type="button" class="smallbtn" onclick="window.secMarkMeetingDone('${m.id}')">✅ Als erledigt markieren</button>
-        <button type="button" class="smallbtn danger" onclick="window.secDeleteMeeting('${m.id}', 'edit')">🗑️ Löschen</button>
-      </div>
+      ${
+        canEdit
+          ? `
+            <div class="row" style="margin-top:10px;">
+              <button type="button" class="smallbtn gray" onclick="window.secEditMeeting('${m.id}', 'edit')">Bearbeiten</button>
+              <button type="button" class="smallbtn" onclick="window.secMarkMeetingDone('${m.id}')">✅ Als erledigt markieren</button>
+              <button type="button" class="smallbtn danger" onclick="window.secDeleteMeeting('${m.id}', 'edit')">🗑️ Löschen</button>
+            </div>
+          `
+          : `<div class="small-note" style="margin-top:10px;">Nur Ansicht</div>`
+      }
     </div>
   `;
 }
 
 window.secSaveMeeting = async () => {
-  if (!hasSecretaryRights()) return alert("Kein Zugriff");
+  if (!canEditSecretaryArea()) return alert("Nur der Secretary darf speichern.");
 
   const meetingDate = $("secMeetingDate")?.value || "";
   const meetingNumber = $("secMeetingNumber")?.value?.trim() || "";
@@ -2297,6 +2352,8 @@ window.secSaveMeeting = async () => {
 ===================================================== */
 
 window.secOpenMeetingDone = async () => {
+  if (!canViewSecretaryArea()) return alert("Kein Zugriff");
+
   SEC_EDIT_MEETING_ID = null;
   SEC_BACK_VIEW = "done";
 
@@ -2319,6 +2376,11 @@ window.secOpenMeetingDone = async () => {
       <div class="small-note">
         Hier siehst du offene Meetings zum Abschließen und alle erledigten Meetings.
       </div>
+      ${
+        canEditSecretaryArea()
+          ? `<div class="small-note">Du bist Secretary: Du darfst erledigen und bearbeiten.</div>`
+          : `<div class="small-note">Nur Ansicht. Erledigen und bearbeiten darf nur der Secretary.</div>`
+      }
     </div>
 
     <h3>Noch offen / zum Erledigen</h3>
@@ -2342,6 +2404,8 @@ window.secOpenMeetingDone = async () => {
 };
 
 function secRenderDoneActionCard(m) {
+  const canEdit = canEditSecretaryArea();
+
   return `
     <div class="card sec-meeting-card sec-meeting-open">
       <b>${escapeHtml(m.meetingNumber || "Meeting")}</b><br>
@@ -2353,16 +2417,40 @@ function secRenderDoneActionCard(m) {
           : `<div class="small-note" style="margin-top:8px;">Keine Info eingetragen.</div>`
       }
 
-      <div class="row" style="margin-top:10px;">
-        <button type="button" class="smallbtn" onclick="window.secMarkMeetingDone('${m.id}')">✅ Erledigt markieren</button>
-        <button type="button" class="smallbtn gray" onclick="window.secEditMeeting('${m.id}', 'done')">Bearbeiten</button>
-      </div>
+      ${
+        canEdit
+          ? `
+            <div class="row" style="margin-top:10px;">
+              <button type="button" class="smallbtn" onclick="window.secMarkMeetingDone('${m.id}')">✅ Erledigt markieren</button>
+              <button type="button" class="smallbtn gray" onclick="window.secEditMeeting('${m.id}', 'done')">Bearbeiten</button>
+            </div>
+          `
+          : `<div class="small-note" style="margin-top:10px;">Nur Ansicht</div>`
+      }
     </div>
   `;
 }
 
 function secRenderFinishedMeetingCard(m) {
+  const canEdit = canEditSecretaryArea();
   const isNoMeeting = m.kind === "no_meeting";
+
+  if (!canEdit) {
+    return `
+      <div class="card sec-meeting-card ${isNoMeeting ? "sec-meeting-none" : "sec-meeting-done"}">
+        <b>${isNoMeeting ? "Es gab kein Meeting" : escapeHtml(m.meetingNumber || "Meeting")}</b><br>
+        Datum: ${escapeHtml(secDateDE(m.meetingDate))}<br>
+        Status: ${isNoMeeting ? "No Meeting" : "Erledigt"}<br>
+
+        <div class="small-note" style="margin-top:10px;">
+          <b>Info:</b><br>
+          ${m.info ? escapeHtml(m.info).replace(/\n/g, "<br>") : "Keine Info eingetragen."}
+        </div>
+
+        <div class="small-note" style="margin-top:10px;">Nur Ansicht</div>
+      </div>
+    `;
+  }
 
   return `
     <div class="card sec-meeting-card ${isNoMeeting ? "sec-meeting-none" : "sec-meeting-done"}">
@@ -2383,7 +2471,7 @@ function secRenderFinishedMeetingCard(m) {
 }
 
 window.secMarkMeetingDone = async (id) => {
-  if (!hasSecretaryRights()) return alert("Kein Zugriff");
+  if (!canEditSecretaryArea()) return alert("Nur der Secretary darf erledigen.");
 
   try {
     await updateDoc(secMeetingRef(id), {
@@ -2405,7 +2493,7 @@ window.secMarkMeetingDone = async (id) => {
 ===================================================== */
 
 window.secCreateNoMeeting = async () => {
-  if (!hasSecretaryRights()) return alert("Kein Zugriff");
+  if (!canEditSecretaryArea()) return alert("Nur der Secretary darf No Meeting speichern.");
 
   const today = secTodayISO();
   const id = `no_meeting_${today}`;
@@ -2439,7 +2527,7 @@ window.secCreateNoMeeting = async () => {
 ===================================================== */
 
 window.secEditMeeting = async (id, backView = "edit") => {
-  if (!hasSecretaryRights()) return alert("Kein Zugriff");
+  if (!canEditSecretaryArea()) return alert("Nur der Secretary darf bearbeiten.");
 
   SEC_EDIT_MEETING_ID = id;
   SEC_BACK_VIEW = backView || "edit";
@@ -2484,7 +2572,7 @@ window.secEditMeeting = async (id, backView = "edit") => {
 };
 
 window.secUpdateMeeting = async (id) => {
-  if (!hasSecretaryRights()) return alert("Kein Zugriff");
+  if (!canEditSecretaryArea()) return alert("Nur der Secretary darf speichern.");
 
   const meetingDate = $("secEditMeetingDate")?.value || "";
   const meetingNumber = $("secEditMeetingNumber")?.value?.trim() || "";
@@ -2513,7 +2601,7 @@ window.secUpdateMeeting = async (id) => {
 };
 
 window.secSaveMeetingInfo = async (id) => {
-  if (!hasSecretaryRights()) return alert("Kein Zugriff");
+  if (!canEditSecretaryArea()) return alert("Nur der Secretary darf Info speichern.");
 
   const info = $(`secInfo_${id}`)?.value?.trim() || "";
 
@@ -2531,7 +2619,7 @@ window.secSaveMeetingInfo = async (id) => {
 };
 
 window.secDeleteMeeting = async (id, backView = "edit") => {
-  if (!hasSecretaryRights()) return alert("Kein Zugriff");
+  if (!canEditSecretaryArea()) return alert("Nur der Secretary darf löschen.");
   if (!confirm("Eintrag wirklich löschen?")) return;
 
   try {
@@ -2554,6 +2642,8 @@ window.secBackAfterEdit = async () => {
 ===================================================== */
 
 window.secOpenMeetingInfoMenu = () => {
+  if (!canViewSecretaryArea()) return alert("Kein Zugriff");
+
   const box = secBox();
   if (!box) return;
 
