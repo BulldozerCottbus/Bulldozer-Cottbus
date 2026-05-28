@@ -1301,3 +1301,64 @@ button:disabled {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* =====================================================
+   SECRETARY NEU – MEETING DESIGN
+===================================================== */
+
+.secretary-home-grid,
+.secretary-meeting-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+}
+
+.secretary-home-grid button,
+.secretary-meeting-grid button {
+  margin-top: 0;
+}
+
+.sec-meeting-card {
+  position: relative;
+}
+
+.sec-meeting-open {
+  border-left: 6px solid #facc15 !important;
+  background:
+    linear-gradient(180deg, rgba(250, 204, 21, 0.16), rgba(250, 204, 21, 0.045)),
+    rgba(12, 12, 16, 0.68) !important;
+}
+
+.sec-meeting-done {
+  border-left: 6px solid #22c55e !important;
+  background:
+    linear-gradient(180deg, rgba(34, 197, 94, 0.16), rgba(34, 197, 94, 0.045)),
+    rgba(12, 12, 16, 0.68) !important;
+}
+
+.sec-meeting-none {
+  border-left: 6px solid #ef4444 !important;
+  background:
+    linear-gradient(180deg, rgba(239, 68, 68, 0.18), rgba(239, 68, 68, 0.055)),
+    rgba(16, 8, 10, 0.72) !important;
+}
+
+#secNewContent h3,
+#secMeetingContent h3 {
+  margin-top: 14px;
+}
+
+#secNewContent textarea {
+  min-height: 82px;
+}
+
+@media (min-width: 560px) {
+  .secretary-home-grid,
+  .secretary-meeting-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .secretary-meeting-grid button:nth-child(3) {
+    grid-column: 1 / -1;
+  }
+}
