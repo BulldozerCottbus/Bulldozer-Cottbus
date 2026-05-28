@@ -2092,1055 +2092,505 @@ window.addPoints = async (targetUid, amount) => {
   alert("Punkte vergeben");
 };
 
-/* ===================================================== */
-/* SECRETARY: TABS / PANEL */
-/* ===================================================== */
+/* =====================================================
+   SECRETARY NEU – MEETING / MEETING INFO
+   Alte Secretary-Ansicht wird dadurch ersetzt.
+   Collection: secretary_meetings_v2
+===================================================== */
 
-window.secShow = (which) => {
-  const tabs = ["secDashboard", "secMember", "secMeetings", "secLetters", "secBylaws", "secArchive"];
+let SEC_MEETING_CACHE = [];
+let SEC_EDIT_MEETING_ID = null;
+let SEC_BACK_VIEW = "edit";
 
-  tabs.forEach(id => {
-    const el = $(id);
-    if (el) el.classList.add("hidden");
-  });
+function secBox() {
+  return $("secNewContent");
+}
 
-  const target = $(which);
-  if (target) target.classList.remove("hidden");
+function secTodayISO() {
+  return new Date().toISOString().slice(0, 10);
+}
 
-  // Lazy load pro Tab
-  if (which === "secDashboard") loadSecretaryDashboard();
-  if (which === "secMember") loadSecretaryEntries();
-  if (which === "secMeetings") loadMeetings();
-  if (which === "secLetters") loadLetters();
-  if (which === "secBylaws") loadBylaws();
-  if (which === "secArchive") loadArchive();
-};
+function secDateDE(iso) {
+  if (!iso) return "-";
+  try {
+    return new Date(`${iso}T00:00:00`).toLocaleDateString("de-DE");
+  } catch {
+    return iso;
+  }
+}
 
-window.showSecretaryPanel = () => {
+function secMeetingRef(id) {
+  return doc(db, "secretary_meetings_v2", id);
+}
+
+function secMeetingColl() {
+  return collection(db, "secretary_meetings_v2");
+}
+
+/* ✅ Überschreibt den alten Secretary-Start */
+window.showSecretaryPanel = async () => {
   if (!hasSecretaryRights()) {
     alert("Kein Zugriff");
     return;
   }
 
   window.showScreen("secretaryScreen");
-  window.secShow("secDashboard");
+  await window.secOpenMeetingMenu();
 };
 
-/* ===================================================== */
-/* SECRETARY: MEMBER OBSERVATIONS (SAVE) */
-/* ===================================================== */
-
-window.saveMemberObservation = async () => {
-  if (!hasSecretaryRights()) return alert("Kein Zugriff");
-
-  const name = $("secName")?.value?.trim();
-  if (!name) return alert("Name fehlt");
-
-  const joinDate = $("secJoinDate")?.value || "";
-  const status = $("secStatus")?.value || "member";
-
-  const hasLicense = !!$("secLicense")?.checked;
-  const licenseCheckedAt = $("secLicenseDate")?.value || "";
-
-  const warn1 = !!$("warn1")?.checked;
-  const warn2 = !!$("warn2")?.checked;
-  const warnText = $("warnText")?.value || "";
-
-  const selfJoined = !!$("selfJoined")?.checked;
-  const sponsor = selfJoined ? "self_joined" : ($("secSponsor")?.value || "");
-
-  const notes = $("secNotes")?.value || "";
-
-  await addDoc(collection(db, "member_observations"), {
-    name,
-    joinDate,
-    status,
-    hasLicense,
-    licenseCheckedAt,
-
-    warn1,
-    warn2,
-    warnText,
-
-    sponsor,
-    notes,
-
-    createdBy: CURRENT_UID,
-    time: Date.now()
-  });
-
-  // reset
-  if ($("secName")) $("secName").value = "";
-  if ($("secJoinDate")) $("secJoinDate").value = "";
-  if ($("secStatus")) $("secStatus").value = "member";
-
-  if ($("secLicense")) $("secLicense").checked = false;
-  if ($("secLicenseDate")) $("secLicenseDate").value = "";
-
-  if ($("warn1")) $("warn1").checked = false;
-  if ($("warn2")) $("warn2").checked = false;
-  if ($("warnText")) $("warnText").value = "";
-
-  if ($("secSponsor")) $("secSponsor").value = "";
-  if ($("selfJoined")) $("selfJoined").checked = false;
-  if ($("secNotes")) $("secNotes").value = "";
-
-  loadSecretaryEntries();
-};
-
-/* ===================================================== */
-/* SECRETARY: MEMBER LIST (CACHE + FILTER) */
-/* ===================================================== */
-
-async function loadSecretaryEntries() {
-  const secEntries = $("secEntries");
-  if (!secEntries) return;
-
-  secEntries.innerHTML = `<div class="card">Lade...</div>`;
-  SECRETARY_ENTRIES_CACHE = [];
-
-  const snaps = await getDocs(collection(db, "member_observations"));
-  snaps.forEach(docSnap => {
-    const e = docSnap.data() || {};
-    SECRETARY_ENTRIES_CACHE.push({ id: docSnap.id, ...e });
-  });
-
-  SECRETARY_ENTRIES_CACHE.sort((a, b) => (b.time || 0) - (a.time || 0));
-  renderSecretaryEntries();
-}
-
-function renderSecretaryEntries() {
-  const secEntries = $("secEntries");
-  if (!secEntries) return;
-
-  const search = ($("secSearch")?.value || "").trim().toLowerCase();
-  const statusFilter = $("secFilterStatus")?.value || "";
-
-  const list = SECRETARY_ENTRIES_CACHE.filter(e => {
-    const st = String(e.status || "").toLowerCase();
-    if (statusFilter && st !== statusFilter) return false;
-    if (!search) return true;
-
-    const blob = [
-      e.name,
-      e.status,
-      e.sponsor,
-      e.notes,
-      e.warnText,
-      e.hasLicense ? "führerschein" : "",
-      e.warn1 ? "w1" : "",
-      e.warn2 ? "w2" : ""
-    ].join(" ").toLowerCase();
-
-    return blob.includes(search);
-  });
-
-  if (list.length === 0) {
-    secEntries.innerHTML = `<div class="card">Keine passenden Einträge.</div>`;
-    return;
-  }
-
-  secEntries.innerHTML = "";
-
-  list.forEach(e => {
-    let warnClass = "";
-    if (e.warn2) warnClass = "warn-w2";
-    else if (e.warn1) warnClass = "warn-w1";
-
-    const st = e.status || "-";
-    const lic = e.hasLicense ? "✅" : "❌";
-
-    secEntries.innerHTML += `
-      <div class="card sec-entry ${warnClass}" onclick="openMemberFile('${e.id}')">
-        <b>${e.name || "-"}</b><br>
-        Status: ${st}<br>
-        Führerschein: ${lic}<br>
-        Warns: ${e.warn1 ? "W.1 " : ""}${e.warn2 ? "W.2" : ""}<br>
-        <small>${e.sponsor === "self_joined" ? "Selbst gekommen" : (e.sponsor ? ("Vorgestellt von: " + e.sponsor) : "")}</small>
-      </div>
-    `;
-  });
-}
-
-/* ===================================================== */
-/* SECRETARY: DETAIL / TIMELINE / WARNS */
-/* ===================================================== */
-
-window.openMemberFile = async (docId) => {
-  CURRENT_MEMBER_DOC = docId;
-
-  const snap = await getDoc(doc(db, "member_observations", docId));
-  if (!snap.exists()) return alert("Nicht gefunden");
-
-  const data = snap.data() || {};
-
-  const statusText = data.status || "-";
-  const licenseText = data.hasLicense ? "✅ Ja" : "❌ Nein";
-  const licenseDate = data.licenseCheckedAt || "-";
-
-  const sponsorLine =
-    data.sponsor === "self_joined"
-      ? "Selbst zum Club gekommen"
-      : (data.sponsor ? `Vorgestellt von: ${data.sponsor}` : "-");
-
-  const secDetail = $("secDetail");
-  if (!secDetail) return;
-
-  secDetail.innerHTML = `
-    <div class="card">
-      <h4>${data.name || "-"}</h4>
-      Mitglied seit: ${data.joinDate || "-"}<br>
-      Status: ${statusText}<br>
-      Führerschein: ${licenseText}<br>
-      Geprüft am: ${licenseDate}<br>
-      Herkunft: ${sponsorLine}<br><br>
-      ${data.notes || ""}
-    </div>
-
-    <div class="card">
-      <h4>⚠️ Warns (Detail)</h4>
-
-      <div class="row">
-        <input id="warnIssued" type="date">
-        <select id="warnLevel">
-          <option value="W1">W.S1</option>
-          <option value="W2">W.S2</option>
-        </select>
-      </div>
-
-      <textarea id="warnReason" placeholder="Grund / Details"></textarea>
-
-      <div class="row">
-        <button class="smallbtn" type="button" onclick="addWarn()">➕ Warn hinzufügen</button>
-        <button class="smallbtn gray" type="button" onclick="loadWarns()">🔄 Laden</button>
-      </div>
-
-      <div id="warnList"></div>
-    </div>
-
-    <div class="card">
-      <h4>🗄️ Member-Archiv</h4>
-      <button class="smallbtn" type="button" onclick="openArchiveLinkedToMember()">➕ Archiv-Eintrag für diese Akte</button>
-      <div id="memberArchiveList"></div>
-    </div>
-
-    <h4>Timeline</h4>
-    <div id="timelineList"></div>
-
-    <div class="card">
-      <h4>✏️ Bearbeiten</h4>
-
-      <input id="editName" placeholder="Name" value="${escapeAttr(data.name)}">
-
-      <label class="field-label" for="editStatus">Status</label>
-      <select id="editStatus">
-        <option value="supporter" ${statusText === "supporter" ? "selected" : ""}>Supporter</option>
-        <option value="hangaround" ${statusText === "hangaround" ? "selected" : ""}>Hangaround</option>
-        <option value="prospect" ${statusText === "prospect" ? "selected" : ""}>Prospect</option>
-        <option value="member" ${statusText === "member" ? "selected" : ""}>Member</option>
-      </select>
-
-      <label class="checkline" for="editHasLicense">
-        <input type="checkbox" id="editHasLicense" ${data.hasLicense ? "checked" : ""}>
-        Führerschein vorhanden
-      </label>
-
-      <label class="field-label" for="editLicenseCheckedAt">Führerschein geprüft am</label>
-      <input id="editLicenseCheckedAt" type="date" value="${escapeAttr(data.licenseCheckedAt)}">
-
-      <div class="warn-checks">
-        <label class="checkline small" for="editWarn1"><input type="checkbox" id="editWarn1" ${data.warn1 ? "checked" : ""}> W.1</label>
-        <label class="checkline small" for="editWarn2"><input type="checkbox" id="editWarn2" ${data.warn2 ? "checked" : ""}> W.2</label>
-      </div>
-
-      <textarea id="editWarnText" placeholder="Warn Details">${data.warnText || ""}</textarea>
-
-      <input id="editSponsor" placeholder="Vorgestellt von" value="${escapeAttr(data.sponsor === "self_joined" ? "" : data.sponsor)}">
-      <label class="checkline" for="editSelfJoined">
-        <input type="checkbox" id="editSelfJoined" ${data.sponsor === "self_joined" ? "checked" : ""}>
-        Selbst zum Club gekommen
-      </label>
-
-      <textarea id="editNotes" placeholder="Notizen">${data.notes || ""}</textarea>
-
-      <div class="row">
-        <button class="smallbtn" type="button" onclick="saveMemberFile()">💾 Speichern</button>
-        <button class="smallbtn danger" type="button" onclick="deleteMemberFile()">🗑️ Löschen</button>
-      </div>
-    </div>
-  `;
-
-  await loadTimeline();
-  await loadWarns();
-  await loadMemberArchive();
-};
-
-async function loadTimeline() {
-  if (!CURRENT_MEMBER_DOC) return;
-
-  const container = $("timelineList");
-  if (!container) return;
-
-  container.innerHTML = "";
-
-  const snaps = await getDocs(collection(db, "member_observations", CURRENT_MEMBER_DOC, "timeline"));
-  const items = [];
-  snaps.forEach(d => items.push(d.data() || {}));
-  items.sort((a, b) => String(b.date || "").localeCompare(String(a.date || "")));
-
-  items.forEach(t => {
-    container.innerHTML += `
-      <div class="timeline-entry">
-        <b>${t.date || "-"}</b> – ${t.rank || ""}<br>
-        ${t.text || ""}
-      </div>
-    `;
-  });
-}
-
-window.addTimelineEntry = async () => {
-  if (!CURRENT_MEMBER_DOC) return alert("Erst Akte öffnen");
-
-  const timelineDate = $("timelineDate")?.value || "";
-  const timelineRank = $("timelineRank")?.value || "";
-  const timelineText = $("timelineText")?.value || "";
-
-  if (!timelineDate) return alert("Datum fehlt");
-
-  await addDoc(collection(db, "member_observations", CURRENT_MEMBER_DOC, "timeline"), {
-    date: timelineDate,
-    rank: timelineRank,
-    text: timelineText,
-    by: CURRENT_UID,
-    time: Date.now()
-  });
-
-  if ($("timelineText")) $("timelineText").value = "";
-  if ($("timelineRank")) $("timelineRank").value = "";
-
-  loadTimeline();
-};
-
-/* Warns subcollection */
-
-window.addWarn = async () => {
-  if (!CURRENT_MEMBER_DOC) return alert("Erst Akte öffnen");
-
-  const issued = $("warnIssued")?.value;
-  const level = $("warnLevel")?.value || "W1";
-  const reason = $("warnReason")?.value || "";
-
-  if (!issued) return alert("Datum fehlt");
-
-  await addDoc(collection(db, "member_observations", CURRENT_MEMBER_DOC, "warns"), {
-    issued,
-    level,
-    reason,
-    by: CURRENT_UID,
-    time: Date.now(),
-    active: true
-  });
-
-  if ($("warnReason")) $("warnReason").value = "";
-  loadWarns();
-};
-
-window.loadWarns = async () => {
-  if (!CURRENT_MEMBER_DOC) return;
-
-  const list = $("warnList");
-  if (!list) return;
-
-  list.innerHTML = `<div class="card">Lade...</div>`;
-
-  const snaps = await getDocs(
-    query(
-      collection(db, "member_observations", CURRENT_MEMBER_DOC, "warns"),
-      orderBy("issued", "desc"),
-      limit(50)
-    )
-  );
-
-  if (snaps.empty) {
-    list.innerHTML = `<div class="card">Keine Warn-Details gespeichert.</div>`;
-    return;
-  }
-
-  list.innerHTML = "";
-
-  snaps.forEach(d => {
-    const w = d.data() || {};
-    const lvlClass = w.level === "W2" ? "warn-w2" : "warn-w1";
-
-    list.innerHTML += `
-      <div class="card ${lvlClass}">
-        <b>${w.level || "-"}</b> – ${w.issued || "-"}<br>
-        ${w.reason || ""}<br>
-        <small>von: ${userNameByUid(w.by)}</small><br><br>
-
-        <button class="smallbtn gray" type="button"
-          onclick="toggleWarnActive('${d.id}', ${w.active === false ? "false" : "true"})">
-          Status: ${w.active === false ? "Erledigt" : "Aktiv"}
-        </button>
-
-        <button class="smallbtn danger" type="button" onclick="deleteWarn('${d.id}')">Löschen</button>
-      </div>
-    `;
-  });
-};
-
-window.toggleWarnActive = async (warnId, current) => {
-  if (!CURRENT_MEMBER_DOC) return;
-  const next = current ? false : true;
-  await updateDoc(doc(db, "member_observations", CURRENT_MEMBER_DOC, "warns", warnId), { active: next });
-  loadWarns();
-};
-
-window.deleteWarn = async (warnId) => {
-  if (!CURRENT_MEMBER_DOC) return;
-  if (!confirm("Warn wirklich löschen?")) return;
-  await deleteDoc(doc(db, "member_observations", CURRENT_MEMBER_DOC, "warns", warnId));
-  loadWarns();
-};
-
-/* Edit / Delete member file */
-
-window.saveMemberFile = async () => {
-  if (!CURRENT_MEMBER_DOC) return;
-
-  const name = $("editName")?.value || "";
-  const status = $("editStatus")?.value || "member";
-  const hasLicense = !!$("editHasLicense")?.checked;
-  const licenseCheckedAt = $("editLicenseCheckedAt")?.value || "";
-
-  const warn1 = !!$("editWarn1")?.checked;
-  const warn2 = !!$("editWarn2")?.checked;
-  const warnText = $("editWarnText")?.value || "";
-
-  const selfJoined = !!$("editSelfJoined")?.checked;
-  const sponsor = selfJoined ? "self_joined" : ($("editSponsor")?.value || "");
-
-  const notes = $("editNotes")?.value || "";
-
-  await updateDoc(doc(db, "member_observations", CURRENT_MEMBER_DOC), {
-    name,
-    status,
-    hasLicense,
-    licenseCheckedAt,
-    warn1,
-    warn2,
-    warnText,
-    sponsor,
-    notes
-  });
-
-  alert("Gespeichert");
-  await loadSecretaryEntries();
-  await window.openMemberFile(CURRENT_MEMBER_DOC);
-};
-
-window.deleteMemberFile = async () => {
-  if (!CURRENT_MEMBER_DOC) return;
-  if (!confirm("Akte wirklich löschen?")) return;
-
-  await deleteDoc(doc(db, "member_observations", CURRENT_MEMBER_DOC));
-  CURRENT_MEMBER_DOC = null;
-
-  const secDetail = $("secDetail");
-  if (secDetail) secDetail.innerHTML = "";
-
-  loadSecretaryEntries();
-};
-
-/* ===================================================== */
-/* MEETINGS: PICKLISTS / VOTES / ACTIONS */
-/* ===================================================== */
-
-function prepareMeetingPicklists() {
-  const presentBox = $("meetAttendanceBox");
-  const excusedBox = $("meetAbsentExcusedBox");
-  const unexcusedBox = $("meetAbsentUnexcusedBox");
-
-  if (!presentBox || !excusedBox || !unexcusedBox) return;
-
-  const users = [...USERS_CACHE.entries()]
-    .map(([uid, u]) => ({ uid, ...u }))
-    .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-
-  const row = (uid, name) => `
-    <label class="pickitem">
-      <input type="checkbox" data-uid="${uid}">
-      <span>${name}</span>
-    </label>
-  `;
-
-  presentBox.innerHTML = users.map(u => row(u.uid, u.name)).join("");
-  excusedBox.innerHTML = users.map(u => row(u.uid, u.name)).join("");
-  unexcusedBox.innerHTML = users.map(u => row(u.uid, u.name)).join("");
-
-  const hook = () => syncMeetingAttendanceText();
-  [presentBox, excusedBox, unexcusedBox].forEach(box => {
-    box.querySelectorAll("input[type=checkbox]").forEach(ch => ch.onchange = hook);
-  });
-}
-
-function getCheckedUids(boxId) {
-  const box = $(boxId);
-  if (!box) return [];
-  const out = [];
-  box.querySelectorAll("input[type=checkbox]").forEach(ch => {
-    if (ch.checked) out.push(ch.getAttribute("data-uid"));
-  });
-  return out;
-}
-
-function setCheckedUids(boxId, uids) {
-  const box = $(boxId);
+/* =====================================================
+   HAUPTMENÜ: MEETING
+===================================================== */
+
+window.secOpenMeetingMenu = async () => {
+  const box = secBox();
   if (!box) return;
-  const set = new Set(uids || []);
-  box.querySelectorAll("input[type=checkbox]").forEach(ch => {
-    const uid = ch.getAttribute("data-uid");
-    ch.checked = set.has(uid);
-  });
-}
 
-function syncMeetingAttendanceText() {
-  const out = $("meetAttendees");
-  if (!out) return;
-
-  const present = getCheckedUids("meetAttendanceBox").map(userNameByUid);
-  const excused = getCheckedUids("meetAbsentExcusedBox").map(userNameByUid);
-  const unexcused = getCheckedUids("meetAbsentUnexcusedBox").map(userNameByUid);
-
-  const lines = [];
-  if (present.length) lines.push("Anwesend: " + present.join(", "));
-  if (excused.length) lines.push("Abwesend (entschuldigt): " + excused.join(", "));
-  if (unexcused.length) lines.push("Abwesend (unentschuldigt): " + unexcused.join(", "));
-
-  out.value = lines.join(" | ");
-}
-
-function buildVoteBox() {
-  const vb = $("voteBox");
-  if (!vb) return;
-
-  const presentUids = getCheckedUids("meetAttendanceBox");
-  if (!presentUids.length) {
-    vb.innerHTML = `<div class="card">Bitte zuerst Teilnehmer "Anwesend" auswählen.</div>`;
-    return;
-  }
-
-  vb.innerHTML = `
+  box.innerHTML = `
     <div class="card">
-      <b>Stimmen (optional)</b><br>
-      <small>Trage pro Person eine Stimme ein (z.B. Ja/Nein/A/B).</small>
-      <div id="voteRows"></div>
-      <button class="smallbtn" type="button" onclick="calcVoteResultFromRows()">Ergebnis berechnen</button>
+      <h3>🗓️ Meeting</h3>
+
+      <div class="secretary-meeting-grid">
+        <button type="button" onclick="window.secOpenMeetingEdit()">1. Bearbeitung</button>
+        <button type="button" onclick="window.secOpenMeetingDone()">2. Erledigt</button>
+        <button type="button" class="danger" onclick="window.secCreateNoMeeting()">3. No Meeting</button>
+      </div>
+
+      <div class="small-note">
+        Gelb = in Bearbeitung · Grün = erledigt · Rot = Es gab kein Meeting
+      </div>
     </div>
+
+    <div id="secMeetingContent"></div>
   `;
 
-  const rows = $("voteRows");
-  if (!rows) return;
-
-  rows.innerHTML = presentUids.map(uid => `
-    <div class="pickitem">
-      <span style="flex:1">${userNameByUid(uid)}</span>
-      <input style="width:120px" data-uid="${uid}" placeholder="Stimme">
-    </div>
-  `).join("");
-}
-
-window.calcVoteResultFromRows = () => {
-  const vb = $("voteBox");
-  if (!vb) return;
-
-  const inputs = vb.querySelectorAll("input[data-uid]");
-  const counts = new Map();
-
-  inputs.forEach(inp => {
-    const v = (inp.value || "").trim();
-    if (!v) return;
-    counts.set(v, (counts.get(v) || 0) + 1);
-  });
-
-  if (counts.size === 0) {
-    alert("Keine Stimmen eingetragen");
-    return;
-  }
-
-  const parts = [...counts.entries()].map(([k, n]) => `${n} ${k}`);
-  const vr = $("voteResult");
-  if (vr) vr.value = parts.join(" / ");
+  await window.secOpenMeetingEdit();
 };
 
-/* Action items */
+async function secLoadMeetings() {
+  SEC_MEETING_CACHE = [];
 
-function addMeetingActionRow(prefill = null) {
-  const list = $("meetActionsList");
-  if (!list) return;
+  try {
+    const snaps = await getDocs(
+      query(collection(db, "secretary_meetings_v2"), orderBy("meetingDate", "desc"), limit(300))
+    );
 
-  const idx = MEETING_ACTIONS.length;
-  MEETING_ACTIONS.push({
-    text: prefill?.text || "",
-    toUid: prefill?.toUid || CURRENT_UID,
-    dueDate: prefill?.dueDate || "",
-    taskId: prefill?.taskId || null,
-    removed: false
-  });
+    snaps.forEach((ds) => {
+      SEC_MEETING_CACHE.push({
+        id: ds.id,
+        ...(ds.data() || {})
+      });
+    });
+  } catch (e) {
+    const box = $("secMeetingContent");
+    if (box) {
+      box.innerHTML = `<div class="card">Fehler beim Laden: ${escapeHtml(e.message)}</div>`;
+    }
+  }
+}
 
-  list.innerHTML += `
-    <div class="card" id="actRow${idx}">
-      <input id="actText${idx}" placeholder="Aufgabe (Text)" value="${escapeAttr(prefill?.text || "")}">
-      <select id="actTo${idx}"></select>
-      <input id="actDue${idx}" type="date" value="${escapeAttr(prefill?.dueDate || "")}">
-      <div class="row">
-        <button class="smallbtn danger" type="button" onclick="removeActionRow(${idx})">Entfernen</button>
+/* =====================================================
+   1. BEARBEITUNG
+===================================================== */
+
+window.secOpenMeetingEdit = async () => {
+  SEC_EDIT_MEETING_ID = null;
+  SEC_BACK_VIEW = "edit";
+
+  const box = $("secMeetingContent");
+  if (!box) return;
+
+  await secLoadMeetings();
+
+  const openMeetings = SEC_MEETING_CACHE
+    .filter((m) => (m.status || "open") === "open" && m.kind !== "no_meeting")
+    .sort((a, b) => String(b.meetingDate || "").localeCompare(String(a.meetingDate || "")));
+
+  box.innerHTML = `
+    <div class="card">
+      <h3>🟡 Bearbeitung</h3>
+
+      <label class="field-label">Datum</label>
+      <input id="secMeetingDate" type="date" value="${secTodayISO()}">
+
+      <label class="field-label">Meeting Nummer</label>
+      <input id="secMeetingNumber" placeholder="z.B. Meeting 1 / 001 / Vorstand 01">
+
+      <label class="field-label">Info / Notiz optional</label>
+      <textarea id="secMeetingInfo" placeholder="Optional: Was ist vorbereitet, was fehlt, worum geht es?"></textarea>
+
+      <button type="button" onclick="window.secSaveMeeting()">💾 Meeting speichern</button>
+    </div>
+
+    <h3>Offene Meetings</h3>
+    <div id="secOpenMeetingList">
+      ${
+        openMeetings.length
+          ? openMeetings.map(secRenderOpenMeetingCard).join("")
+          : `<div class="card">Keine offenen Meetings vorhanden.</div>`
+      }
+    </div>
+  `;
+};
+
+function secRenderOpenMeetingCard(m) {
+  return `
+    <div class="card sec-meeting-card sec-meeting-open">
+      <b>${escapeHtml(m.meetingNumber || "Meeting")}</b><br>
+      Datum: ${escapeHtml(secDateDE(m.meetingDate))}<br>
+
+      ${
+        m.info
+          ? `<div class="small-note" style="margin-top:8px;">${escapeHtml(m.info).replace(/\n/g, "<br>")}</div>`
+          : `<div class="small-note" style="margin-top:8px;">Keine Info eingetragen.</div>`
+      }
+
+      <div class="row" style="margin-top:10px;">
+        <button type="button" class="smallbtn gray" onclick="window.secEditMeeting('${m.id}', 'edit')">Bearbeiten</button>
+        <button type="button" class="smallbtn" onclick="window.secMarkMeetingDone('${m.id}')">✅ Als erledigt markieren</button>
+        <button type="button" class="smallbtn danger" onclick="window.secDeleteMeeting('${m.id}', 'edit')">🗑️ Löschen</button>
       </div>
     </div>
   `;
-
-  const sel = $(`actTo${idx}`);
-  if (!sel) return;
-
-  const users = [...USERS_CACHE.entries()]
-    .map(([uid, u]) => ({ uid, ...u }))
-    .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
-
-  sel.innerHTML = users.map(u => `<option value="${u.uid}">${u.name}</option>`).join("");
-  sel.value = prefill?.toUid || CURRENT_UID;
-
-  const t = $(`actText${idx}`);
-  const d = $(`actDue${idx}`);
-
-  if (t) t.oninput = () => (MEETING_ACTIONS[idx].text = t.value);
-  sel.onchange = () => (MEETING_ACTIONS[idx].toUid = sel.value);
-  if (d) d.onchange = () => (MEETING_ACTIONS[idx].dueDate = d.value);
-
-  // initial state
-  MEETING_ACTIONS[idx].text = t ? t.value : "";
-  MEETING_ACTIONS[idx].toUid = sel.value;
-  MEETING_ACTIONS[idx].dueDate = d ? d.value : "";
 }
 
-window.removeActionRow = (idx) => {
-  if (MEETING_ACTIONS[idx]) MEETING_ACTIONS[idx].removed = true;
-  const row = $(`actRow${idx}`);
-  if (row) row.style.display = "none";
+window.secSaveMeeting = async () => {
+  if (!hasSecretaryRights()) return alert("Kein Zugriff");
+
+  const meetingDate = $("secMeetingDate")?.value || "";
+  const meetingNumber = $("secMeetingNumber")?.value?.trim() || "";
+  const info = $("secMeetingInfo")?.value?.trim() || "";
+
+  if (!meetingDate) return alert("Datum fehlt.");
+  if (!meetingNumber) return alert("Meeting Nummer fehlt.");
+
+  const payload = {
+    kind: "meeting",
+    meetingDate,
+    meetingNumber,
+    info,
+    status: "open",
+    updatedBy: CURRENT_UID,
+    updatedAt: Date.now()
+  };
+
+  try {
+    if (SEC_EDIT_MEETING_ID) {
+      await updateDoc(secMeetingRef(SEC_EDIT_MEETING_ID), payload);
+    } else {
+      await addDoc(secMeetingColl(), {
+        ...payload,
+        createdBy: CURRENT_UID,
+        createdAt: Date.now()
+      });
+    }
+
+    SEC_EDIT_MEETING_ID = null;
+    await window.secOpenMeetingEdit();
+  } catch (e) {
+    alert("Speichern fehlgeschlagen: " + e.message);
+  }
 };
 
-function resetMeetingForm() {
-  EDIT_MEETING_ID = null;
-  MEETING_ACTIONS = [];
+/* =====================================================
+   2. ERLEDIGT
+===================================================== */
 
-  const idsClear = [
-    "meetDate","meetTitle","meetAgenda","meetNotes","voteTopic","voteOptions","voteResult",
-    "meetPersons","meetAttendees","meetFollowups"
-  ];
-  idsClear.forEach(id => { const el = $(id); if (el) el.value = ""; });
+window.secOpenMeetingDone = async () => {
+  SEC_EDIT_MEETING_ID = null;
+  SEC_BACK_VIEW = "done";
 
-  const ms = $("meetStatus");
-  if (ms) ms.value = "open";
+  const box = $("secMeetingContent");
+  if (!box) return;
 
-  const vb = $("voteBox");
-  if (vb) vb.innerHTML = "";
+  await secLoadMeetings();
 
-  const al = $("meetActionsList");
-  if (al) al.innerHTML = "";
+  const openMeetings = SEC_MEETING_CACHE
+    .filter((m) => (m.status || "open") === "open" && m.kind !== "no_meeting")
+    .sort((a, b) => String(b.meetingDate || "").localeCompare(String(a.meetingDate || "")));
 
-  ["meetAttendanceBox", "meetAbsentExcusedBox", "meetAbsentUnexcusedBox"].forEach(id => {
-    const box = $(id);
-    if (!box) return;
-    box.querySelectorAll("input[type=checkbox]").forEach(ch => ch.checked = false);
-  });
+  const doneMeetings = SEC_MEETING_CACHE
+    .filter((m) => (m.status || "open") === "done")
+    .sort((a, b) => String(b.meetingDate || "").localeCompare(String(a.meetingDate || "")));
 
-  const smb = $("saveMeetingBtn");
-  if (smb) smb.textContent = "Besprechung speichern";
+  box.innerHTML = `
+    <div class="card">
+      <h3>🟢 Erledigt</h3>
+      <div class="small-note">
+        Hier siehst du offene Meetings zum Abschließen und alle erledigten Meetings.
+      </div>
+    </div>
+
+    <h3>Noch offen / zum Erledigen</h3>
+    <div>
+      ${
+        openMeetings.length
+          ? openMeetings.map(secRenderDoneActionCard).join("")
+          : `<div class="card">Keine offenen Meetings zum Erledigen.</div>`
+      }
+    </div>
+
+    <h3>Erledigte Meetings</h3>
+    <div>
+      ${
+        doneMeetings.length
+          ? doneMeetings.map(secRenderFinishedMeetingCard).join("")
+          : `<div class="card">Noch keine erledigten Meetings.</div>`
+      }
+    </div>
+  `;
+};
+
+function secRenderDoneActionCard(m) {
+  return `
+    <div class="card sec-meeting-card sec-meeting-open">
+      <b>${escapeHtml(m.meetingNumber || "Meeting")}</b><br>
+      Datum: ${escapeHtml(secDateDE(m.meetingDate))}<br>
+
+      ${
+        m.info
+          ? `<div class="small-note" style="margin-top:8px;">${escapeHtml(m.info).replace(/\n/g, "<br>")}</div>`
+          : `<div class="small-note" style="margin-top:8px;">Keine Info eingetragen.</div>`
+      }
+
+      <div class="row" style="margin-top:10px;">
+        <button type="button" class="smallbtn" onclick="window.secMarkMeetingDone('${m.id}')">✅ Erledigt markieren</button>
+        <button type="button" class="smallbtn gray" onclick="window.secEditMeeting('${m.id}', 'done')">Bearbeiten</button>
+      </div>
+    </div>
+  `;
 }
 
-async function loadMeetings() {
-  const list = $("meetingList");
-  if (!list) return;
+function secRenderFinishedMeetingCard(m) {
+  const isNoMeeting = m.kind === "no_meeting";
 
-  list.innerHTML = `<div class="card">Lade...</div>`;
-  MEETINGS_CACHE = [];
+  return `
+    <div class="card sec-meeting-card ${isNoMeeting ? "sec-meeting-none" : "sec-meeting-done"}">
+      <b>${isNoMeeting ? "Es gab kein Meeting" : escapeHtml(m.meetingNumber || "Meeting")}</b><br>
+      Datum: ${escapeHtml(secDateDE(m.meetingDate))}<br>
+      Status: ${isNoMeeting ? "No Meeting" : "Erledigt"}<br>
 
-  const snaps = await getDocs(query(collection(db, "meetings"), orderBy("date", "desc"), limit(50)));
-  snaps.forEach(docSnap => {
-    MEETINGS_CACHE.push({ id: docSnap.id, ...docSnap.data() });
-  });
+      <label class="field-label">Info Zeile / Was fehlt / Notiz</label>
+      <textarea id="secInfo_${m.id}" placeholder="Hier Info eintragen...">${escapeHtml(m.info || "")}</textarea>
 
-  renderMeetings();
+      <div class="row" style="margin-top:10px;">
+        <button type="button" class="smallbtn" onclick="window.secSaveMeetingInfo('${m.id}')">💾 Info speichern</button>
+        <button type="button" class="smallbtn gray" onclick="window.secEditMeeting('${m.id}', 'done')">Bearbeiten</button>
+        <button type="button" class="smallbtn danger" onclick="window.secDeleteMeeting('${m.id}', 'done')">🗑️ Löschen</button>
+      </div>
+    </div>
+  `;
 }
 
-function renderMeetings() {
-  const list = $("meetingList");
-  if (!list) return;
+window.secMarkMeetingDone = async (id) => {
+  if (!hasSecretaryRights()) return alert("Kein Zugriff");
 
-  const search = ($("meetSearch")?.value || "").trim().toLowerCase();
-  const statusFilter = $("meetFilterStatus")?.value || "";
-
-  let items = [...MEETINGS_CACHE];
-
-  if (statusFilter) items = items.filter(m => (m.status || "open") === statusFilter);
-
-  if (search) {
-    items = items.filter(m => {
-      const blob = [
-        m.date, m.title, m.agenda, m.notes, m.voteTopic, m.voteOptions, m.voteResult,
-        m.persons, m.attendees, m.followups
-      ].join(" ").toLowerCase();
-      return blob.includes(search);
+  try {
+    await updateDoc(secMeetingRef(id), {
+      status: "done",
+      doneBy: CURRENT_UID,
+      doneAt: Date.now(),
+      updatedBy: CURRENT_UID,
+      updatedAt: Date.now()
     });
-  }
 
-  if (items.length === 0) {
-    list.innerHTML = `<div class="card">Noch keine passenden Protokolle.</div>`;
+    await window.secOpenMeetingDone();
+  } catch (e) {
+    alert("Konnte nicht erledigt markieren: " + e.message);
+  }
+};
+
+/* =====================================================
+   3. NO MEETING
+===================================================== */
+
+window.secCreateNoMeeting = async () => {
+  if (!hasSecretaryRights()) return alert("Kein Zugriff");
+
+  const today = secTodayISO();
+  const id = `no_meeting_${today}`;
+
+  try {
+    await setDoc(
+      secMeetingRef(id),
+      {
+        kind: "no_meeting",
+        meetingDate: today,
+        meetingNumber: "No Meeting",
+        info: "Es gab kein Meeting",
+        status: "done",
+        createdBy: CURRENT_UID,
+        createdAt: Date.now(),
+        updatedBy: CURRENT_UID,
+        updatedAt: Date.now()
+      },
+      { merge: true }
+    );
+
+    alert("No Meeting wurde gespeichert.");
+    await window.secOpenMeetingDone();
+  } catch (e) {
+    alert("No Meeting konnte nicht gespeichert werden: " + e.message);
+  }
+};
+
+/* =====================================================
+   BEARBEITEN / INFO SPEICHERN / LÖSCHEN
+===================================================== */
+
+window.secEditMeeting = async (id, backView = "edit") => {
+  if (!hasSecretaryRights()) return alert("Kein Zugriff");
+
+  SEC_EDIT_MEETING_ID = id;
+  SEC_BACK_VIEW = backView || "edit";
+
+  const box = $("secMeetingContent");
+  if (!box) return;
+
+  try {
+    const snap = await getDoc(secMeetingRef(id));
+    if (!snap.exists()) return alert("Meeting nicht gefunden.");
+
+    const m = snap.data() || {};
+    const isNoMeeting = m.kind === "no_meeting";
+
+    box.innerHTML = `
+      <div class="card ${isNoMeeting ? "sec-meeting-none" : (m.status === "done" ? "sec-meeting-done" : "sec-meeting-open")}">
+        <h3>✏️ ${isNoMeeting ? "No Meeting bearbeiten" : "Meeting bearbeiten"}</h3>
+
+        <label class="field-label">Datum</label>
+        <input id="secEditMeetingDate" type="date" value="${escapeAttr(m.meetingDate || secTodayISO())}">
+
+        <label class="field-label">Meeting Nummer</label>
+        <input id="secEditMeetingNumber" value="${escapeAttr(m.meetingNumber || "")}" ${isNoMeeting ? "readonly" : ""}>
+
+        <label class="field-label">Info / Notiz</label>
+        <textarea id="secEditMeetingInfo" placeholder="Info / was fehlt / Notiz...">${escapeHtml(m.info || "")}</textarea>
+
+        <div class="row">
+          <button type="button" onclick="window.secUpdateMeeting('${id}')">💾 Änderungen speichern</button>
+          ${
+            !isNoMeeting && m.status !== "done"
+              ? `<button type="button" onclick="window.secMarkMeetingDone('${id}')">✅ Erledigt markieren</button>`
+              : ``
+          }
+          <button type="button" class="gray" onclick="window.secBackAfterEdit()">⬅ Zurück</button>
+        </div>
+      </div>
+    `;
+  } catch (e) {
+    alert("Bearbeiten fehlgeschlagen: " + e.message);
+  }
+};
+
+window.secUpdateMeeting = async (id) => {
+  if (!hasSecretaryRights()) return alert("Kein Zugriff");
+
+  const meetingDate = $("secEditMeetingDate")?.value || "";
+  const meetingNumber = $("secEditMeetingNumber")?.value?.trim() || "";
+  const info = $("secEditMeetingInfo")?.value?.trim() || "";
+
+  if (!meetingDate) return alert("Datum fehlt.");
+  if (!meetingNumber) return alert("Meeting Nummer fehlt.");
+
+  try {
+    const oldSnap = await getDoc(secMeetingRef(id));
+    const old = oldSnap.exists() ? (oldSnap.data() || {}) : {};
+
+    await updateDoc(secMeetingRef(id), {
+      meetingDate,
+      meetingNumber: old.kind === "no_meeting" ? "No Meeting" : meetingNumber,
+      info,
+      updatedBy: CURRENT_UID,
+      updatedAt: Date.now()
+    });
+
+    SEC_EDIT_MEETING_ID = null;
+    await window.secBackAfterEdit();
+  } catch (e) {
+    alert("Änderung konnte nicht gespeichert werden: " + e.message);
+  }
+};
+
+window.secSaveMeetingInfo = async (id) => {
+  if (!hasSecretaryRights()) return alert("Kein Zugriff");
+
+  const info = $(`secInfo_${id}`)?.value?.trim() || "";
+
+  try {
+    await updateDoc(secMeetingRef(id), {
+      info,
+      updatedBy: CURRENT_UID,
+      updatedAt: Date.now()
+    });
+
+    await window.secOpenMeetingDone();
+  } catch (e) {
+    alert("Info konnte nicht gespeichert werden: " + e.message);
+  }
+};
+
+window.secDeleteMeeting = async (id, backView = "edit") => {
+  if (!hasSecretaryRights()) return alert("Kein Zugriff");
+  if (!confirm("Eintrag wirklich löschen?")) return;
+
+  try {
+    await deleteDoc(secMeetingRef(id));
+
+    if (backView === "done") await window.secOpenMeetingDone();
+    else await window.secOpenMeetingEdit();
+  } catch (e) {
+    alert("Löschen fehlgeschlagen: " + e.message);
+  }
+};
+
+window.secBackAfterEdit = async () => {
+  if (SEC_BACK_VIEW === "done") await window.secOpenMeetingDone();
+  else await window.secOpenMeetingEdit();
+};
+
+/* =====================================================
+   MEETING INFO
+===================================================== */
+
+window.secOpenMeetingInfoMenu = () => {
+  const box = secBox();
+  if (!box) return;
+
+  box.innerHTML = `
+    <div class="card">
+      <h3>ℹ️ Meeting Info</h3>
+
+      <button type="button" onclick="window.secOpenInformation()">1. Information</button>
+      <button type="button" class="gray" onclick="window.secOpenMeetingMenu()">⬅ Zurück zu Meeting</button>
+    </div>
+
+    <div id="secMeetingInfoContent"></div>
+  `;
+};
+
+window.secOpenInformation = () => {
+  const box = $("secMeetingInfoContent");
+  if (!box) return;
+
+  if (!isAdmin()) {
+    box.innerHTML = `
+      <div class="card sec-meeting-none">
+        <h3>🔒 Information</h3>
+        <p>Dieser Bereich ist für alle geschlossen.</p>
+        <button type="button" class="gray" onclick="window.secOpenMeetingInfoMenu()">⬅ Zurück</button>
+      </div>
+    `;
     return;
   }
 
-  list.innerHTML = "";
-
-  items.forEach(m => {
-    list.innerHTML += `
-      <div class="card ${m.status === "done" ? "task-done" : "task-open"}">
-        <b>${m.date || "-"}</b> – ${m.title || "Besprechung"}<br>
-        <small>${m.agenda || ""}</small><br><br>
-        ${m.notes || ""}<br><br>
-        <b>Abstimmung:</b> ${m.voteTopic || "-"}<br>
-        Optionen: ${m.voteOptions || "-"}<br>
-        Ergebnis: ${m.voteResult || "-"}<br><br>
-        <b>Betroffen:</b> ${m.persons || "-"}<br>
-        <b>Teilnehmer:</b> ${m.attendees || "-"}<br><br>
-        <b>Follow-ups:</b><br>${m.followups || "-"}<br><br>
-
-        <button type="button" onclick="editMeeting('${m.id}')">Bearbeiten</button>
-        <button type="button" onclick="deleteMeeting('${m.id}')">Löschen</button>
-        <button type="button" onclick="toggleMeetingStatus('${m.id}', '${m.status || "open"}')">
-          Status: ${m.status === "done" ? "Erledigt" : "Offen"}
-        </button>
-        <button class="smallbtn gray" type="button" onclick="openArchiveLinkedToMeeting('${m.id}')">🗄️ Archiv verknüpfen</button>
-      </div>
-    `;
-  });
-}
-
-async function saveMeeting() {
-  if (!hasSecretaryRights()) return alert("Kein Zugriff");
-
-  const md = $("meetDate");
-  const mt = $("meetTitle");
-  if (!md?.value || !mt?.value) return alert("Datum und Titel sind Pflicht");
-
-  const payload = {
-    date: md.value,
-    title: mt.value,
-    agenda: $("meetAgenda")?.value || "",
-    notes: $("meetNotes")?.value || "",
-
-    voteTopic: $("voteTopic")?.value || "",
-    voteOptions: $("voteOptions")?.value || "",
-    voteResult: $("voteResult")?.value || "",
-
-    persons: $("meetPersons")?.value || "",
-    attendees: $("meetAttendees")?.value || "",
-    followups: $("meetFollowups")?.value || "",
-
-    status: $("meetStatus")?.value || "open",
-
-    attendance: {
-      present: getCheckedUids("meetAttendanceBox"),
-      absentExcused: getCheckedUids("meetAbsentExcusedBox"),
-      absentUnexcused: getCheckedUids("meetAbsentUnexcusedBox")
-    },
-
-    actions: MEETING_ACTIONS
-      .filter(a => a && !a.removed)
-      .map(a => ({
-        text: a.text || "",
-        toUid: a.toUid || CURRENT_UID,
-        dueDate: a.dueDate || "",
-        taskId: a.taskId || null
-      }))
-      .filter(a => a.text.trim().length > 0),
-
-    createdBy: CURRENT_UID,
-    time: Date.now()
-  };
-
-  let meetingId = EDIT_MEETING_ID;
-
-  if (EDIT_MEETING_ID) {
-    await updateDoc(doc(db, "meetings", EDIT_MEETING_ID), payload);
-  } else {
-    const ref = await addDoc(collection(db, "meetings"), payload);
-    meetingId = ref.id;
-  }
-
-  // Tasks aus Action-Items erstellen/aktualisieren
-  for (let i = 0; i < payload.actions.length; i++) {
-    const a = payload.actions[i];
-
-    // Neu anlegen
-    if (!a.taskId) {
-      const tRef = await addDoc(collection(db, "tasks"), {
-        from: CURRENT_UID,
-        to: a.toUid,
-        text: `[Meeting ${md.value}] ${a.text}`,
-        status: "open",
-        dueDate: a.dueDate || "",
-        meetingId: meetingId,
-        time: Date.now()
-      });
-      a.taskId = tRef.id;
-      continue;
-    }
-
-    // Existiert der Task noch?
-    const tRef = doc(db, "tasks", a.taskId);
-    const tDoc = await getDoc(tRef);
-
-    // Wenn Task gelöscht wurde → neu erstellen statt updateDoc() Crash
-    if (!tDoc.exists()) {
-      const newRef = await addDoc(collection(db, "tasks"), {
-        from: CURRENT_UID,
-        to: a.toUid,
-        text: `[Meeting ${md.value}] ${a.text}`,
-        status: "open",
-        dueDate: a.dueDate || "",
-        meetingId: meetingId,
-        time: Date.now()
-      });
-      a.taskId = newRef.id;
-      continue;
-    }
-
-    // Update bestehend (Status beibehalten)
-    const existing = tDoc.data() || {};
-    await updateDoc(tRef, {
-      to: a.toUid,
-      text: `[Meeting ${md.value}] ${a.text}`,
-      dueDate: a.dueDate || "",
-      meetingId: meetingId,
-      status: existing.status || "open"
-    });
-  }
-
-  // Actions zurück in meeting schreiben (mit taskId)
-  await updateDoc(doc(db, "meetings", meetingId), { actions: payload.actions });
-
-  resetMeetingForm();
-  await loadMeetings();
-  loadTasks();
-}
-
-window.editMeeting = async (id) => {
-  if (!hasSecretaryRights()) return;
-
-  const snap = await getDoc(doc(db, "meetings", id));
-  if (!snap.exists()) return alert("Nicht gefunden");
-
-  const m = snap.data() || {};
-  EDIT_MEETING_ID = id;
-
-  const setVal = (id2, v) => { const el = $(id2); if (el) el.value = v || ""; };
-
-  setVal("meetDate", m.date);
-  setVal("meetTitle", m.title);
-  setVal("meetAgenda", m.agenda);
-  setVal("meetNotes", m.notes);
-
-  setVal("voteTopic", m.voteTopic);
-  setVal("voteOptions", m.voteOptions);
-  setVal("voteResult", m.voteResult);
-
-  setVal("meetPersons", m.persons);
-  setVal("meetAttendees", m.attendees);
-  setVal("meetFollowups", m.followups);
-
-  setVal("meetStatus", m.status || "open");
-
-  prepareMeetingPicklists();
-  setCheckedUids("meetAttendanceBox", m.attendance?.present || []);
-  setCheckedUids("meetAbsentExcusedBox", m.attendance?.absentExcused || []);
-  setCheckedUids("meetAbsentUnexcusedBox", m.attendance?.absentUnexcused || []);
-  syncMeetingAttendanceText();
-
-  MEETING_ACTIONS = [];
-  const list = $("meetActionsList");
-  if (list) list.innerHTML = "";
-  (m.actions || []).forEach(a => addMeetingActionRow(a));
-
-  const smb = $("saveMeetingBtn");
-  if (smb) smb.textContent = "✅ Änderungen speichern";
-
-  window.secShow("secMeetings");
-};
-
-window.deleteMeeting = async (id) => {
-  if (!hasSecretaryRights()) return;
-  if (!confirm("Besprechung wirklich löschen?")) return;
-
-  await deleteDoc(doc(db, "meetings", id));
-  await loadMeetings();
-};
-
-window.toggleMeetingStatus = async (id, current) => {
-  if (!hasSecretaryRights()) return;
-  const next = current === "done" ? "open" : "done";
-  await updateDoc(doc(db, "meetings", id), { status: next });
-  await loadMeetings();
-};
-
-/* ===================================================== */
-/* LETTERS */
-/* ===================================================== */
-
-function resetLetterForm() {
-  EDIT_LETTER_ID = null;
-  const setVal = (id, v) => { const el = $(id); if (el) el.value = v || ""; };
-  setVal("letterTemplate", "");
-  setVal("letterTo", "");
-  setVal("letterSubject", "");
-  setVal("letterBody", "");
-  setVal("letterStatus", "draft");
-}
-
-function applyLetterTemplate() {
-  const t = $("letterTemplate")?.value || "";
-  if (!t) return;
-
-  const subj = $("letterSubject");
-  const body = $("letterBody");
-  const subjEmpty = !subj?.value;
-  const bodyEmpty = !body?.value;
-
-  if (t === "invite") {
-    if (subj && subjEmpty) subj.value = "Einladung";
-    if (body && bodyEmpty) body.value = "Hallo,\n\nhiermit laden wir euch herzlich zu unserem Treffen / Run ein.\n\nDatum:\nOrt:\nUhrzeit:\n\nMit freundlichen Grüßen\n";
-  }
-  if (t === "warning") {
-    if (subj && subjEmpty) subj.value = "Hinweis / Verwarnung";
-    if (body && bodyEmpty) body.value = "Hallo,\n\nhiermit dokumentieren wir folgenden Vorfall:\n\n- Datum:\n- Ort:\n- Beschreibung:\n\nBitte beachten:\n\nMit freundlichen Grüßen\n";
-  }
-  if (t === "confirm") {
-    if (subj && subjEmpty) subj.value = "Bestätigung";
-    if (body && bodyEmpty) body.value = "Hallo,\n\nhiermit bestätigen wir:\n\n...\n\nMit freundlichen Grüßen\n";
-  }
-  if (t === "reply") {
-    if (subj && subjEmpty) subj.value = "Antwort";
-    if (body && bodyEmpty) body.value = "Hallo,\n\ndanke für deine Nachricht. Hier unsere Rückmeldung:\n\n...\n\nMit freundlichen Grüßen\n";
-  }
-}
-
-async function saveLetter() {
-  if (!hasSecretaryRights()) return alert("Kein Zugriff");
-
-  const toEl = $("letterTo");
-  const subEl = $("letterSubject");
-  const bodyEl = $("letterBody");
-  const statusEl = $("letterStatus");
-  const tplEl = $("letterTemplate");
-
-  if (!toEl?.value || !subEl?.value) return alert("Empfänger und Betreff sind Pflicht");
-
-  const payload = {
-    to: toEl.value,
-    subject: subEl.value,
-    body: bodyEl ? bodyEl.value : "",
-    status: statusEl ? statusEl.value : "draft",
-    template: tplEl ? tplEl.value : "",
-    createdBy: CURRENT_UID,
-    time: Date.now()
-  };
-
-  if (EDIT_LETTER_ID) {
-    await updateDoc(doc(db, "letters", EDIT_LETTER_ID), payload);
-  } else {
-    await addDoc(collection(db, "letters"), payload);
-  }
-
-  resetLetterForm();
-  loadLetters();
-}
-
-async function loadLetters() {
-  const list = $("lettersList");
-  if (!list) return;
-
-  list.innerHTML = `<div class="card">Lade...</div>`;
-  LETTERS_CACHE = [];
-
-  const snaps = await getDocs(query(collection(db, "letters"), orderBy("time", "desc"), limit(100)));
-  snaps.forEach(d => LETTERS_CACHE.push({ id: d.id, ...d.data() }));
-
-  renderLetters();
-}
-
-function renderLetters() {
-  const list = $("lettersList");
-  if (!list) return;
-
-  const search = ($("letterSearch")?.value || "").trim().toLowerCase();
-  const filter = $("letterFilter")?.value || "";
-
-  let items = [...LETTERS_CACHE];
-  if (filter) items = items.filter(l => (l.status || "draft") === filter);
-
-  if (search) {
-    items = items.filter(l => {
-      const blob = [l.to, l.subject, l.body, l.status].join(" ").toLowerCase();
-      return blob.includes(search);
-    });
-  }
-
-  if (items.length === 0) {
-    list.innerHTML = `<div class="card">Keine Einträge.</div>`;
-    return;
-  }
-
-  list.innerHTML = "";
-
-  items.forEach(l => {
-    const preview = (l.body || "").slice(0, 350).replace(/\n/g, "<br>");
-    list.innerHTML += `
-      <div class="card">
-        <b>${(l.status || "draft").toUpperCase()}</b> – ${l.subject || "-"}<br>
-        <small>an: ${l.to || "-"}</small><br><br>
-        ${preview}
-        ${(l.body || "").length > 350 ? "<br><small>...</small>" : ""}
-        <br><br>
-        <button type="button" onclick="editLetter('${l.id}')">Bearbeiten</button>
-        <button class="danger" type="button" onclick="deleteLetter('${l.id}')">Löschen</button>
-      </div>
-    `;
-  });
-}
-
-window.editLetter = async (id) => {
-  if (!hasSecretaryRights()) return;
-
-  const snap = await getDoc(doc(db, "letters", id));
-  if (!snap.exists()) return alert("Nicht gefunden");
-
-  const l = snap.data() || {};
-  EDIT_LETTER_ID = id;
-
-  const setVal = (id2, v) => { const el = $(id2); if (el) el.value = v || ""; };
-  setVal("letterTemplate", l.template);
-  setVal("letterTo", l.to);
-  setVal("letterSubject", l.subject);
-  setVal("letterBody", l.body);
-  setVal("letterStatus", l.status || "draft");
-
-  window.secShow("secLetters");
-};
-
-window.deleteLetter = async (id) => {
-  if (!hasSecretaryRights()) return;
-  if (!confirm("Letter wirklich löschen?")) return;
-
-  await deleteDoc(doc(db, "letters", id));
-  loadLetters();
+  box.innerHTML = `
+    <div class="card">
+      <h3>🔓 Information</h3>
+      <p class="small-note">Admin-Zugriff aktiv. Dieser Bereich ist aktuell leer.</p>
+      <button type="button" class="gray" onclick="window.secOpenMeetingInfoMenu()">⬅ Zurück</button>
+    </div>
+  `;
 };
 
 /* ===================================================== */
