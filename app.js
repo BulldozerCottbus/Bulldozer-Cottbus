@@ -65,6 +65,7 @@ let EDIT_INFO_ID = null;
 let CALENDAR_CURRENT_MONTH = new Date().toISOString().slice(0, 7);
 let CALENDAR_SELECTED_DAY = null;
 let CALENDAR_CACHE = new Map();
+let CALENDAR_MY_RSVP_CACHE = new Map(); // dayIso -> confirmed / declined
 
 /* Settings */
 const SETTINGS_KEY = "bdz_settings_v1";
@@ -878,6 +879,65 @@ function calDaysInMonth(year, monthZeroBased) {
   return new Date(year, monthZeroBased + 1, 0).getDate();
 }
 
+function calTodayISO() {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
+
+function calIsPastDay(dayIso) {
+  return String(dayIso || "") < calTodayISO();
+}
+
+function calStatusLabel(entry, myStatus, dayIso) {
+  if (!entry) return "Frei";
+  if (calIsPastDay(dayIso) || entry.status === "done") return "Vergangen";
+  if (myStatus === "confirmed") return "Bestätigt";
+  if (myStatus === "declined") return "Abgelehnt";
+  return "Neu";
+}
+
+function calStatusIcon(entry, myStatus, dayIso) {
+  if (!entry) return "○";
+  if (calIsPastDay(dayIso) || entry.status === "done") return "◌";
+  if (myStatus === "confirmed") return "✓";
+  if (myStatus === "declined") return "×";
+  return "!";
+}
+
+function calTypeLabel(type) {
+  const t = String(type || "").toLowerCase();
+  if (t === "ausfahrt") return "Ausfahrt";
+  if (t === "treffen") return "Treffen";
+  if (t === "tour") return "Tour";
+  if (t === "sonstiges") return "Sonstiges";
+  return type || "Termin";
+}
+
+async function loadMyRsvpsForCalendarMonth() {
+  CALENDAR_MY_RSVP_CACHE.clear();
+
+  if (!CURRENT_UID || !CALENDAR_CACHE.size) return;
+
+  const days = [...CALENDAR_CACHE.keys()];
+
+  await Promise.all(days.map(async (dayIso) => {
+    try {
+      const snap = await getDoc(doc(db, "calendar_days", dayIso, "rsvps", CURRENT_UID));
+      if (!snap.exists()) return;
+
+      const d = snap.data() || {};
+      if (d.status === "confirmed" || d.status === "declined") {
+        CALENDAR_MY_RSVP_CACHE.set(dayIso, d.status);
+      }
+    } catch (e) {
+      console.warn("load calendar rsvp failed:", dayIso, e);
+    }
+  }));
+}
+
 window.showCalendarPanel = async () => {
   window.showScreen("calendarScreen");
 
@@ -894,6 +954,7 @@ async function loadCalendarMonth(monthStr) {
   if (monthInput) monthInput.value = CALENDAR_CURRENT_MONTH;
 
   CALENDAR_CACHE.clear();
+  CALENDAR_MY_RSVP_CACHE.clear();
 
   try {
     const snaps = await getDocs(
@@ -903,6 +964,8 @@ async function loadCalendarMonth(monthStr) {
     snaps.forEach((ds) => {
       CALENDAR_CACHE.set(ds.id, { id: ds.id, ...(ds.data() || {}) });
     });
+
+    await loadMyRsvpsForCalendarMonth();
   } catch (e) {
     console.warn("loadCalendarMonth failed:", e);
   }
@@ -917,6 +980,7 @@ function renderCalendarGrid(monthStr) {
   const [yearStr, monthStrNum] = String(monthStr).split("-");
   const year = Number(yearStr);
   const monthZero = Number(monthStrNum) - 1;
+  const todayIso = calTodayISO();
 
   const totalDays = calDaysInMonth(year, monthZero);
   const offset = calStartOffset(year, monthZero);
@@ -934,16 +998,52 @@ function renderCalendarGrid(monthStr) {
   for (let day = 1; day <= totalDays; day++) {
     const dayIso = `${year}-${String(monthZero + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     const entry = CALENDAR_CACHE.get(dayIso);
+    const myStatus = CALENDAR_MY_RSVP_CACHE.get(dayIso) || "";
 
-    let cls = "day-empty";
-    if (entry) cls = entry.status === "done" ? "day-done" : "day-open";
+    const classes = ["calendar-day"];
+
+    if (!entry) {
+      classes.push("day-empty");
+    } else if (calIsPastDay(dayIso) || entry.status === "done") {
+      classes.push("day-past");
+    } else if (myStatus === "confirmed" || myStatus === "declined") {
+      classes.push("day-my-rsvp");
+    } else {
+      classes.push("day-open");
+    }
+
+    if (dayIso === todayIso) classes.push("day-today");
+    if (entry?.required) classes.push("day-required");
+
+    const label = calStatusLabel(entry, myStatus, dayIso);
+    const icon = calStatusIcon(entry, myStatus, dayIso);
+    const type = entry ? calTypeLabel(entry.type) : "";
+    const destination = entry ? escapeHtml(entry.destination || "Eintrag") : "Frei";
+    const time = entry?.time ? escapeHtml(entry.time) : "—";
+    const meet = entry?.meetPoint ? escapeHtml(entry.meetPoint) : "";
+    const required = entry?.required ? `<span class="cal-pill cal-pill-required">Pflicht</span>` : "";
 
     const preview = entry
-      ? `${entry.required ? "⚠️ " : ""}${escapeHtml(entry.destination || entry.type || "Eintrag")}<br>${escapeHtml(entry.time || "")}`
-      : "Frei";
+      ? `
+        <div class="calendar-card-top">
+          <span class="calendar-status-dot">${icon}</span>
+          <span class="calendar-status-text">${escapeHtml(label)}</span>
+        </div>
+        <div class="calendar-event-title">${destination}</div>
+        <div class="calendar-event-meta">${escapeHtml(type)} • ${time}</div>
+        ${meet ? `<div class="calendar-event-place">📍 ${meet}</div>` : ""}
+        <div class="calendar-pills">${required}</div>
+      `
+      : `
+        <div class="calendar-card-top">
+          <span class="calendar-status-dot">○</span>
+          <span class="calendar-status-text">Frei</span>
+        </div>
+        <div class="calendar-empty-text">Kein Eintrag</div>
+      `;
 
     html += `
-      <div class="calendar-day ${cls}" onclick="window.openCalendarDay('${dayIso}')">
+      <div class="${classes.join(" ")}" onclick="window.openCalendarDay('${dayIso}')">
         <div class="calendar-day-num">${day}</div>
         <div class="calendar-day-text">${preview}</div>
       </div>
@@ -994,7 +1094,11 @@ function fillCalendarDayModal(entry) {
   setText("calReadMeetPoint", entry?.meetPoint || "-");
   setText("calReadCost", entry?.cost != null && entry?.cost !== "" ? `${Number(entry.cost).toFixed(2)}€` : "-");
   setText("calReadType", entry?.type || "-");
-  setText("calReadStatus", entry?.status === "done" ? "Abgeschlossen" : (hasEntry ? "Aktiv" : "Kein Eintrag"));
+  const myCalendarStatus = entry ? (CALENDAR_MY_RSVP_CACHE.get(entry.id || CALENDAR_SELECTED_DAY) || "") : "";
+  const myStatusText = myCalendarStatus === "confirmed"
+    ? " • Du hast bestätigt"
+    : (myCalendarStatus === "declined" ? " • Du hast abgelehnt" : "");
+  setText("calReadStatus", entry?.status === "done" ? "Abgeschlossen" : (hasEntry ? `Aktiv${myStatusText}` : "Kein Eintrag"));
   setText("calReadNote", entry?.note || "-");
   setText("calReadRequired", entry?.required ? "✅ Ja" : "—");
   setText("calReadMax", entry?.maxParticipants ? String(entry.maxParticipants) : "—");
@@ -1201,6 +1305,8 @@ window.setCalendarRsvp = async (status) => {
       { merge: true }
     );
 
+    CALENDAR_MY_RSVP_CACHE.set(CALENDAR_SELECTED_DAY, status);
+    renderCalendarGrid(CALENDAR_CURRENT_MONTH);
     await loadCalendarRsvps(CALENDAR_SELECTED_DAY, true);
   } catch (e) {
     alert("Bestätigung/Ablehnung fehlgeschlagen: " + e.message);
@@ -1225,6 +1331,8 @@ async function loadCalendarRsvps(dayIso, hasEntry) {
       const txt = d.status === "confirmed" ? "✅ Bestätigt" : "❌ Abgelehnt";
       const when = d.updatedAt ? new Date(d.updatedAt).toLocaleString("de-DE") : "-";
 
+      CALENDAR_MY_RSVP_CACHE.set(dayIso, d.status);
+      renderCalendarGrid(CALENDAR_CURRENT_MONTH);
       if (myBox) myBox.innerText = `Dein Status: ${txt} (${when})`;
     } else {
       if (myBox) myBox.innerText = "Kein Status gesetzt.";
