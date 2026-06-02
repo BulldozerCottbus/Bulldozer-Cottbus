@@ -1697,3 +1697,36 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* =====================================================
+   HANGAROUND – BUTTONS SICHTBAR, ABER GESPERRT
+   Hangaround darf nur Kalender benutzen.
+===================================================== */
+
+.is-locked-feature {
+  opacity: 0.62;
+  filter: grayscale(0.45);
+  border-color: rgba(255, 255, 255, 0.10) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.022)),
+    rgba(12, 12, 16, 0.62) !important;
+  box-shadow:
+    0 10px 24px rgba(0, 0, 0, 0.26),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06) !important;
+}
+
+.is-locked-feature::after {
+  content: "Gesperrt";
+  position: absolute;
+  right: 10px;
+  top: 8px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  font-size: 10px;
+  font-weight: 950;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.78);
+  background: rgba(255, 255, 255, 0.075);
+  border: 1px solid rgba(255, 255, 255, 0.10);
+}
