@@ -58,6 +58,7 @@ function escapeAttr(s) {
 
 let CURRENT_UID = null;
 let CURRENT_RANK = null;
+let CURRENT_USER_DATA = null;
 let USERS_CACHE = new Map();
 
 let EDIT_INFO_ID = null;
@@ -125,6 +126,11 @@ window.logout = async () => {
 ===================================================== */
 
 window.showScreen = (id) => {
+  if (!canOpenScreenForRank(id)) {
+    hangaroundBlockedMessage();
+    return;
+  }
+
   document.querySelectorAll(".container").forEach((s) => s.classList.add("hidden"));
   const target = $(id);
   if (target) target.classList.remove("hidden");
@@ -149,6 +155,21 @@ function canManageCalendar() {
     .includes(String(CURRENT_RANK || "").toLowerCase());
 }
 
+function isHangaround() {
+  return String(CURRENT_RANK || "").toLowerCase() === "hangaround";
+}
+
+function hangaroundBlockedMessage() {
+  alert("Kein Zugriff. Hangaround kann aktuell nur den Kalender benutzen.");
+}
+
+function canOpenScreenForRank(id) {
+  if (!isHangaround()) return true;
+
+  // Hangaround darf nur Grundnavigation + Kalender.
+  return ["loginScreen", "homeScreen", "calendarScreen"].includes(String(id || ""));
+}
+
 function applyRankRights() {
   const postInfoBtn = $("postInfoBtn");
   if (postInfoBtn) postInfoBtn.classList.remove("hidden");
@@ -160,6 +181,16 @@ function applyRankRights() {
 
 async function loadUsersCache() {
   USERS_CACHE.clear();
+
+  // Hangaround darf laut Rules nur sein eigenes User-Dokument lesen.
+  // Darum kein collection-read auf users.
+  if (isHangaround()) {
+    USERS_CACHE.set(CURRENT_UID, {
+      name: CURRENT_USER_DATA?.name || "Unbekannt",
+      rank: CURRENT_USER_DATA?.rank || "hangaround"
+    });
+    return;
+  }
 
   try {
     const snaps = await getDocs(collection(db, "users"));
@@ -288,6 +319,8 @@ function nextNameChangeText(lastChangedAt) {
 
 async function loadMemberOnlyProfile() {
   MEMBER_ONLY_PROFILE = null;
+
+  if (isHangaround()) return null;
 
   if (!CURRENT_UID) return null;
 
@@ -559,6 +592,8 @@ function saveSettings() {
 }
 
 function openSettingsModal() {
+  if (isHangaround()) return hangaroundBlockedMessage();
+
   const modal = $("settingsModal");
   if (!modal) return;
 
@@ -752,6 +787,8 @@ onAuthStateChanged(auth, async (user) => {
   if (!user) {
     CURRENT_UID = null;
     CURRENT_RANK = null;
+    CURRENT_USER_DATA = null;
+    CURRENT_USER_DATA = null;
 
     if (loginScreen) loginScreen.classList.remove("hidden");
     if (homeScreen) homeScreen.classList.add("hidden");
@@ -770,6 +807,7 @@ onAuthStateChanged(auth, async (user) => {
     const snap = await getDoc(doc(db, "users", user.uid));
     const data = snap.exists() ? (snap.data() || {}) : {};
 
+    CURRENT_USER_DATA = data;
     CURRENT_RANK = data.rank || "member";
 
     setText("rankLabel", data.rank || "-");
@@ -783,8 +821,13 @@ onAuthStateChanged(auth, async (user) => {
   applyRankRights();
 
   await loadUsersCache();
-  await loadMemberOnlyProfile();
-  await loadInfos();
+
+  // Hangaround soll nur den Kalender benutzen.
+  // Deshalb werden geschützte Bereiche gar nicht vorgeladen.
+  if (!isHangaround()) {
+    await loadMemberOnlyProfile();
+    await loadInfos();
+  }
 
   bindUI();
 });
@@ -808,7 +851,12 @@ function bindUI() {
   }
 
   const dbg = $("debugButton");
-  if (dbg) dbg.onclick = () => window.openDebugModal();
+  if (dbg) {
+    dbg.onclick = () => {
+      if (isHangaround()) return hangaroundBlockedMessage();
+      window.openDebugModal();
+    };
+  }
 
   const addLog = $("addChangelogBtn");
   if (addLog) addLog.onclick = () => addChangelogEntry();
@@ -853,10 +901,20 @@ function bindUI() {
   if (calDeclineBtn) calDeclineBtn.onclick = () => window.setCalendarRsvp("declined");
 
   const memberOnlyBtn = $("memberOnlyBtn");
-  if (memberOnlyBtn) memberOnlyBtn.onclick = () => window.openMemberOnly();
+  if (memberOnlyBtn) {
+    memberOnlyBtn.onclick = () => {
+      if (isHangaround()) return hangaroundBlockedMessage();
+      window.openMemberOnly();
+    };
+  }
 
   const settingsBtn = $("settingsBtn");
-  if (settingsBtn) settingsBtn.onclick = () => openSettingsModal();
+  if (settingsBtn) {
+    settingsBtn.onclick = () => {
+      if (isHangaround()) return hangaroundBlockedMessage();
+      openSettingsModal();
+    };
+  }
 
   const settingsClose = $("settingsCloseBtn");
   if (settingsClose) settingsClose.onclick = () => closeSettingsModal();
@@ -922,6 +980,8 @@ function bindUI() {
 ===================================================== */
 
 window.openInfoModal = async (infoId = null) => {
+  if (isHangaround()) return hangaroundBlockedMessage();
+
   const modal = $("infoModal");
   const title = $("infoModalTitle");
   const text = $("infoModalText");
@@ -1026,6 +1086,8 @@ window.deleteInfo = async (id) => {
 };
 
 async function loadInfos() {
+  if (isHangaround()) return;
+
   const infosList = $("infosList");
   if (!infosList) return;
 
@@ -1097,6 +1159,8 @@ async function loadInfos() {
 ===================================================== */
 
 window.toggleWarnInfo = () => {
+  if (isHangaround()) return hangaroundBlockedMessage();
+
   const warnBox = $("warnInfoBox");
   const clubBox = $("clubRulesBox");
   const meetBox = $("meetingRulesBox");
@@ -1110,6 +1174,8 @@ window.toggleWarnInfo = () => {
 };
 
 window.toggleClubRules = () => {
+  if (isHangaround()) return hangaroundBlockedMessage();
+
   const clubBox = $("clubRulesBox");
   const warnBox = $("warnInfoBox");
   const meetBox = $("meetingRulesBox");
@@ -1123,6 +1189,8 @@ window.toggleClubRules = () => {
 };
 
 window.toggleMeetingRules = () => {
+  if (isHangaround()) return hangaroundBlockedMessage();
+
   const meetBox = $("meetingRulesBox");
   const warnBox = $("warnInfoBox");
   const clubBox = $("clubRulesBox");
@@ -1144,6 +1212,8 @@ function canEditChangelog() {
 }
 
 window.openDebugModal = async () => {
+  if (isHangaround()) return hangaroundBlockedMessage();
+
   const modal = $("debugModal");
   const adminBox = $("changelogAdminBox");
 
