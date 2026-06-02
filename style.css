@@ -1,32 +1,22 @@
 /* =====================================================
    BULLDOZER – MODERN RED / WHITE / BLACK THEME
+   Komplette style.css – reduzierte App-Version
 ===================================================== */
 
 :root {
   --bg: #020203;
-  --bg-2: #08080b;
-  --panel: rgba(6, 6, 9, 0.62);
   --card: rgba(13, 13, 18, 0.66);
-  --card-soft: rgba(255, 255, 255, 0.045);
   --modal-bg: rgba(9, 9, 13, 0.94);
 
   --line: rgba(255, 255, 255, 0.105);
-  --line-strong: rgba(255, 255, 255, 0.18);
   --line-red: rgba(255, 45, 65, 0.64);
 
   --text: #ffffff;
   --text-soft: rgba(255, 255, 255, 0.88);
   --text-dim: rgba(255, 255, 255, 0.66);
-  --text-muted: rgba(255, 255, 255, 0.48);
 
   --red: #ff2d41;
   --red-strong: #ff1732;
-  --red-soft: rgba(255, 45, 65, 0.15);
-  --red-deep: rgba(92, 8, 15, 0.5);
-
-  --green: rgba(255, 255, 255, 0.86);
-  --warning: rgba(255, 45, 65, 0.75);
-  --danger: rgba(255, 45, 65, 0.96);
 
   --radius-xl: 24px;
   --radius: 18px;
@@ -225,7 +215,7 @@ header {
 }
 
 /* =====================================================
-   LAYOUT
+   LAYOUT / CARDS
 ===================================================== */
 
 .container {
@@ -259,15 +249,7 @@ header {
 #homeScreen > .card,
 #loginScreen > .card,
 #infos > .card,
-#notes > .card,
-#tasks > .card,
-#calendarScreen > .card,
-#secretaryScreen > .card,
-#treasuryScreen > .card,
-#calc > .card,
-#files > .card,
-#help > .card,
-#rides > .card {
+#calendarScreen > .card {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.026)),
     rgba(5, 5, 8, 0.54);
@@ -462,9 +444,7 @@ button:disabled {
   text-shadow: 0 0 18px rgba(255, 45, 65, 0.26) !important;
 }
 
-.smallbtn,
-.btnSmall,
-.iconBtn {
+.smallbtn {
   min-height: 40px;
   padding: 10px 12px;
   border-radius: 13px;
@@ -510,35 +490,9 @@ button:disabled {
 }
 
 /* =====================================================
-   NOTES / TASKS / STATUS CARDS
+   STATUS CARDS / RULES
 ===================================================== */
 
-.note-privat {
-  border-left: 4px solid rgba(255, 255, 255, 0.42);
-}
-
-.note-club,
-.task-open,
-.money-warn {
-  border-left: 4px solid rgba(255, 45, 65, 0.78);
-}
-
-.note-wichtig,
-.warn-w2,
-.money-bad,
-.day-open {
-  border-left: 5px solid rgba(255, 45, 65, 0.98) !important;
-  background:
-    linear-gradient(180deg, rgba(255, 45, 65, 0.18), rgba(255, 45, 65, 0.055)),
-    rgba(14, 6, 8, 0.62) !important;
-}
-
-.note-auftrag {
-  border-left: 4px solid rgba(255, 255, 255, 0.8);
-  background: rgba(255, 255, 255, 0.055);
-}
-
-.task-done,
 .warn-w1,
 .money-good,
 .day-done {
@@ -548,8 +502,17 @@ button:disabled {
     rgba(10, 10, 14, 0.58) !important;
 }
 
-.task-done {
-  opacity: 0.84;
+.warn-w2,
+.money-bad,
+.day-open {
+  border-left: 5px solid rgba(255, 45, 65, 0.98) !important;
+  background:
+    linear-gradient(180deg, rgba(255, 45, 65, 0.18), rgba(255, 45, 65, 0.055)),
+    rgba(14, 6, 8, 0.62) !important;
+}
+
+.money-warn {
+  border-left: 4px solid rgba(255, 45, 65, 0.78);
 }
 
 /* =====================================================
@@ -578,26 +541,11 @@ button:disabled {
   border: 1px solid rgba(255, 255, 255, 0.13);
 }
 
-.hr {
-  height: 1px;
-  background: rgba(255, 255, 255, 0.08);
-  margin: 10px 0;
-}
-
 .readonly-hint,
 .small-note {
   opacity: 0.9;
   margin-top: 6px;
 }
-
-.mono {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-  white-space: pre-wrap;
-}
-
-/* =====================================================
-   CHECKBOXES / PICKLISTS
-===================================================== */
 
 .checkline {
   display: flex;
@@ -607,13 +555,7 @@ button:disabled {
   user-select: none;
 }
 
-.checkline.small {
-  margin-top: 0;
-}
-
-.checkline input[type="checkbox"],
-.picklist input[type="checkbox"],
-.month-grid input[type="checkbox"] {
+.checkline input[type="checkbox"] {
   width: 18px;
   height: 18px;
   margin: 0;
@@ -621,126 +563,34 @@ button:disabled {
   accent-color: var(--red);
 }
 
-.warn-checks {
-  display: flex;
-  gap: 18px;
-  align-items: center;
-  margin-top: 8px;
-}
-
-.picklist {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  margin-top: 6px;
-  overflow-wrap: normal !important;
-  word-break: normal !important;
-}
-
-.picklist .pick-item,
-.picklist .pickitem,
-.picklist .card,
-.month-grid label {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: 0;
-  padding: 10px 12px;
-  border-radius: 15px;
-  border: 1px solid rgba(255, 255, 255, 0.095);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02)),
-    rgba(8, 8, 12, 0.62);
-  overflow-wrap: normal !important;
-  word-break: normal !important;
-}
-
-.month-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.month-grid label {
-  user-select: none;
-}
-
 /* =====================================================
-   SECRETARY / ENTRIES
+   CHANGELOG
 ===================================================== */
 
-.timeline-entry {
-  border-left: 3px solid rgba(255, 45, 65, 0.82);
-  margin-top: 8px;
-  padding-left: 10px;
-  font-size: 14px;
-  opacity: 0.96;
-}
-
-.sec-entry,
-.ride-card,
-.member-card,
-.calendar-day {
-  cursor: pointer;
-  transition:
-    transform 0.18s ease,
-    border-color 0.18s ease,
-    background 0.18s ease,
-    box-shadow 0.18s ease;
-  will-change: transform;
-}
-
-.sec-entry:hover,
-.ride-card:hover,
-.member-card:hover,
-.calendar-day:hover {
-  transform: translateY(-2px);
-  border-color: rgba(255, 45, 65, 0.45);
-  box-shadow:
-    0 18px 42px rgba(0, 0, 0, 0.38),
-    0 0 24px rgba(255, 45, 65, 0.08);
-}
-
-.sec-tabs {
-  margin-bottom: 12px;
-  padding: 10px;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.055), rgba(255, 255, 255, 0.02)),
-    rgba(2, 2, 4, 0.42);
+.chlog-item {
+  padding: 12px;
+  border-radius: 16px;
+  margin-top: 10px;
+  background: rgba(255, 255, 255, 0.045);
   border: 1px solid rgba(255, 255, 255, 0.09);
-  border-radius: 18px;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055);
 }
 
-.sec-tabs button {
-  width: 100% !important;
-  min-height: 46px;
-  margin-top: 0;
-  padding: 12px 10px;
-  line-height: 1.15;
-  white-space: normal;
-  overflow-wrap: normal !important;
-  word-break: normal !important;
-  hyphens: none;
-  font-size: 14px;
-  border-radius: 14px;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.025)),
-    rgba(8, 8, 12, 0.65);
+.chlog-meta {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-bottom: 6px;
 }
 
-/* =====================================================
-   TREASURY
-===================================================== */
+.chlog-bugfix {
+  border-left: 4px solid rgba(255, 45, 65, 0.9);
+}
 
-#treasNetInfo,
-#treasCashDiff,
-#tmRestInfo {
-  font-weight: 750;
+.chlog-feature {
+  border-left: 4px solid rgba(255, 255, 255, 0.78);
+}
+
+.chlog-info {
+  border-left: 4px solid rgba(255, 255, 255, 0.38);
 }
 
 /* =====================================================
@@ -761,8 +611,7 @@ button:disabled {
   display: none !important;
 }
 
-.modal-backdrop,
-.modalBackdrop {
+.modal-backdrop {
   position: absolute;
   inset: 0;
   background:
@@ -772,8 +621,7 @@ button:disabled {
   -webkit-backdrop-filter: blur(10px) saturate(1.1);
 }
 
-.modal-card,
-.modalCard {
+.modal-card {
   position: relative;
   z-index: 10000;
   width: min(560px, 95vw);
@@ -805,131 +653,7 @@ button:disabled {
   }
 }
 
-.modalCard h3,
 .modal-card h3 {
-  margin-top: 0;
-}
-
-/* =====================================================
-   R.P MODAL
-===================================================== */
-
-#rpBtn.btn-pop {
-  animation: btnPop 180ms ease-out;
-}
-
-@keyframes btnPop {
-  0% { transform: scale(1); }
-  40% { transform: scale(0.96); }
-  100% { transform: scale(1); }
-}
-
-.rp-card.pop-in {
-  animation: popIn 200ms ease-out;
-  transform-origin: 50% 20%;
-}
-
-@keyframes popIn {
-  0% { transform: scale(0.92); opacity: 0; }
-  100% { transform: scale(1); opacity: 1; }
-}
-
-.rp-head {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.rp-logo {
-  width: 56px;
-  height: 56px;
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.14);
-  background: rgba(255, 255, 255, 0.04);
-  box-shadow: var(--glow-red);
-}
-
-.rp-grid {
-  margin-top: 12px;
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 8px;
-}
-
-.rp-grid button {
-  min-height: 46px;
-  margin-top: 0;
-  padding: 12px 10px;
-  font-size: 14px;
-  line-height: 1.15;
-  white-space: normal;
-}
-
-/* RP gesperrt Modal */
-
-.modalBackdrop {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 20px;
-}
-
-.modalCard {
-  width: min(420px, 100%);
-  max-height: 86vh;
-}
-
-.modalCard p {
-  margin: 0 0 14px;
-  opacity: 0.95;
-}
-
-/* =====================================================
-   RIDES
-===================================================== */
-
-.rides-tabs {
-  display: grid;
-  grid-template-columns: 1fr !important;
-  gap: 10px;
-}
-
-.rides-tabs button {
-  width: 100% !important;
-  margin-top: 0;
-  white-space: normal;
-  word-break: break-word;
-}
-
-.ride-card {
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.022)),
-    rgba(18, 18, 22, 0.62);
-}
-
-.ride-meta {
-  font-size: 12px;
-  color: var(--text-dim);
-  margin-bottom: 8px;
-}
-
-.ride-title {
-  font-size: 16px;
-  font-weight: 850;
-  margin-bottom: 6px;
-}
-
-.ride-actions {
-  display: flex;
-  gap: 8px;
-  flex-wrap: wrap;
-  margin-top: 10px;
-}
-
-.ride-actions button {
-  width: auto;
-  flex: 1;
   margin-top: 0;
 }
 
@@ -988,8 +712,21 @@ button:disabled {
   letter-spacing: 0.08em;
 }
 
+.calendar-day {
+  cursor: pointer;
+  transition:
+    transform 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease;
+}
+
 .calendar-day:hover {
   transform: translateY(-2px) scale(1.01);
+  border-color: rgba(255, 45, 65, 0.45);
+  box-shadow:
+    0 18px 42px rgba(0, 0, 0, 0.38),
+    0 0 24px rgba(255, 45, 65, 0.08);
 }
 
 .calendar-day-num {
@@ -1024,102 +761,18 @@ button:disabled {
    SETTINGS + FLOATING BACK
 ===================================================== */
 
-.navBtn {
-  /* reserviert für den Einstellungen-Button */
+.settings-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
 }
 
-.settings-card,
-.settingsCard {
+.settings-card {
   animation: modernModalIn 190ms ease-out;
 }
 
-.modal.show .settings-card,
-.modal.show .settingsCard {
-  opacity: 1;
-}
-
-.modalHeader {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.modalBody {
-  padding: 14px;
-}
-
-.settingRow {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  justify-content: space-between;
-  padding: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.02);
-  margin-bottom: 10px;
-}
-
-.settingTitle {
-  font-weight: 800;
-  font-size: 13px;
-  margin-bottom: 2px;
-}
-
-.settingDesc {
-  font-size: 12px;
-  opacity: 0.8;
-  line-height: 1.25;
-}
-
-.switch {
-  position: relative;
-  display: inline-block;
-  width: 46px;
-  height: 26px;
-}
-
-.switch input {
-  display: none;
-}
-
-.slider {
-  position: absolute;
-  cursor: pointer;
-  inset: 0;
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 999px;
-  transition: 200ms ease;
-  border: 1px solid rgba(255, 255, 255, 0.12);
-}
-
-.slider::before {
-  content: "";
-  position: absolute;
-  height: 20px;
-  width: 20px;
-  left: 3px;
-  top: 50%;
-  transform: translateY(-50%);
-  background: #fff;
-  border-radius: 50%;
-  transition: 200ms ease;
-}
-
-.switch input:checked + .slider {
-  background: rgba(255, 45, 65, 0.35);
-  border-color: rgba(255, 45, 65, 0.6);
-}
-
-.switch input:checked + .slider::before {
-  transform: translate(20px, -50%);
-}
-
-.floating-back,
-.floatingBack {
+.floating-back {
   position: fixed;
   z-index: 100000;
   width: 52px;
@@ -1147,13 +800,11 @@ button:disabled {
   touch-action: none;
 }
 
-.floating-back.hidden,
-.floatingBack.hidden {
+.floating-back.hidden {
   display: none !important;
 }
 
-.floating-back.unlocked,
-.floatingBack.unlocked {
+.floating-back.unlocked {
   outline: 2px dashed rgba(255, 255, 255, 0.32);
   outline-offset: 4px;
 }
@@ -1186,10 +837,6 @@ button:disabled {
 ===================================================== */
 
 @media (min-width: 560px) {
-  .sec-tabs {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
   #homeScreen .card {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
@@ -1242,8 +889,7 @@ button:disabled {
     padding: 14px;
   }
 
-  .modal-card,
-  .modalCard {
+  .modal-card {
     width: min(96vw, 560px);
     border-radius: 20px;
     max-height: 88vh;
@@ -1257,10 +903,6 @@ button:disabled {
 
   .row > * {
     min-width: 100%;
-  }
-
-  .month-grid {
-    grid-template-columns: repeat(2, 1fr);
   }
 
   .calendar-grid {
@@ -1278,12 +920,16 @@ button:disabled {
     font-size: 9.5px;
   }
 
-  .floating-back,
-  .floatingBack {
+  .floating-back {
     width: 50px;
     height: 50px;
     min-height: 50px;
     border-radius: 17px;
+  }
+
+  .settings-row {
+    align-items: flex-start;
+    flex-direction: column;
   }
 }
 
@@ -1299,66 +945,5 @@ button:disabled {
     animation-iteration-count: 1 !important;
     scroll-behavior: auto !important;
     transition-duration: 0.01ms !important;
-  }
-}
-
-/* =====================================================
-   SECRETARY NEU – MEETING DESIGN
-===================================================== */
-
-.secretary-home-grid,
-.secretary-meeting-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 10px;
-}
-
-.secretary-home-grid button,
-.secretary-meeting-grid button {
-  margin-top: 0;
-}
-
-.sec-meeting-card {
-  position: relative;
-}
-
-.sec-meeting-open {
-  border-left: 6px solid #facc15 !important;
-  background:
-    linear-gradient(180deg, rgba(250, 204, 21, 0.16), rgba(250, 204, 21, 0.045)),
-    rgba(12, 12, 16, 0.68) !important;
-}
-
-.sec-meeting-done {
-  border-left: 6px solid #22c55e !important;
-  background:
-    linear-gradient(180deg, rgba(34, 197, 94, 0.16), rgba(34, 197, 94, 0.045)),
-    rgba(12, 12, 16, 0.68) !important;
-}
-
-.sec-meeting-none {
-  border-left: 6px solid #ef4444 !important;
-  background:
-    linear-gradient(180deg, rgba(239, 68, 68, 0.18), rgba(239, 68, 68, 0.055)),
-    rgba(16, 8, 10, 0.72) !important;
-}
-
-#secNewContent h3,
-#secMeetingContent h3 {
-  margin-top: 14px;
-}
-
-#secNewContent textarea {
-  min-height: 82px;
-}
-
-@media (min-width: 560px) {
-  .secretary-home-grid,
-  .secretary-meeting-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
-  .secretary-meeting-grid button:nth-child(3) {
-    grid-column: 1 / -1;
   }
 }
