@@ -19,7 +19,8 @@ import {
   updateDoc,
   orderBy,
   limit,
-  deleteField
+  deleteField,
+  onSnapshot
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 /* =====================================================
@@ -60,6 +61,13 @@ let CURRENT_RANK = null;
 let USERS_CACHE = new Map();
 
 let EDIT_INFO_ID = null;
+
+/* Member Only */
+let MEMBER_ONLY_PROFILE = null;
+let MEMBER_ONLY_MESSAGES_CACHE = [];
+let MEMBER_ONLY_UNSUB = null;
+let MEMBER_ONLY_PENDING_IMAGE = "";
+let MEMBER_ONLY_PENDING_IMAGE_NAME = "";
 
 /* Calendar */
 let CALENDAR_CURRENT_MONTH = new Date().toISOString().slice(0, 7);
@@ -172,6 +180,361 @@ function userNameByUid(uid) {
 }
 
 /* =====================================================
+   MEMBER ONLY HELPERS
+===================================================== */
+
+function rankKey(rank = CURRENT_RANK) {
+  return String(rank || "member").toLowerCase().trim();
+}
+
+function memberOnlyAllowedRanks() {
+  return [
+    "admin",
+    "president",
+    "vice_president",
+    "sergeant_at_arms",
+    "secretary",
+    "road_captain",
+    "treasurer",
+    "member"
+  ];
+}
+
+function canOpenMemberOnly() {
+  return !!CURRENT_UID && memberOnlyAllowedRanks().includes(rankKey());
+}
+
+function rankLabel(rank = CURRENT_RANK) {
+  const r = rankKey(rank);
+  const map = {
+    admin: "Admin",
+    president: "President",
+    vice_president: "Vice President",
+    sergeant_at_arms: "Sergeant At Arms",
+    secretary: "Secretary",
+    road_captain: "Road Captain",
+    treasurer: "Treasurer",
+    member: "Member",
+    prospect: "Prospect",
+    hangaround: "Hangaround",
+    supporter: "Supporter"
+  };
+  return map[r] || String(rank || "Member");
+}
+
+function rankClass(rank = CURRENT_RANK) {
+  const r = rankKey(rank);
+  if (r === "admin") return "rank-admin";
+  if (r === "president") return "rank-president";
+  if (r === "vice_president") return "rank-vice";
+  if (r === "sergeant_at_arms") return "rank-sergeant";
+  if (r === "secretary") return "rank-secretary";
+  if (r === "road_captain") return "rank-road";
+  if (r === "treasurer") return "rank-treasurer";
+  return "rank-member";
+}
+
+function displayMemberOnlyName() {
+  return MEMBER_ONLY_PROFILE?.name || "";
+}
+
+function canEditMemberOnlyMessage(m) {
+  return !!m && (m.createdBy === CURRENT_UID || isAdmin());
+}
+
+function memberOnlyDefaultAvatar(name = "") {
+  const n = String(name || "?").trim();
+  return escapeHtml((n[0] || "?").toUpperCase());
+}
+
+function memberOnlyAvatarHtml(profile, name) {
+  const img = profile?.photoData || "";
+  if (img) {
+    return `<img class="mo-avatar-img" src="${escapeAttr(img)}" alt="">`;
+  }
+  return `<span>${memberOnlyDefaultAvatar(name)}</span>`;
+}
+
+function formatDateTime(ts) {
+  if (!ts) return "-";
+  try {
+    return new Date(Number(ts)).toLocaleString("de-DE");
+  } catch {
+    return "-";
+  }
+}
+
+function shortTime(ts) {
+  if (!ts) return "";
+  try {
+    return new Date(Number(ts)).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return "";
+  }
+}
+
+function canChangeMemberOnlyName(lastChangedAt) {
+  if (!lastChangedAt) return true;
+  const week = 7 * 24 * 60 * 60 * 1000;
+  return Date.now() - Number(lastChangedAt || 0) >= week;
+}
+
+function nextNameChangeText(lastChangedAt) {
+  if (!lastChangedAt) return "Du kannst deinen Namen jetzt setzen.";
+  const next = Number(lastChangedAt) + 7 * 24 * 60 * 60 * 1000;
+  if (Date.now() >= next) return "Du kannst deinen Namen jetzt ändern.";
+  return `Nächste Namensänderung möglich: ${new Date(next).toLocaleString("de-DE")}`;
+}
+
+async function loadMemberOnlyProfile() {
+  MEMBER_ONLY_PROFILE = null;
+
+  if (!CURRENT_UID) return null;
+
+  try {
+    const snap = await getDoc(doc(db, "member_only_profiles", CURRENT_UID));
+    MEMBER_ONLY_PROFILE = snap.exists() ? (snap.data() || {}) : null;
+    syncMemberOnlySettingsUI();
+    return MEMBER_ONLY_PROFILE;
+  } catch (e) {
+    console.warn("loadMemberOnlyProfile failed:", e);
+    syncMemberOnlySettingsUI();
+    return null;
+  }
+}
+
+function syncMemberOnlySettingsUI() {
+  const nameInput = $("memberOnlyNameInput");
+  const nameHint = $("memberOnlyNameHint");
+  const profilePreview = $("memberOnlyProfilePreview");
+
+  if (nameInput) {
+    nameInput.value = MEMBER_ONLY_PROFILE?.name || "";
+    nameInput.disabled = MEMBER_ONLY_PROFILE?.nameLastChangedAt
+      ? !canChangeMemberOnlyName(MEMBER_ONLY_PROFILE.nameLastChangedAt)
+      : false;
+  }
+
+  if (nameHint) {
+    nameHint.innerText = MEMBER_ONLY_PROFILE?.nameLastChangedAt
+      ? nextNameChangeText(MEMBER_ONLY_PROFILE.nameLastChangedAt)
+      : "Pflicht: Ohne Namen kommst du nicht in Member Only rein.";
+  }
+
+  if (profilePreview) {
+    const name = MEMBER_ONLY_PROFILE?.name || userNameByUid(CURRENT_UID);
+    profilePreview.innerHTML = `
+      <div class="mo-profile-preview-avatar">
+        ${memberOnlyAvatarHtml(MEMBER_ONLY_PROFILE, name)}
+      </div>
+      <div>
+        <b>${escapeHtml(name || "Kein Name gesetzt")}</b><br>
+        <span class="${rankClass()}">${escapeHtml(rankLabel())}</span>
+      </div>
+    `;
+  }
+}
+
+async function saveMemberOnlyNameFromSettings() {
+  if (!canOpenMemberOnly()) {
+    alert("Member Only ist erst ab Member freigeschaltet.");
+    return;
+  }
+
+  const input = $("memberOnlyNameInput");
+  const name = String(input?.value || "").trim();
+
+  if (!name) return alert("Bitte gib einen Namen ein.");
+  if (name.length < 2) return alert("Der Name ist zu kurz.");
+  if (name.length > 32) return alert("Der Name darf maximal 32 Zeichen haben.");
+
+  if (MEMBER_ONLY_PROFILE?.nameLastChangedAt && !canChangeMemberOnlyName(MEMBER_ONLY_PROFILE.nameLastChangedAt)) {
+    alert(nextNameChangeText(MEMBER_ONLY_PROFILE.nameLastChangedAt));
+    return;
+  }
+
+  try {
+    await setDoc(
+      doc(db, "member_only_profiles", CURRENT_UID),
+      {
+        uid: CURRENT_UID,
+        name,
+        rank: CURRENT_RANK || "member",
+        nameLower: name.toLowerCase(),
+        nameLastChangedAt: Date.now(),
+        updatedAt: Date.now()
+      },
+      { merge: true }
+    );
+
+    await loadMemberOnlyProfile();
+    alert("Member-Only-Name gespeichert ✅");
+  } catch (e) {
+    alert("Name speichern fehlgeschlagen: " + e.message);
+  }
+}
+
+function resizeImageToDataUrl(file, maxSize = 360, quality = 0.78) {
+  return new Promise((resolve, reject) => {
+    if (!file) return reject(new Error("Keine Datei gewählt."));
+    if (!file.type.startsWith("image/")) return reject(new Error("Bitte ein Bild auswählen."));
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const scale = Math.min(1, maxSize / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * scale));
+        const h = Math.max(1, Math.round(img.height * scale));
+
+        const canvas = document.createElement("canvas");
+        canvas.width = w;
+        canvas.height = h;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, w, h);
+
+        const dataUrl = canvas.toDataURL("image/jpeg", quality);
+        resolve(dataUrl);
+      };
+      img.onerror = () => reject(new Error("Bild konnte nicht gelesen werden."));
+      img.src = reader.result;
+    };
+    reader.onerror = () => reject(new Error("Datei konnte nicht gelesen werden."));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function saveMemberOnlyPhotoFromSettings(file) {
+  if (!canOpenMemberOnly()) {
+    alert("Member Only ist erst ab Member freigeschaltet.");
+    return;
+  }
+
+  if (!file) return;
+
+  try {
+    const dataUrl = await resizeImageToDataUrl(file, 360, 0.78);
+
+    if (dataUrl.length > 650000) {
+      alert("Bild ist trotz Komprimierung zu groß. Bitte kleineres Bild wählen.");
+      return;
+    }
+
+    await setDoc(
+      doc(db, "member_only_profiles", CURRENT_UID),
+      {
+        uid: CURRENT_UID,
+        rank: CURRENT_RANK || "member",
+        photoData: dataUrl,
+        photoUpdatedAt: Date.now(),
+        updatedAt: Date.now()
+      },
+      { merge: true }
+    );
+
+    await loadMemberOnlyProfile();
+    alert("Profilbild gespeichert ✅");
+  } catch (e) {
+    alert("Profilbild speichern fehlgeschlagen: " + e.message);
+  }
+}
+
+async function prepareMemberOnlyImage(file) {
+  if (!file) return;
+
+  try {
+    const dataUrl = await resizeImageToDataUrl(file, 900, 0.78);
+
+    if (dataUrl.length > 850000) {
+      alert("Bild ist zu groß. Bitte kleineres Bild wählen.");
+      return;
+    }
+
+    MEMBER_ONLY_PENDING_IMAGE = dataUrl;
+    MEMBER_ONLY_PENDING_IMAGE_NAME = file.name || "Bild";
+
+    const preview = $("memberOnlyImagePreview");
+    if (preview) {
+      preview.innerHTML = `
+        <div class="mo-image-preview">
+          <img src="${escapeAttr(dataUrl)}" alt="">
+          <button type="button" class="smallbtn danger" onclick="window.clearMemberOnlyImage()">Bild entfernen</button>
+        </div>
+      `;
+    }
+  } catch (e) {
+    alert("Bild konnte nicht vorbereitet werden: " + e.message);
+  }
+}
+
+window.clearMemberOnlyImage = () => {
+  MEMBER_ONLY_PENDING_IMAGE = "";
+  MEMBER_ONLY_PENDING_IMAGE_NAME = "";
+
+  const file = $("memberOnlyImageInput");
+  if (file) file.value = "";
+
+  const preview = $("memberOnlyImagePreview");
+  if (preview) preview.innerHTML = "";
+};
+
+function extractRecognizedFromText(text) {
+  const raw = String(text || "");
+
+  const emails = [...new Set((raw.match(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi) || []))];
+
+  const phones = [...new Set((raw.match(/(?:\+49|0049|0)[\d\s\-()/]{6,}/g) || [])
+    .map(x => x.trim())
+    .filter(x => x.replace(/\D/g, "").length >= 7))];
+
+  const urls = [...new Set((raw.match(/https?:\/\/[^\s]+/gi) || []))];
+
+  const addresses = [...new Set((raw.match(/\b[A-ZÄÖÜ][A-Za-zÄÖÜäöüß.\- ]{2,40}(?:straße|str\.|weg|allee|platz|ring|gasse|damm)\s+\d+[a-zA-Z]?(?:,\s*\d{5}\s+[A-Za-zÄÖÜäöüß.\- ]+)?/g) || [])
+    .map(x => x.trim()))];
+
+  return { emails, phones, urls, addresses };
+}
+
+function extractRecognizedFromMemberMessages() {
+  const result = {
+    phones: new Set(),
+    emails: new Set(),
+    addresses: new Set(),
+    images: [],
+    urls: new Set()
+  };
+
+  MEMBER_ONLY_MESSAGES_CACHE.forEach((m) => {
+    if (m.deleted) return;
+
+    const found = extractRecognizedFromText(m.text || "");
+    found.phones.forEach(x => result.phones.add(x));
+    found.emails.forEach(x => result.emails.add(x));
+    found.addresses.forEach(x => result.addresses.add(x));
+    found.urls.forEach(x => result.urls.add(x));
+
+    if (m.imageData) {
+      result.images.push({
+        id: m.id,
+        by: m.authorName || "-",
+        at: m.createdAt || 0,
+        src: m.imageData
+      });
+    }
+  });
+
+  return {
+    phones: [...result.phones],
+    emails: [...result.emails],
+    addresses: [...result.addresses],
+    urls: [...result.urls],
+    images: result.images
+  };
+}
+
+
+/* =====================================================
    SETTINGS + FLOATING BACK
 ===================================================== */
 
@@ -204,6 +567,8 @@ function openSettingsModal() {
 
   if (t1) t1.checked = !!APP_SETTINGS.floatingBackEnabled;
   if (t2) t2.checked = !!APP_SETTINGS.floatingBackLocked;
+
+  syncMemberOnlySettingsUI();
 
   modal.classList.remove("hidden");
   modal.classList.add("show");
@@ -418,6 +783,7 @@ onAuthStateChanged(auth, async (user) => {
   applyRankRights();
 
   await loadUsersCache();
+  await loadMemberOnlyProfile();
   await loadInfos();
 
   bindUI();
@@ -486,6 +852,9 @@ function bindUI() {
   const calDeclineBtn = $("calDeclineBtn");
   if (calDeclineBtn) calDeclineBtn.onclick = () => window.setCalendarRsvp("declined");
 
+  const memberOnlyBtn = $("memberOnlyBtn");
+  if (memberOnlyBtn) memberOnlyBtn.onclick = () => window.openMemberOnly();
+
   const settingsBtn = $("settingsBtn");
   if (settingsBtn) settingsBtn.onclick = () => openSettingsModal();
 
@@ -515,6 +884,35 @@ function bindUI() {
 
   const resetPosBtn = $("resetFloatingBackPosBtn");
   if (resetPosBtn) resetPosBtn.onclick = () => resetFloatingBackPos();
+
+  const memberOnlyNameSaveBtn = $("memberOnlyNameSaveBtn");
+  if (memberOnlyNameSaveBtn) memberOnlyNameSaveBtn.onclick = () => saveMemberOnlyNameFromSettings();
+
+  const memberOnlyPhotoInput = $("memberOnlyPhotoInput");
+  if (memberOnlyPhotoInput) {
+    memberOnlyPhotoInput.onchange = () => saveMemberOnlyPhotoFromSettings(memberOnlyPhotoInput.files?.[0] || null);
+  }
+
+  const memberOnlySendBtn = $("memberOnlySendBtn");
+  if (memberOnlySendBtn) memberOnlySendBtn.onclick = () => window.sendMemberOnlyMessage();
+
+  const memberOnlyText = $("memberOnlyText");
+  if (memberOnlyText) {
+    memberOnlyText.onkeydown = (e) => {
+      if (e.key === "Enter" && !e.shiftKey && !e.altKey && !e.ctrlKey && !e.metaKey) {
+        e.preventDefault();
+        window.sendMemberOnlyMessage();
+      }
+    };
+  }
+
+  const memberOnlyImageInput = $("memberOnlyImageInput");
+  if (memberOnlyImageInput) {
+    memberOnlyImageInput.onchange = () => prepareMemberOnlyImage(memberOnlyImageInput.files?.[0] || null);
+  }
+
+  const memberOnlyMenuBtn = $("memberOnlyMenuBtn");
+  if (memberOnlyMenuBtn) memberOnlyMenuBtn.onclick = () => window.openMemberOnlyRecognizedModal();
 
   initSettingsAndFloatingBack();
 }
@@ -851,6 +1249,287 @@ window.deleteChangelogEntry = async (id) => {
     alert("Löschen fehlgeschlagen: " + e.message);
   }
 };
+
+
+/* =====================================================
+   MEMBER ONLY CHAT
+===================================================== */
+
+window.openMemberOnly = async () => {
+  if (!canOpenMemberOnly()) {
+    alert("Member Only ist erst ab Member freigeschaltet. Hangaround, Prospect und Supporter haben keinen Zugriff.");
+    return;
+  }
+
+  await loadMemberOnlyProfile();
+
+  if (!displayMemberOnlyName()) {
+    alert("Bitte zuerst in den Einstellungen deinen Member-Only-Namen eintragen.");
+    openSettingsModal();
+    return;
+  }
+
+  window.showScreen("memberOnlyScreen");
+  startMemberOnlyListener();
+};
+
+window.closeMemberOnlyRecognizedModal = () => {
+  $("memberOnlyRecognizedModal")?.classList.add("hidden");
+};
+
+window.openMemberOnlyRecognizedModal = () => {
+  const modal = $("memberOnlyRecognizedModal");
+  const box = $("memberOnlyRecognizedContent");
+  if (!modal || !box) return;
+
+  const found = extractRecognizedFromMemberMessages();
+
+  const listBlock = (title, items, render) => {
+    if (!items.length) {
+      return `
+        <div class="card">
+          <h4>${title}</h4>
+          <div class="small-note">Nichts erkannt.</div>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="card">
+        <h4>${title}</h4>
+        ${items.map(render).join("")}
+      </div>
+    `;
+  };
+
+  box.innerHTML = `
+    ${listBlock("📞 Erkannte Telefonnummern", found.phones, (x) => `
+      <a class="mo-detect-row" href="tel:${escapeAttr(x.replace(/\s/g, ""))}">${escapeHtml(x)}</a>
+    `)}
+
+    ${listBlock("✉️ Erkannte E-Mails", found.emails, (x) => `
+      <a class="mo-detect-row" href="mailto:${escapeAttr(x)}">${escapeHtml(x)}</a>
+    `)}
+
+    ${listBlock("📍 Erkannte Adressen", found.addresses, (x) => `
+      <a class="mo-detect-row" target="_blank" rel="noopener" href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(x)}">${escapeHtml(x)}</a>
+    `)}
+
+    ${listBlock("🔗 Erkannte Links", found.urls, (x) => `
+      <a class="mo-detect-row" target="_blank" rel="noopener" href="${escapeAttr(x)}">${escapeHtml(x)}</a>
+    `)}
+
+    <div class="card">
+      <h4>🖼️ Erkannte Bilder</h4>
+      ${found.images.length ? `
+        <div class="mo-detect-images">
+          ${found.images.map((img) => `
+            <a href="${escapeAttr(img.src)}" target="_blank" class="mo-detect-img">
+              <img src="${escapeAttr(img.src)}" alt="">
+              <span>${escapeHtml(img.by)} • ${escapeHtml(formatDateTime(img.at))}</span>
+            </a>
+          `).join("")}
+        </div>
+      ` : `<div class="small-note">Keine Bilder erkannt.</div>`}
+    </div>
+  `;
+
+  modal.classList.remove("hidden");
+};
+
+function startMemberOnlyListener() {
+  const list = $("memberOnlyMessages");
+  if (!list) return;
+
+  if (MEMBER_ONLY_UNSUB) {
+    MEMBER_ONLY_UNSUB();
+    MEMBER_ONLY_UNSUB = null;
+  }
+
+  list.innerHTML = `<div class="card">Lade Member Only...</div>`;
+
+  const q = query(
+    collection(db, "member_only_messages"),
+    orderBy("createdAt", "asc"),
+    limit(250)
+  );
+
+  MEMBER_ONLY_UNSUB = onSnapshot(q, (snap) => {
+    MEMBER_ONLY_MESSAGES_CACHE = [];
+
+    snap.forEach((ds) => {
+      MEMBER_ONLY_MESSAGES_CACHE.push({ id: ds.id, ...(ds.data() || {}) });
+    });
+
+    renderMemberOnlyMessages();
+  }, (e) => {
+    list.innerHTML = `<div class="card">Fehler beim Laden: ${escapeHtml(e.message)}</div>`;
+  });
+}
+
+function renderMemberOnlyMessages() {
+  const list = $("memberOnlyMessages");
+  if (!list) return;
+
+  if (!MEMBER_ONLY_MESSAGES_CACHE.length) {
+    list.innerHTML = `
+      <div class="card mo-empty">
+        Noch keine Nachrichten. Schreib die erste Nachricht in Member Only.
+      </div>
+    `;
+    return;
+  }
+
+  list.innerHTML = MEMBER_ONLY_MESSAGES_CACHE.map((m) => {
+    const mine = m.createdBy === CURRENT_UID;
+    const deleted = !!m.deleted;
+    const edited = !!m.editedAt && !deleted;
+    const authorName = m.authorName || "Unbekannt";
+    const authorRank = m.authorRank || "member";
+    const photoData = m.authorPhotoData || "";
+    const profile = { photoData };
+
+    const actionBtns = canEditMemberOnlyMessage(m) && !deleted
+      ? `
+        <div class="mo-msg-actions">
+          <button type="button" class="smallbtn gray" onclick="window.editMemberOnlyMessage('${m.id}')">Bearbeiten</button>
+          <button type="button" class="smallbtn danger" onclick="window.deleteMemberOnlyMessage('${m.id}')">Löschen</button>
+        </div>
+      `
+      : "";
+
+    const deletedBy = m.deletedByName || userNameByUid(m.deletedByUid) || "-";
+    const deletedText = `Nachricht wurde am ${formatDateTime(m.deletedAt)} gelöscht von ${deletedBy}`;
+
+    return `
+      <div class="mo-msg ${mine ? "mine" : "other"} ${deleted ? "is-deleted" : ""}">
+        <div class="mo-avatar">
+          ${memberOnlyAvatarHtml(profile, authorName)}
+        </div>
+
+        <div class="mo-bubble">
+          <div class="mo-meta">
+            <span class="mo-rank ${rankClass(authorRank)}">${escapeHtml(rankLabel(authorRank))}</span>
+            <span class="mo-name ${rankClass(authorRank)}">${escapeHtml(authorName)}</span>
+            <span class="mo-time">${escapeHtml(shortTime(m.createdAt))}</span>
+          </div>
+
+          ${edited ? `<div class="mo-edited">Nachricht bearbeitet</div>` : ""}
+
+          ${deleted ? `
+            <div class="mo-deleted-text">${escapeHtml(deletedText)}</div>
+          ` : `
+            ${m.text ? `<div class="mo-text">${escapeHtml(m.text).replace(/\n/g, "<br>")}</div>` : ""}
+            ${m.imageData ? `<img class="mo-message-img" src="${escapeAttr(m.imageData)}" alt="Bild">` : ""}
+          `}
+
+          ${actionBtns}
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  list.scrollTop = list.scrollHeight;
+}
+
+window.sendMemberOnlyMessage = async () => {
+  if (!canOpenMemberOnly()) {
+    alert("Kein Zugriff auf Member Only.");
+    return;
+  }
+
+  await loadMemberOnlyProfile();
+
+  const name = displayMemberOnlyName();
+  if (!name) {
+    alert("Bitte zuerst in den Einstellungen deinen Member-Only-Namen eintragen.");
+    openSettingsModal();
+    return;
+  }
+
+  const input = $("memberOnlyText");
+  const text = String(input?.value || "").trim();
+
+  if (!text && !MEMBER_ONLY_PENDING_IMAGE) {
+    return;
+  }
+
+  if (text.length > 2500) {
+    alert("Nachricht ist zu lang. Bitte kürzer schreiben.");
+    return;
+  }
+
+  try {
+    await addDoc(collection(db, "member_only_messages"), {
+      text,
+      imageData: MEMBER_ONLY_PENDING_IMAGE || "",
+      imageName: MEMBER_ONLY_PENDING_IMAGE_NAME || "",
+      createdBy: CURRENT_UID,
+      authorName: name,
+      authorRank: CURRENT_RANK || "member",
+      authorPhotoData: MEMBER_ONLY_PROFILE?.photoData || "",
+      createdAt: Date.now(),
+      editedAt: null,
+      editedBy: null,
+      deleted: false,
+      deletedAt: null,
+      deletedByUid: null,
+      deletedByName: ""
+    });
+
+    if (input) input.value = "";
+    window.clearMemberOnlyImage();
+  } catch (e) {
+    alert("Nachricht senden fehlgeschlagen: " + e.message);
+  }
+};
+
+window.editMemberOnlyMessage = async (id) => {
+  const m = MEMBER_ONLY_MESSAGES_CACHE.find(x => x.id === id);
+  if (!m) return alert("Nachricht nicht gefunden.");
+  if (!canEditMemberOnlyMessage(m)) return alert("Du darfst diese Nachricht nicht bearbeiten.");
+  if (m.deleted) return alert("Gelöschte Nachrichten können nicht bearbeitet werden.");
+
+  const next = prompt("Nachricht bearbeiten:", m.text || "");
+  if (next === null) return;
+
+  const text = String(next).trim();
+  if (!text && !m.imageData) return alert("Nachricht darf nicht leer sein.");
+  if (text.length > 2500) return alert("Nachricht ist zu lang.");
+
+  try {
+    await updateDoc(doc(db, "member_only_messages", id), {
+      text,
+      editedAt: Date.now(),
+      editedBy: CURRENT_UID,
+      editedByName: displayMemberOnlyName() || userNameByUid(CURRENT_UID)
+    });
+  } catch (e) {
+    alert("Bearbeiten fehlgeschlagen: " + e.message);
+  }
+};
+
+window.deleteMemberOnlyMessage = async (id) => {
+  const m = MEMBER_ONLY_MESSAGES_CACHE.find(x => x.id === id);
+  if (!m) return alert("Nachricht nicht gefunden.");
+  if (!canEditMemberOnlyMessage(m)) return alert("Du darfst diese Nachricht nicht löschen.");
+
+  if (!confirm("Nachricht wirklich löschen? Der Platzhalter bleibt sichtbar.")) return;
+
+  try {
+    await updateDoc(doc(db, "member_only_messages", id), {
+      text: "",
+      imageData: "",
+      deleted: true,
+      deletedAt: Date.now(),
+      deletedByUid: CURRENT_UID,
+      deletedByName: displayMemberOnlyName() || userNameByUid(CURRENT_UID)
+    });
+  } catch (e) {
+    alert("Löschen fehlgeschlagen: " + e.message);
+  }
+};
+
 
 /* =====================================================
    CALENDAR
