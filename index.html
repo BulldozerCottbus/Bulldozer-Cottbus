@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Chapter App</title>
-  <link rel="stylesheet" href="style.css?v=20260602_2">
+  <link rel="stylesheet" href="style.css?v=20260602_3">
 
   <!-- Favicon -->
   <link rel="icon" href="/Bulldozer-Cottbus/icons/favicon.ico" sizes="any">
@@ -49,6 +49,7 @@
     <button id="debugButton" type="button">BETA 1.0.0</button>
     <button type="button" onclick="window.showScreen('infos')">📢 Infos</button>
     <button id="calendarNavBtn" type="button">📅 Kalender</button>
+    <button id="memberOnlyBtn" type="button">🔒 Member Only</button>
     <button id="settingsBtn" type="button" class="navBtn">⚙️ Einstellungen</button>
     <button type="button" onclick="window.logout()">🚪 Logout</button>
   </div>
@@ -262,6 +263,59 @@
   </div>
 </div>
 
+
+<!-- MEMBER ONLY SCREEN -->
+<div class="container hidden" id="memberOnlyScreen">
+  <div class="card member-only-shell">
+    <div class="member-only-head">
+      <div>
+        <h3>🔒 Member Only</h3>
+        <div class="small-note">Interner Gruppenchat ab Member. Hangaround und Prospect sind gesperrt.</div>
+      </div>
+
+      <button id="memberOnlyMenuBtn" type="button" class="mo-menu-btn" aria-label="Erkannte Inhalte">⋮</button>
+    </div>
+
+    <div id="memberOnlyMessages" class="member-only-messages">
+      <div class="card">Lade...</div>
+    </div>
+
+    <div id="memberOnlyComposer" class="member-only-composer">
+      <textarea id="memberOnlyText" placeholder="Nachricht schreiben... Emoji-Tastatur funktioniert normal 😊"></textarea>
+
+      <div id="memberOnlyImagePreview"></div>
+
+      <div class="member-only-send-row">
+        <label class="mo-file-btn">
+          🖼️ Bild
+          <input id="memberOnlyImageInput" type="file" accept="image/*">
+        </label>
+
+        <button id="memberOnlySendBtn" type="button">Senden</button>
+      </div>
+    </div>
+
+    <button type="button" onclick="window.backHome()">⬅ Zurück</button>
+  </div>
+</div>
+
+<!-- MEMBER ONLY ERKANNTE INHALTE MODAL -->
+<div id="memberOnlyRecognizedModal" class="modal hidden">
+  <div class="modal-backdrop" onclick="window.closeMemberOnlyRecognizedModal()"></div>
+
+  <div class="modal-card card">
+    <h3>⋮ Erkannte Inhalte</h3>
+    <div class="small-note">
+      Hier werden Telefonnummern, E-Mails, Adressen, Links und Bilder aus den Nachrichten gesammelt.
+    </div>
+
+    <div id="memberOnlyRecognizedContent" style="margin-top:10px;"></div>
+
+    <button type="button" class="gray" onclick="window.closeMemberOnlyRecognizedModal()">Schließen</button>
+  </div>
+</div>
+
+
 <!-- CALENDAR SCREEN -->
 <div class="container hidden" id="calendarScreen">
   <div class="card">
@@ -427,6 +481,27 @@
           <button type="button" id="resetFloatingBackPosBtn" class="gray">Zurücksetzen</button>
         </div>
       </div>
+
+      <div class="card member-only-settings-card" style="margin-top:10px;">
+        <h4>🔒 Member Only Profil</h4>
+        <div class="readonly-hint">
+          Pflicht: Ohne Namen kommst du nicht in Member Only rein. Der Name kann nur einmal pro Woche geändert werden.
+        </div>
+
+        <div id="memberOnlyProfilePreview" class="mo-profile-preview"></div>
+
+        <label class="field-label" for="memberOnlyNameInput">Name für Member Only</label>
+        <input id="memberOnlyNameInput" maxlength="32" placeholder="Dein Anzeigename">
+
+        <div id="memberOnlyNameHint" class="readonly-hint"></div>
+
+        <button id="memberOnlyNameSaveBtn" type="button">💾 Namen speichern</button>
+
+        <label class="field-label" for="memberOnlyPhotoInput">Profilbild</label>
+        <input id="memberOnlyPhotoInput" type="file" accept="image/*">
+        <div class="readonly-hint">Das Bild wird automatisch verkleinert und klein neben deinen Nachrichten angezeigt.</div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -436,7 +511,7 @@
   ⬅
 </button>
 
-<script type="module" src="app.js?v=20260602_2"></script>
+<script type="module" src="app.js?v=20260602_3"></script>
 
 <!-- Service Worker Registrierung -->
 <script>
