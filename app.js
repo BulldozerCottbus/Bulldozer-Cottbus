@@ -125,11 +125,6 @@ window.logout = async () => {
 ===================================================== */
 
 window.showScreen = (id) => {
-  if (id === "infos" && !canUseInfos()) {
-    hangaroundBlockedMessage();
-    return;
-  }
-
   document.querySelectorAll(".container").forEach((s) => s.classList.add("hidden"));
   const target = $(id);
   if (target) target.classList.remove("hidden");
@@ -154,50 +149,9 @@ function canManageCalendar() {
     .includes(String(CURRENT_RANK || "").toLowerCase());
 }
 
-function isHangaroundOnly() {
-  return String(CURRENT_RANK || "").toLowerCase() === "hangaround";
-}
-
-function hangaroundBlockedMessage() {
-  alert("Keine Berechtigung: Hangaround darf aktuell nur den Kalender benutzen.");
-}
-
-function canUseInfos() {
-  return !isHangaroundOnly();
-}
-
-function canUseSettings() {
-  return !isHangaroundOnly();
-}
-
-function canUseDebug() {
-  return !isHangaroundOnly();
-}
-
-function markLockedButton(id, locked) {
-  const btn = $(id);
-  if (!btn) return;
-
-  if (locked) {
-    btn.classList.add("is-locked-feature");
-    btn.setAttribute("title", "Keine Berechtigung: Hangaround darf nur den Kalender benutzen.");
-  } else {
-    btn.classList.remove("is-locked-feature");
-    btn.removeAttribute("title");
-  }
-}
-
 function applyRankRights() {
   const postInfoBtn = $("postInfoBtn");
   if (postInfoBtn) postInfoBtn.classList.remove("hidden");
-
-  const locked = isHangaroundOnly();
-
-  // Buttons bleiben sichtbar, bekommen aber sichtbare Sperr-Optik.
-  markLockedButton("debugButton", locked);
-  markLockedButton("infosNavBtn", locked);
-  markLockedButton("memberOnlyBtn", locked);
-  markLockedButton("settingsBtn", locked);
 }
 
 /* =====================================================
@@ -605,11 +559,6 @@ function saveSettings() {
 }
 
 function openSettingsModal() {
-  if (!canUseSettings()) {
-    hangaroundBlockedMessage();
-    return;
-  }
-
   const modal = $("settingsModal");
   if (!modal) return;
 
@@ -835,10 +784,7 @@ onAuthStateChanged(auth, async (user) => {
 
   await loadUsersCache();
   await loadMemberOnlyProfile();
-
-  if (canUseInfos()) {
-    await loadInfos();
-  }
+  await loadInfos();
 
   bindUI();
 });
@@ -1198,11 +1144,6 @@ function canEditChangelog() {
 }
 
 window.openDebugModal = async () => {
-  if (!canUseDebug()) {
-    hangaroundBlockedMessage();
-    return;
-  }
-
   const modal = $("debugModal");
   const adminBox = $("changelogAdminBox");
 
