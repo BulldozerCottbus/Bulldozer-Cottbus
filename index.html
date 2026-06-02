@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Chapter App</title>
-  <link rel="stylesheet" href="style.css?v=20260602_1">
+  <link rel="stylesheet" href="style.css?v=20260602_2">
 
   <!-- Favicon -->
   <link rel="icon" href="/Bulldozer-Cottbus/icons/favicon.ico" sizes="any">
@@ -276,8 +276,12 @@
     <div class="card">
       <div class="calendar-legend">
         <span class="legend-item"><span class="legend-box day-empty"></span> Frei</span>
-        <span class="legend-item"><span class="legend-box day-open"></span> Eingetragen</span>
-        <span class="legend-item"><span class="legend-box day-done"></span> Abgeschlossen</span>
+        <span class="legend-item"><span class="legend-box day-open"></span> Neu / offen</span>
+        <span class="legend-item"><span class="legend-box day-my-rsvp"></span> Von dir bestätigt/abgelehnt</span>
+        <span class="legend-item"><span class="legend-box day-past"></span> Vergangen</span>
+      </div>
+      <div class="calendar-help-text">
+        Rot bedeutet: Termin ist aktiv und für dich noch offen. Grün bedeutet: Du hast selbst bestätigt oder abgelehnt. Grau bedeutet: Termin ist vorbei.
       </div>
     </div>
 
@@ -432,7 +436,7 @@
   ⬅
 </button>
 
-<script type="module" src="app.js?v=20260602_1"></script>
+<script type="module" src="app.js?v=20260602_2"></script>
 
 <!-- Service Worker Registrierung -->
 <script>
