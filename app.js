@@ -70,6 +70,7 @@ let MEMBER_ONLY_PENDING_IMAGE = "";
 let MEMBER_ONLY_PENDING_IMAGE_NAME = "";
 let MEMBER_ONLY_BADGE_UNSUB = null;
 let MEMBER_ONLY_UNREAD_COUNT = 0;
+let MEMBER_ONLY_RECOGNIZED_IMAGES_CACHE = [];
 
 /* Calendar */
 let CALENDAR_CURRENT_MONTH = new Date().toISOString().slice(0, 7);
@@ -638,6 +639,190 @@ function extractRecognizedFromMemberMessages() {
     images: result.images
   };
 }
+
+
+function memberOnlyImageDateKey(ts) {
+  if (!ts) return "unbekannt";
+
+  const d = new Date(Number(ts || 0));
+  if (Number.isNaN(d.getTime())) return "unbekannt";
+
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+
+  return `${y}-${m}-${day}`;
+}
+
+function memberOnlyImageDateLabel(key) {
+  if (!key || key === "unbekannt") return "Unbekanntes Datum";
+
+  try {
+    const d = new Date(`${key}T00:00:00`);
+    return d.toLocaleDateString("de-DE", {
+      weekday: "long",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric"
+    });
+  } catch {
+    return key;
+  }
+}
+
+function groupMemberOnlyImagesByDate(images) {
+  const groups = new Map();
+
+  (images || []).forEach((img) => {
+    const key = memberOnlyImageDateKey(img.at);
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(img);
+  });
+
+  return [...groups.entries()]
+    .map(([key, items]) => ({
+      key,
+      label: memberOnlyImageDateLabel(key),
+      items: items.sort((a, b) => Number(b.at || 0) - Number(a.at || 0))
+    }))
+    .sort((a, b) => {
+      if (a.key === "unbekannt") return 1;
+      if (b.key === "unbekannt") return -1;
+      return String(b.key).localeCompare(String(a.key));
+    });
+}
+
+function renderMemberOnlyImagesSmallGrid(images) {
+  if (!images || !images.length) {
+    return `<div class="small-note">Keine Bilder erkannt.</div>`;
+  }
+
+  return `
+    <div class="mo-detect-images">
+      ${images.map((img) => `
+        <a href="${escapeAttr(img.src)}" target="_blank" class="mo-detect-img">
+          <img src="${escapeAttr(img.src)}" alt="">
+          <span>${escapeHtml(img.by)} • ${escapeHtml(formatDateTime(img.at))}</span>
+        </a>
+      `).join("")}
+    </div>
+  `;
+}
+
+function renderMemberOnlyImageGalleryBlock(images) {
+  if (!images || !images.length) {
+    return `<div class="small-note">Keine Bilder erkannt.</div>`;
+  }
+
+  if (images.length <= 5) {
+    return renderMemberOnlyImagesSmallGrid(images);
+  }
+
+  return `
+    <div class="mo-gallery-tools">
+      <div class="small-note">
+        Mehr als 5 Bilder erkannt. Die Bilder wurden automatisch nach Datum in Ordner sortiert.
+      </div>
+
+      <label class="field-label" for="memberOnlyImageDateSearch">Nach Datum suchen</label>
+      <div class="mo-gallery-search-row">
+        <input id="memberOnlyImageDateSearch" type="date">
+        <button type="button" class="smallbtn gray" onclick="window.clearMemberOnlyImageDateSearch()">Alle</button>
+      </div>
+    </div>
+
+    <div id="memberOnlyImageFolders" class="mo-image-folders"></div>
+  `;
+}
+
+function renderMemberOnlyImageFolders() {
+  const box = $("memberOnlyImageFolders");
+  if (!box) return;
+
+  const dateInput = $("memberOnlyImageDateSearch");
+  const filterDate = String(dateInput?.value || "").trim();
+
+  const groups = groupMemberOnlyImagesByDate(MEMBER_ONLY_RECOGNIZED_IMAGES_CACHE)
+    .filter((g) => !filterDate || g.key === filterDate);
+
+  if (!groups.length) {
+    box.innerHTML = `
+      <div class="card mo-gallery-empty">
+        Für dieses Datum wurden keine Bilder gefunden.
+      </div>
+    `;
+    return;
+  }
+
+  box.innerHTML = groups.map((group) => {
+    const cover = group.items[0];
+
+    return `
+      <button type="button" class="mo-image-folder" onclick="window.openMemberOnlyImageFolder('${escapeAttr(group.key)}')">
+        <div class="mo-folder-cover">
+          ${cover?.src ? `<img src="${escapeAttr(cover.src)}" alt="">` : `<span>🖼️</span>`}
+          <span class="mo-folder-count">${group.items.length}</span>
+        </div>
+
+        <div class="mo-folder-info">
+          <b>${escapeHtml(group.label)}</b>
+          <span>${group.items.length} Bild${group.items.length === 1 ? "" : "er"}</span>
+        </div>
+      </button>
+    `;
+  }).join("");
+}
+
+window.clearMemberOnlyImageDateSearch = () => {
+  const input = $("memberOnlyImageDateSearch");
+  if (input) input.value = "";
+  renderMemberOnlyImageFolders();
+};
+
+window.openMemberOnlyImageFolder = (dateKey) => {
+  const box = $("memberOnlyRecognizedContent");
+  if (!box) return;
+
+  const groups = groupMemberOnlyImagesByDate(MEMBER_ONLY_RECOGNIZED_IMAGES_CACHE);
+  const group = groups.find((g) => g.key === dateKey);
+
+  if (!group) {
+    alert("Ordner nicht gefunden.");
+    return;
+  }
+
+  box.innerHTML = `
+    <div class="card mo-gallery-folder-open">
+      <div class="mo-gallery-folder-head">
+        <div>
+          <h4>🖼️ ${escapeHtml(group.label)}</h4>
+          <div class="small-note">${group.items.length} Bild${group.items.length === 1 ? "" : "er"} in diesem Ordner</div>
+        </div>
+
+        <button type="button" class="smallbtn gray" onclick="window.backToMemberOnlyImageFolders()">⬅ Ordner</button>
+      </div>
+
+      <div class="mo-gallery-open-grid">
+        ${group.items.map((img) => `
+          <a href="${escapeAttr(img.src)}" target="_blank" class="mo-gallery-open-img">
+            <img src="${escapeAttr(img.src)}" alt="">
+            <span>${escapeHtml(img.by)} • ${escapeHtml(formatDateTime(img.at))}</span>
+          </a>
+        `).join("")}
+      </div>
+    </div>
+  `;
+};
+
+window.backToMemberOnlyImageFolders = () => {
+  window.openMemberOnlyRecognizedModal();
+
+  setTimeout(() => {
+    const imagesTitle = $("memberOnlyImageFolders");
+    if (imagesTitle) imagesTitle.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, 60);
+};
+
 
 
 /* =====================================================
@@ -1391,6 +1576,7 @@ window.openMemberOnlyRecognizedModal = () => {
   if (!modal || !box) return;
 
   const found = extractRecognizedFromMemberMessages();
+  MEMBER_ONLY_RECOGNIZED_IMAGES_CACHE = found.images || [];
 
   const listBlock = (title, items, render) => {
     if (!items.length) {
@@ -1429,20 +1615,19 @@ window.openMemberOnlyRecognizedModal = () => {
 
     <div class="card">
       <h4>🖼️ Erkannte Bilder</h4>
-      ${found.images.length ? `
-        <div class="mo-detect-images">
-          ${found.images.map((img) => `
-            <a href="${escapeAttr(img.src)}" target="_blank" class="mo-detect-img">
-              <img src="${escapeAttr(img.src)}" alt="">
-              <span>${escapeHtml(img.by)} • ${escapeHtml(formatDateTime(img.at))}</span>
-            </a>
-          `).join("")}
-        </div>
-      ` : `<div class="small-note">Keine Bilder erkannt.</div>`}
+      ${renderMemberOnlyImageGalleryBlock(found.images)}
     </div>
   `;
 
   modal.classList.remove("hidden");
+
+  const imageDateSearch = $("memberOnlyImageDateSearch");
+  if (imageDateSearch) {
+    imageDateSearch.oninput = () => renderMemberOnlyImageFolders();
+    imageDateSearch.onchange = () => renderMemberOnlyImageFolders();
+  }
+
+  renderMemberOnlyImageFolders();
 };
 
 function startMemberOnlyListener() {
