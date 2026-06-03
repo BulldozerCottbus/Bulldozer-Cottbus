@@ -58,7 +58,6 @@ function escapeAttr(s) {
 
 let CURRENT_UID = null;
 let CURRENT_RANK = null;
-let CURRENT_USER_DATA = null;
 let USERS_CACHE = new Map();
 
 let EDIT_INFO_ID = null;
@@ -69,6 +68,8 @@ let MEMBER_ONLY_MESSAGES_CACHE = [];
 let MEMBER_ONLY_UNSUB = null;
 let MEMBER_ONLY_PENDING_IMAGE = "";
 let MEMBER_ONLY_PENDING_IMAGE_NAME = "";
+let MEMBER_ONLY_BADGE_UNSUB = null;
+let MEMBER_ONLY_UNREAD_COUNT = 0;
 
 /* Calendar */
 let CALENDAR_CURRENT_MONTH = new Date().toISOString().slice(0, 7);
@@ -126,11 +127,6 @@ window.logout = async () => {
 ===================================================== */
 
 window.showScreen = (id) => {
-  if (!canOpenScreenForRank(id)) {
-    hangaroundBlockedMessage();
-    return;
-  }
-
   document.querySelectorAll(".container").forEach((s) => s.classList.add("hidden"));
   const target = $(id);
   if (target) target.classList.remove("hidden");
@@ -155,21 +151,6 @@ function canManageCalendar() {
     .includes(String(CURRENT_RANK || "").toLowerCase());
 }
 
-function isHangaround() {
-  return String(CURRENT_RANK || "").toLowerCase() === "hangaround";
-}
-
-function hangaroundBlockedMessage() {
-  alert("Kein Zugriff. Hangaround kann aktuell nur den Kalender benutzen.");
-}
-
-function canOpenScreenForRank(id) {
-  if (!isHangaround()) return true;
-
-  // Hangaround darf nur Grundnavigation + Kalender.
-  return ["loginScreen", "homeScreen", "calendarScreen"].includes(String(id || ""));
-}
-
 function applyRankRights() {
   const postInfoBtn = $("postInfoBtn");
   if (postInfoBtn) postInfoBtn.classList.remove("hidden");
@@ -181,16 +162,6 @@ function applyRankRights() {
 
 async function loadUsersCache() {
   USERS_CACHE.clear();
-
-  // Hangaround darf laut Rules nur sein eigenes User-Dokument lesen.
-  // Darum kein collection-read auf users.
-  if (isHangaround()) {
-    USERS_CACHE.set(CURRENT_UID, {
-      name: CURRENT_USER_DATA?.name || "Unbekannt",
-      rank: CURRENT_USER_DATA?.rank || "hangaround"
-    });
-    return;
-  }
 
   try {
     const snaps = await getDocs(collection(db, "users"));
@@ -320,8 +291,6 @@ function nextNameChangeText(lastChangedAt) {
 async function loadMemberOnlyProfile() {
   MEMBER_ONLY_PROFILE = null;
 
-  if (isHangaround()) return null;
-
   if (!CURRENT_UID) return null;
 
   try {
@@ -368,6 +337,109 @@ function syncMemberOnlySettingsUI() {
   }
 }
 
+
+function isMemberOnlyVisible() {
+  const screen = $("memberOnlyScreen");
+  return !!screen && !screen.classList.contains("hidden");
+}
+
+function updateMemberOnlyBadge(count) {
+  MEMBER_ONLY_UNREAD_COUNT = Math.max(0, Number(count || 0));
+
+  const badge = $("memberOnlyBadge");
+  const btn = $("memberOnlyBtn");
+
+  if (!badge || !btn) return;
+
+  if (MEMBER_ONLY_UNREAD_COUNT > 0) {
+    badge.innerText = MEMBER_ONLY_UNREAD_COUNT > 99 ? "99+" : String(MEMBER_ONLY_UNREAD_COUNT);
+    badge.classList.remove("hidden");
+    btn.classList.add("has-badge");
+  } else {
+    badge.innerText = "";
+    badge.classList.add("hidden");
+    btn.classList.remove("has-badge");
+  }
+
+  try {
+    if ("setAppBadge" in navigator && MEMBER_ONLY_UNREAD_COUNT > 0) {
+      navigator.setAppBadge(MEMBER_ONLY_UNREAD_COUNT);
+    } else if ("clearAppBadge" in navigator && MEMBER_ONLY_UNREAD_COUNT === 0) {
+      navigator.clearAppBadge();
+    }
+  } catch (e) {
+    // Nicht jeder Browser unterstützt App-Badges. Der Button-Badge funktioniert trotzdem.
+  }
+}
+
+function startMemberOnlyBadgeListener() {
+  if (!canOpenMemberOnly()) {
+    updateMemberOnlyBadge(0);
+    return;
+  }
+
+  if (MEMBER_ONLY_BADGE_UNSUB) {
+    MEMBER_ONLY_BADGE_UNSUB();
+    MEMBER_ONLY_BADGE_UNSUB = null;
+  }
+
+  const q = query(
+    collection(db, "member_only_messages"),
+    orderBy("createdAt", "desc"),
+    limit(100)
+  );
+
+  MEMBER_ONLY_BADGE_UNSUB = onSnapshot(q, (snap) => {
+    if (isMemberOnlyVisible()) {
+      updateMemberOnlyBadge(0);
+      return;
+    }
+
+    const lastRead = Number(MEMBER_ONLY_PROFILE?.memberOnlyLastReadAt || 0);
+    let count = 0;
+
+    snap.forEach((ds) => {
+      const m = ds.data() || {};
+      if (m.deleted) return;
+      if (m.createdBy === CURRENT_UID) return;
+      if (Number(m.createdAt || 0) > lastRead) count++;
+    });
+
+    updateMemberOnlyBadge(count);
+  }, (e) => {
+    console.warn("member only badge listener failed:", e);
+  });
+}
+
+async function markMemberOnlyRead() {
+  if (!CURRENT_UID || !canOpenMemberOnly()) return;
+
+  try {
+    const now = Date.now();
+
+    await setDoc(
+      doc(db, "member_only_profiles", CURRENT_UID),
+      {
+        uid: CURRENT_UID,
+        rank: CURRENT_RANK || "member",
+        memberOnlyLastReadAt: now,
+        updatedAt: now
+      },
+      { merge: true }
+    );
+
+    MEMBER_ONLY_PROFILE = {
+      ...(MEMBER_ONLY_PROFILE || {}),
+      memberOnlyLastReadAt: now
+    };
+
+    updateMemberOnlyBadge(0);
+  } catch (e) {
+    console.warn("markMemberOnlyRead failed:", e);
+  }
+}
+
+
 async function saveMemberOnlyNameFromSettings() {
   if (!canOpenMemberOnly()) {
     alert("Member Only ist erst ab Member freigeschaltet.");
@@ -401,6 +473,7 @@ async function saveMemberOnlyNameFromSettings() {
     );
 
     await loadMemberOnlyProfile();
+    startMemberOnlyBadgeListener();
     alert("Member-Only-Name gespeichert ✅");
   } catch (e) {
     alert("Name speichern fehlgeschlagen: " + e.message);
@@ -592,8 +665,6 @@ function saveSettings() {
 }
 
 function openSettingsModal() {
-  if (isHangaround()) return hangaroundBlockedMessage();
-
   const modal = $("settingsModal");
   if (!modal) return;
 
@@ -787,8 +858,6 @@ onAuthStateChanged(auth, async (user) => {
   if (!user) {
     CURRENT_UID = null;
     CURRENT_RANK = null;
-    CURRENT_USER_DATA = null;
-    CURRENT_USER_DATA = null;
 
     if (loginScreen) loginScreen.classList.remove("hidden");
     if (homeScreen) homeScreen.classList.add("hidden");
@@ -807,7 +876,6 @@ onAuthStateChanged(auth, async (user) => {
     const snap = await getDoc(doc(db, "users", user.uid));
     const data = snap.exists() ? (snap.data() || {}) : {};
 
-    CURRENT_USER_DATA = data;
     CURRENT_RANK = data.rank || "member";
 
     setText("rankLabel", data.rank || "-");
@@ -821,13 +889,9 @@ onAuthStateChanged(auth, async (user) => {
   applyRankRights();
 
   await loadUsersCache();
-
-  // Hangaround soll nur den Kalender benutzen.
-  // Deshalb werden geschützte Bereiche gar nicht vorgeladen.
-  if (!isHangaround()) {
-    await loadMemberOnlyProfile();
-    await loadInfos();
-  }
+  await loadMemberOnlyProfile();
+  startMemberOnlyBadgeListener();
+  await loadInfos();
 
   bindUI();
 });
@@ -851,12 +915,7 @@ function bindUI() {
   }
 
   const dbg = $("debugButton");
-  if (dbg) {
-    dbg.onclick = () => {
-      if (isHangaround()) return hangaroundBlockedMessage();
-      window.openDebugModal();
-    };
-  }
+  if (dbg) dbg.onclick = () => window.openDebugModal();
 
   const addLog = $("addChangelogBtn");
   if (addLog) addLog.onclick = () => addChangelogEntry();
@@ -901,20 +960,10 @@ function bindUI() {
   if (calDeclineBtn) calDeclineBtn.onclick = () => window.setCalendarRsvp("declined");
 
   const memberOnlyBtn = $("memberOnlyBtn");
-  if (memberOnlyBtn) {
-    memberOnlyBtn.onclick = () => {
-      if (isHangaround()) return hangaroundBlockedMessage();
-      window.openMemberOnly();
-    };
-  }
+  if (memberOnlyBtn) memberOnlyBtn.onclick = () => window.openMemberOnly();
 
   const settingsBtn = $("settingsBtn");
-  if (settingsBtn) {
-    settingsBtn.onclick = () => {
-      if (isHangaround()) return hangaroundBlockedMessage();
-      openSettingsModal();
-    };
-  }
+  if (settingsBtn) settingsBtn.onclick = () => openSettingsModal();
 
   const settingsClose = $("settingsCloseBtn");
   if (settingsClose) settingsClose.onclick = () => closeSettingsModal();
@@ -980,8 +1029,6 @@ function bindUI() {
 ===================================================== */
 
 window.openInfoModal = async (infoId = null) => {
-  if (isHangaround()) return hangaroundBlockedMessage();
-
   const modal = $("infoModal");
   const title = $("infoModalTitle");
   const text = $("infoModalText");
@@ -1086,8 +1133,6 @@ window.deleteInfo = async (id) => {
 };
 
 async function loadInfos() {
-  if (isHangaround()) return;
-
   const infosList = $("infosList");
   if (!infosList) return;
 
@@ -1159,8 +1204,6 @@ async function loadInfos() {
 ===================================================== */
 
 window.toggleWarnInfo = () => {
-  if (isHangaround()) return hangaroundBlockedMessage();
-
   const warnBox = $("warnInfoBox");
   const clubBox = $("clubRulesBox");
   const meetBox = $("meetingRulesBox");
@@ -1174,8 +1217,6 @@ window.toggleWarnInfo = () => {
 };
 
 window.toggleClubRules = () => {
-  if (isHangaround()) return hangaroundBlockedMessage();
-
   const clubBox = $("clubRulesBox");
   const warnBox = $("warnInfoBox");
   const meetBox = $("meetingRulesBox");
@@ -1189,8 +1230,6 @@ window.toggleClubRules = () => {
 };
 
 window.toggleMeetingRules = () => {
-  if (isHangaround()) return hangaroundBlockedMessage();
-
   const meetBox = $("meetingRulesBox");
   const warnBox = $("warnInfoBox");
   const clubBox = $("clubRulesBox");
@@ -1212,8 +1251,6 @@ function canEditChangelog() {
 }
 
 window.openDebugModal = async () => {
-  if (isHangaround()) return hangaroundBlockedMessage();
-
   const modal = $("debugModal");
   const adminBox = $("changelogAdminBox");
 
@@ -1340,6 +1377,7 @@ window.openMemberOnly = async () => {
   }
 
   window.showScreen("memberOnlyScreen");
+  await markMemberOnlyRead();
   startMemberOnlyListener();
 };
 
@@ -1440,6 +1478,10 @@ function startMemberOnlyListener() {
 function renderMemberOnlyMessages() {
   const list = $("memberOnlyMessages");
   if (!list) return;
+
+  if (isMemberOnlyVisible()) {
+    updateMemberOnlyBadge(0);
+  }
 
   if (!MEMBER_ONLY_MESSAGES_CACHE.length) {
     list.innerHTML = `
