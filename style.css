@@ -2162,3 +2162,13 @@ button:disabled {
     height: 230px;
   }
 }
+
+
+/* =====================================================
+   HANGAROUND MODE
+   Wenn app.js Buttons versteckt, bleibt Home sauber.
+===================================================== */
+
+#homeScreen .hidden {
+  display: none !important;
+}
