@@ -128,9 +128,19 @@ window.logout = async () => {
 ===================================================== */
 
 window.showScreen = (id) => {
+  if (!canAccessMainArea(id)) {
+    alert("Für Hangaround-Accounts ist nur der Kalender freigeschaltet.");
+    id = "calendarScreen";
+  }
+
   document.querySelectorAll(".container").forEach((s) => s.classList.add("hidden"));
   const target = $(id);
   if (target) target.classList.remove("hidden");
+
+  if (id === "calendarScreen" && CURRENT_UID) {
+    const monthInput = $("calMonthInput");
+    loadCalendarMonth(monthInput?.value || CALENDAR_CURRENT_MONTH);
+  }
 };
 
 window.backHome = () => window.showScreen("homeScreen");
@@ -153,8 +163,26 @@ function canManageCalendar() {
 }
 
 function applyRankRights() {
+  const debugButton = $("debugButton");
+  const infosBtn = $("infosNavBtn");
+  const calendarBtn = $("calendarNavBtn");
+  const memberOnlyBtn = $("memberOnlyBtn");
+  const settingsBtn = $("settingsBtn");
   const postInfoBtn = $("postInfoBtn");
-  if (postInfoBtn) postInfoBtn.classList.remove("hidden");
+
+  // Standard: alle Hauptbuttons sichtbar, sofern im HTML vorhanden.
+  [debugButton, infosBtn, calendarBtn, memberOnlyBtn, settingsBtn, postInfoBtn].forEach((el) => {
+    if (el) el.classList.remove("hidden");
+  });
+
+  // Hangaround: NUR Kalender + Logout sichtbar. Alles andere gesperrt.
+  if (isHangaroundAccount()) {
+    [debugButton, infosBtn, memberOnlyBtn, settingsBtn, postInfoBtn].forEach((el) => {
+      if (el) el.classList.add("hidden");
+    });
+
+    if (calendarBtn) calendarBtn.classList.remove("hidden");
+  }
 }
 
 /* =====================================================
@@ -188,6 +216,23 @@ function userNameByUid(uid) {
 
 function rankKey(rank = CURRENT_RANK) {
   return String(rank || "member").toLowerCase().trim();
+}
+
+function isHangaroundAccount() {
+  return rankKey() === "hangaround";
+}
+
+function isProspectAccount() {
+  return rankKey() === "prospect";
+}
+
+function canAccessMainArea(area) {
+  // Hangaround darf nur Kalender + Home + Logout/Login sehen.
+  if (isHangaroundAccount()) {
+    return ["homeScreen", "loginScreen", "calendarScreen"].includes(String(area || ""));
+  }
+
+  return true;
 }
 
 function memberOnlyAllowedRanks() {
@@ -850,6 +895,11 @@ function saveSettings() {
 }
 
 function openSettingsModal() {
+  if (isHangaroundAccount()) {
+    alert("Einstellungen sind für Hangaround-Accounts gesperrt. Es ist nur der Kalender freigeschaltet.");
+    return;
+  }
+
   const modal = $("settingsModal");
   if (!modal) return;
 
@@ -1214,6 +1264,11 @@ function bindUI() {
 ===================================================== */
 
 window.openInfoModal = async (infoId = null) => {
+  if (isHangaroundAccount()) {
+    alert("Infos sind für Hangaround-Accounts gesperrt. Es ist nur der Kalender freigeschaltet.");
+    return;
+  }
+
   const modal = $("infoModal");
   const title = $("infoModalTitle");
   const text = $("infoModalText");
@@ -1318,6 +1373,8 @@ window.deleteInfo = async (id) => {
 };
 
 async function loadInfos() {
+  if (isHangaroundAccount()) return;
+
   const infosList = $("infosList");
   if (!infosList) return;
 
@@ -1436,6 +1493,11 @@ function canEditChangelog() {
 }
 
 window.openDebugModal = async () => {
+  if (isHangaroundAccount()) {
+    alert("Beta/Updates sind für Hangaround-Accounts gesperrt. Es ist nur der Kalender freigeschaltet.");
+    return;
+  }
+
   const modal = $("debugModal");
   const adminBox = $("changelogAdminBox");
 
