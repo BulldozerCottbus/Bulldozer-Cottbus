@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
   <title>Chapter App</title>
-  <link rel="stylesheet" href="style.css?v=20260602_3">
+  <link rel="stylesheet" href="style.css?v=20260602_4">
 
   <!-- Favicon -->
   <link rel="icon" href="/Bulldozer-Cottbus/icons/favicon.ico" sizes="any">
@@ -49,7 +49,10 @@
     <button id="debugButton" type="button">BETA 1.0.0</button>
     <button type="button" onclick="window.showScreen('infos')">📢 Infos</button>
     <button id="calendarNavBtn" type="button">📅 Kalender</button>
-    <button id="memberOnlyBtn" type="button">🔒 Member Only</button>
+    <button id="memberOnlyBtn" type="button" class="member-only-nav-btn">
+      🔒 Member Only
+      <span id="memberOnlyBadge" class="member-only-badge hidden"></span>
+    </button>
     <button id="settingsBtn" type="button" class="navBtn">⚙️ Einstellungen</button>
     <button type="button" onclick="window.logout()">🚪 Logout</button>
   </div>
@@ -268,9 +271,11 @@
 <div class="container hidden" id="memberOnlyScreen">
   <div class="card member-only-shell">
     <div class="member-only-head">
-      <div>
-        <h3>🔒 Member Only</h3>
-        <div class="small-note">Interner Gruppenchat ab Member. Hangaround und Prospect sind gesperrt.</div>
+      <button type="button" class="mo-back-mini" onclick="window.backHome()">⬅</button>
+
+      <div class="mo-chat-title">
+        <h3>Member Only</h3>
+        <div class="small-note">Interner Chat</div>
       </div>
 
       <button id="memberOnlyMenuBtn" type="button" class="mo-menu-btn" aria-label="Erkannte Inhalte">⋮</button>
@@ -281,21 +286,19 @@
     </div>
 
     <div id="memberOnlyComposer" class="member-only-composer">
-      <textarea id="memberOnlyText" placeholder="Nachricht schreiben... Emoji-Tastatur funktioniert normal 😊"></textarea>
-
       <div id="memberOnlyImagePreview"></div>
 
       <div class="member-only-send-row">
-        <label class="mo-file-btn">
-          🖼️ Bild
+        <label class="mo-file-btn" aria-label="Bild senden">
+          🖼️
           <input id="memberOnlyImageInput" type="file" accept="image/*">
         </label>
 
-        <button id="memberOnlySendBtn" type="button">Senden</button>
+        <textarea id="memberOnlyText" placeholder="Nachricht schreiben..."></textarea>
+
+        <button id="memberOnlySendBtn" type="button" aria-label="Senden">➤</button>
       </div>
     </div>
-
-    <button type="button" onclick="window.backHome()">⬅ Zurück</button>
   </div>
 </div>
 
@@ -511,7 +514,7 @@
   ⬅
 </button>
 
-<script type="module" src="app.js?v=20260602_3"></script>
+<script type="module" src="app.js?v=20260602_4"></script>
 
 <!-- Service Worker Registrierung -->
 <script>
