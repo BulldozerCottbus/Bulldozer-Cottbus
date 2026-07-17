@@ -1,10 +1,11 @@
-const CACHE = "bulldozer-cache-v2";
+const CACHE = "bulldozer-full-v1-performance-20260717";
 const BASE = "/Bulldozer-Cottbus/";
 
 const PRECACHE = [
   BASE,
   BASE + "index.html",
   BASE + "manifest.webmanifest",
+  BASE + "icons/bulldozer-background-v2.png",
   BASE + "icons/icon-192.png",
   BASE + "icons/icon-512.png"
 ];
