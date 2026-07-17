@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
-  <title>Chapter App</title>
-  <link rel="stylesheet" href="style.css?v=20260603_1">
+  <title>Bulldozer Cottbus</title>
+  <link rel="stylesheet" href="style.css?v=20260717_2">
 
   <!-- Favicon -->
   <link rel="icon" href="/Bulldozer-Cottbus/icons/favicon.ico" sizes="any">
@@ -46,13 +46,9 @@
 <!-- HOME -->
 <div class="container hidden" id="homeScreen">
   <div class="card">
-    <button id="debugButton" type="button">BETA 1.0.0</button>
+    <button id="debugButton" type="button">VOLLVERSION 1.0.0</button>
     <button id="infosNavBtn" type="button" onclick="window.showScreen('infos')">📢 Infos</button>
     <button id="calendarNavBtn" type="button">📅 Kalender</button>
-    <button id="memberOnlyBtn" type="button" class="member-only-nav-btn">
-      🔒 Member Only
-      <span id="memberOnlyBadge" class="member-only-badge hidden"></span>
-    </button>
     <button id="settingsBtn" type="button" class="navBtn">⚙️ Einstellungen</button>
     <button type="button" onclick="window.logout()">🚪 Logout</button>
   </div>
@@ -267,67 +263,36 @@
 </div>
 
 
-<!-- MEMBER ONLY SCREEN -->
-<div class="container hidden" id="memberOnlyScreen">
-  <div class="card member-only-shell">
-    <div class="member-only-head">
-      <button type="button" class="mo-back-mini" onclick="window.backHome()">⬅</button>
-
-      <div class="mo-chat-title">
-        <h3>Member Only</h3>
-        <div class="small-note">Interner Chat</div>
-      </div>
-
-      <button id="memberOnlyMenuBtn" type="button" class="mo-menu-btn" aria-label="Erkannte Inhalte">⋮</button>
-    </div>
-
-    <div id="memberOnlyMessages" class="member-only-messages">
-      <div class="card">Lade...</div>
-    </div>
-
-    <div id="memberOnlyComposer" class="member-only-composer">
-      <div id="memberOnlyImagePreview"></div>
-
-      <div class="member-only-send-row">
-        <label class="mo-file-btn" aria-label="Bild senden">
-          🖼️
-          <input id="memberOnlyImageInput" type="file" accept="image/*">
-        </label>
-
-        <textarea id="memberOnlyText" placeholder="Nachricht schreiben..."></textarea>
-
-        <button id="memberOnlySendBtn" type="button" aria-label="Senden">➤</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- MEMBER ONLY ERKANNTE INHALTE MODAL -->
-<div id="memberOnlyRecognizedModal" class="modal hidden">
-  <div class="modal-backdrop" onclick="window.closeMemberOnlyRecognizedModal()"></div>
-
-  <div class="modal-card card">
-    <h3>⋮ Erkannte Inhalte</h3>
-    <div class="small-note">
-      Hier werden Telefonnummern, E-Mails, Adressen, Links und Bilder aus den Nachrichten gesammelt.
-    </div>
-
-    <div id="memberOnlyRecognizedContent" style="margin-top:10px;"></div>
-
-    <button type="button" class="gray" onclick="window.closeMemberOnlyRecognizedModal()">Schließen</button>
-  </div>
-</div>
-
-
 <!-- CALENDAR SCREEN -->
 <div class="container hidden" id="calendarScreen">
-  <div class="card">
-    <h3>📅 Kalender</h3>
+  <div class="card calendar-shell">
+    <div class="calendar-hero">
+      <div>
+        <div class="eyebrow">BULLDOZER · TERMINZENTRALE</div>
+        <h3>📅 Club-Kalender</h3>
+        <p>Ausfahrten, Sitzungen und Termine auf einen Blick.</p>
+      </div>
+      <button type="button" id="calTodayBtn" class="calendar-today-btn">Heute</button>
+    </div>
 
-    <div class="row">
+    <div class="calendar-stats" aria-label="Monatsübersicht">
+      <div><strong id="calStatTotal">0</strong><span>Termine</span></div>
+      <div><strong id="calStatOpen">0</strong><span>Noch offen</span></div>
+      <div><strong id="calStatMine">0</strong><span>Beantwortet</span></div>
+      <div><strong id="calStatRequired">0</strong><span>Pflicht</span></div>
+    </div>
+
+    <div class="row calendar-toolbar">
       <button type="button" id="calPrevMonthBtn" class="gray">⬅ Monat zurück</button>
       <input id="calMonthInput" type="month">
       <button type="button" id="calNextMonthBtn" class="gray">Monat vor ➡</button>
+    </div>
+
+    <div class="calendar-filterbar" role="group" aria-label="Termine filtern">
+      <button type="button" class="cal-filter active" data-cal-filter="all">Alle</button>
+      <button type="button" class="cal-filter" data-cal-filter="open">Offen</button>
+      <button type="button" class="cal-filter" data-cal-filter="mine">Meine</button>
+      <button type="button" class="cal-filter" data-cal-filter="required">Pflicht</button>
     </div>
 
     <div class="card">
@@ -359,6 +324,7 @@
       <div><b>Ausfahrt nach / Termin:</b> <span id="calReadDestination">-</span></div>
       <div><b>Uhrzeit:</b> <span id="calReadTime">-</span></div>
       <div><b>Treffpunkt:</b> <span id="calReadMeetPoint">-</span></div>
+      <div><b>Ansprechpartner:</b> <span id="calReadContact">-</span></div>
       <div><b>Kosten:</b> <span id="calReadCost">-</span></div>
       <div><b>Typ:</b> <span id="calReadType">-</span></div>
       <div><b>Status:</b> <span id="calReadStatus">-</span></div>
@@ -385,6 +351,7 @@
       <input id="calDestination" placeholder="Ausfahrt nach / Termin">
       <div class="row">
         <input id="calTime" type="time">
+        <input id="calEndTime" type="time" aria-label="Endzeit" title="Endzeit">
         <input id="calCost" type="number" step="0.01" placeholder="Kosten €">
       </div>
 
@@ -404,8 +371,12 @@
         <option value="ausfahrt">Ausfahrt</option>
         <option value="treffen">Treffen</option>
         <option value="tour">Tour</option>
+        <option value="sitzung">Sitzung</option>
+        <option value="aktion">Club-Aktion</option>
         <option value="sonstiges">Sonstiges</option>
       </select>
+
+      <input id="calContact" placeholder="Ansprechpartner / Kontakt">
 
       <textarea id="calNote" placeholder="Notiz / Hinweise / was wichtig ist..."></textarea>
 
@@ -485,26 +456,6 @@
         </div>
       </div>
 
-      <div class="card member-only-settings-card" style="margin-top:10px;">
-        <h4>🔒 Member Only Profil</h4>
-        <div class="readonly-hint">
-          Pflicht: Ohne Namen kommst du nicht in Member Only rein. Der Name kann nur einmal pro Woche geändert werden.
-        </div>
-
-        <div id="memberOnlyProfilePreview" class="mo-profile-preview"></div>
-
-        <label class="field-label" for="memberOnlyNameInput">Name für Member Only</label>
-        <input id="memberOnlyNameInput" maxlength="32" placeholder="Dein Anzeigename">
-
-        <div id="memberOnlyNameHint" class="readonly-hint"></div>
-
-        <button id="memberOnlyNameSaveBtn" type="button">💾 Namen speichern</button>
-
-        <label class="field-label" for="memberOnlyPhotoInput">Profilbild</label>
-        <input id="memberOnlyPhotoInput" type="file" accept="image/*">
-        <div class="readonly-hint">Das Bild wird automatisch verkleinert und klein neben deinen Nachrichten angezeigt.</div>
-      </div>
-
     </div>
   </div>
 </div>
@@ -514,7 +465,7 @@
   ⬅
 </button>
 
-<script type="module" src="app.js?v=20260603_1"></script>
+<script type="module" src="app.js?v=20260717_1"></script>
 
 <!-- Service Worker Registrierung -->
 <script>
